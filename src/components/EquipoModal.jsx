@@ -9,7 +9,11 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
     modelo: "",
     problema: "",
     clienteId: "",
+    fechaIngreso: "",
+    presupuesto: ""
   });
+
+
 
   useEffect(() => {
     if (equipoSeleccionado) {
@@ -19,6 +23,8 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
         modelo: equipoSeleccionado.modelo,
         problema: equipoSeleccionado.problema,
         clienteId: equipoSeleccionado.clienteId,
+        fechaIngreso: equipoSeleccionado.fechaIngreso,
+        presupuesto: equipoSeleccionado.presupuesto || ""
       });
     } else {
       setFormData({
@@ -27,6 +33,8 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
         modelo: "",
         problema: "",
         clienteId: "",
+        fechaIngreso: "",
+        presupuesto: "",
       });
     }
   }, [equipoSeleccionado]);
@@ -35,6 +43,7 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
+
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -107,6 +116,34 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
               </option>
             ))}
           </select>
+          <div className="mb-4">
+            <label htmlFor="fechaIngreso" className="block text-sm font-medium text-white mb-1">
+              Fecha de ingreso
+            </label>
+            <input
+              type="date"
+              id="fechaIngreso"
+              name="fechaIngreso"
+              value={formData.fechaIngreso}
+              onChange={handleChange}
+              className="w-full bg-neutral-700 text-white p-2 rounded"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-white mb-1">
+              Presupuesto de reparación (opcional)
+            </label>
+            <input
+              type="number"
+              name="presupuesto"
+              value={formData.presupuesto || ''}
+              onChange={handleChange}
+              placeholder="Ej: 15000"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-orange-500"
+            />
+          </div>
+
+
 
           <div className="flex justify-end gap-3 mt-4">
             <button
@@ -123,6 +160,8 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
               {equipoSeleccionado ? "Guardar Cambios" : "Agregar"}
             </button>
           </div>
+
+
         </form>
       </div>
     </div>
