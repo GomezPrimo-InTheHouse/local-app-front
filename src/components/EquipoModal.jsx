@@ -1,16 +1,19 @@
 // src/components/equipos/EquipoModal.jsx
 
 import { useEffect, useState } from "react";
+import PatronInput from "./PatronInput.jsx"; 
 
 const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }) => {
   const [formData, setFormData] = useState({
     tipo: "",
     marca: "",
     modelo: "",
+    password: "",
     problema: "",
     clienteId: "",
     fechaIngreso: "",
-    presupuesto: ""
+    presupuesto: "",
+    patron: ""
   });
 
 
@@ -24,17 +27,22 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
         problema: equipoSeleccionado.problema,
         clienteId: equipoSeleccionado.clienteId,
         fechaIngreso: equipoSeleccionado.fechaIngreso,
-        presupuesto: equipoSeleccionado.presupuesto || ""
+        presupuesto: equipoSeleccionado.presupuesto || "",
+        password: equipoSeleccionado.password || "",
+        patron: equipoSeleccionado.patron || ""
       });
     } else {
       setFormData({
         tipo: "",
         marca: "",
         modelo: "",
+        password: "",
         problema: "",
         clienteId: "",
         fechaIngreso: "",
         presupuesto: "",
+        patron: ""
+      
       });
     }
   }, [equipoSeleccionado]);
@@ -46,7 +54,8 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
 
 
   const handleSubmit = (e) => {
-    e.preventDefault();
+    console.log(formData)
+    e?.preventDefault?.();
     onSubmit(formData); // manejar alta o modificación desde EquiposPage.jsx
     onClose();
   };
@@ -54,8 +63,9 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
   if (!isOpen) return null;
 
   return (
+    
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-      <div className="bg-neutral-800 p-6 rounded-xl w-full max-w-lg shadow-lg text-neutral-100">
+      <div className="bg-neutral-800 p-6 rounded-xl w-full max-w-lg shadow-lg text-neutral-100  max-h-[80vh] overflow-y-auto p-4">
         <h2 className="text-xl font-semibold mb-4">
           {equipoSeleccionado ? "Modificar Equipo" : "Agregar Nuevo Equipo"}
         </h2>
@@ -94,6 +104,15 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
             className="w-full bg-neutral-700 text-white p-2 rounded"
             required
           />
+           <input
+            type="text"
+            name="password"
+            placeholder="Password "
+            value={formData.password}
+            onChange={handleChange}
+            className="w-full bg-neutral-700 text-white p-2 rounded"
+            required
+          />
           <textarea
             name="problema"
             placeholder="Inconveniente / Problema"
@@ -116,6 +135,7 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
               </option>
             ))}
           </select>
+          
           <div className="mb-4">
             <label htmlFor="fechaIngreso" className="block text-sm font-medium text-white mb-1">
               Fecha de ingreso
@@ -142,6 +162,18 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-orange-500"
             />
           </div>
+          <div className="mb-4">
+          <label className="block text-sm font-medium text-white mb-1">
+            Patrón de desbloqueo
+          </label>
+          <PatronInput
+            value={formData.patron || ""}
+            onChange={(nuevoPatron) =>
+              setFormData({ ...formData, patron: nuevoPatron })
+            }
+          />
+        </div>
+
 
 
 
@@ -169,3 +201,4 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
 };
 
 export default EquipoModal;
+
