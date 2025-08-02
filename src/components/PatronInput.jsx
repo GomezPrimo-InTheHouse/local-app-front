@@ -37,6 +37,7 @@ export default function PatronInput({ value, onChange }) {
         Patrón: {seleccionados.join("-") || "ninguno"}
       </div>
       <button
+      type="button"
         onClick={handleReset}
         className="mt-1 px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-500"
       >

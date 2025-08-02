@@ -10,9 +10,9 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
     modelo: "",
     password: "",
     problema: "",
-    clienteId: "",
-    fechaIngreso: "",
-    presupuesto: "",
+    cliente_id: "",
+    fecha_ingreso: "",
+    presupuesto: 0,
     patron: ""
   });
 
@@ -25,9 +25,11 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
         marca: equipoSeleccionado.marca,
         modelo: equipoSeleccionado.modelo,
         problema: equipoSeleccionado.problema,
-        clienteId: equipoSeleccionado.clienteId,
-        fechaIngreso: equipoSeleccionado.fechaIngreso,
-        presupuesto: equipoSeleccionado.presupuesto || "",
+        cliente_id: equipoSeleccionado.cliente_id,
+        fecha_ingreso: equipoSeleccionado.fecha_ingreso 
+        ? new Date(equipoSeleccionado.fecha_ingreso).toISOString().split("T")[0] 
+        : "", // 🔹 convertir a YYYY-MM-DD
+        presupuesto: equipoSeleccionado.presupuesto || 0,
         password: equipoSeleccionado.password || "",
         patron: equipoSeleccionado.patron || ""
       });
@@ -38,9 +40,9 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
         modelo: "",
         password: "",
         problema: "",
-        clienteId: "",
-        fechaIngreso: "",
-        presupuesto: "",
+        cliente_id: "",
+        fecha_ingreso: "",
+        presupuesto: 0,
         patron: ""
       
       });
@@ -81,6 +83,7 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
             <option value="">Tipo de equipo</option>
             <option value="celular">Celular</option>
             <option value="notebook">Notebook</option>
+            <option value="pc">PC</option>
             <option value="consola">Consola</option>
             <option value="tablet">Tablet</option>
             <option value="otro">Otro</option>
@@ -122,8 +125,8 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
             required
           />
           <select
-            name="clienteId"
-            value={formData.clienteId}
+            name="cliente_id"
+            value={formData.cliente_id}
             onChange={handleChange}
             className="w-full bg-neutral-700 text-white p-2 rounded"
             required
@@ -137,14 +140,14 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
           </select>
           
           <div className="mb-4">
-            <label htmlFor="fechaIngreso" className="block text-sm font-medium text-white mb-1">
+            <label htmlFor="fecha_ingreso" className="block text-sm font-medium text-white mb-1">
               Fecha de ingreso
             </label>
             <input
               type="date"
-              id="fechaIngreso"
-              name="fechaIngreso"
-              value={formData.fechaIngreso}
+              id="fecha_ingreso"
+              name="fecha_ingreso"
+              value={formData.fecha_ingreso}
               onChange={handleChange}
               className="w-full bg-neutral-700 text-white p-2 rounded"
             />
@@ -156,23 +159,29 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
             <input
               type="number"
               name="presupuesto"
-              value={formData.presupuesto || ''}
+              value={formData.presupuesto || 0}
               onChange={handleChange}
               placeholder="Ej: 15000"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-orange-500"
             />
           </div>
-          <div className="mb-4">
-          <label className="block text-sm font-medium text-white mb-1">
-            Patrón de desbloqueo
-          </label>
-          <PatronInput
-            value={formData.patron || ""}
-            onChange={(nuevoPatron) =>
-              setFormData({ ...formData, patron: nuevoPatron })
-            }
-          />
-        </div>
+          {
+            /* Componente PatronInput para seleccionar el patrón si el tipo == celular */
+            formData.tipo === "celular" && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-white mb-1">
+                    Patrón de desbloqueo
+                  </label>
+                  <PatronInput
+                    value={formData.patron || ""}
+                    onChange={(nuevoPatron) =>
+                      setFormData({ ...formData, patron: nuevoPatron })
+                    }
+                  />
+                </div>
+            )
+          }
+        
 
 
 
