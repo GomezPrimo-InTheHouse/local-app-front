@@ -1,9 +1,8 @@
-// src/components/equipos/EquipoModal.jsx
-
 import { useEffect, useState } from "react";
 import PatronInput from "./PatronInput.jsx"; 
+import { getClientes } from "../api/ClienteApi";
 
-const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }) => {
+const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
   const [formData, setFormData] = useState({
     tipo: "",
     marca: "",
@@ -16,23 +15,49 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
     patron: ""
   });
 
+  const [clientes, setClientes] = useState([]);
+  const [search, setSearch] = useState("");
+  const [filteredClientes, setFilteredClientes] = useState([]);
+  const [selectedCliente, setSelectedCliente] = useState(null);
+  const [showDropdown, setShowDropdown] = useState(false); // 🔹 Nuevo estado
 
+  // Cargar clientes desde la API
+  useEffect(() => {
+    if (isOpen) {
+      getClientes()
+        .then((res) => {
+          setClientes(res);
+          setFilteredClientes(res);
+        })
+        .catch((err) => console.error("Error cargando clientes:", err));
+    }
+  }, [isOpen]);
 
+  // Cargar datos si se está modificando
   useEffect(() => {
     if (equipoSeleccionado) {
       setFormData({
         tipo: equipoSeleccionado.tipo,
         marca: equipoSeleccionado.marca,
         modelo: equipoSeleccionado.modelo,
-        problema: equipoSeleccionado.problema,
-        cliente_id: equipoSeleccionado.cliente_id,
-        fecha_ingreso: equipoSeleccionado.fecha_ingreso 
-        ? new Date(equipoSeleccionado.fecha_ingreso).toISOString().split("T")[0] 
-        : "", // 🔹 convertir a YYYY-MM-DD
-        presupuesto: equipoSeleccionado.presupuesto || 0,
         password: equipoSeleccionado.password || "",
+        problema: equipoSeleccionado.problema,
+        cliente_id: equipoSeleccionado.cliente_id || "",
+        fecha_ingreso: equipoSeleccionado.fecha_ingreso
+          ? new Date(equipoSeleccionado.fecha_ingreso).toISOString().split("T")[0]
+          : "",
+        presupuesto: equipoSeleccionado.presupuesto || 0,
         patron: equipoSeleccionado.patron || ""
       });
+
+      // Mostrar el cliente actual seleccionado en el input
+      if (equipoSeleccionado.cliente_id) {
+        const clienteSel = clientes.find(c => c.id === equipoSeleccionado.cliente_id);
+        if (clienteSel) {
+          setSelectedCliente(clienteSel);
+          setSearch(`${clienteSel.nombre} ${clienteSel.apellido}`);
+        }
+      }
     } else {
       setFormData({
         tipo: "",
@@ -44,35 +69,67 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
         fecha_ingreso: "",
         presupuesto: 0,
         patron: ""
-      
       });
+      setSelectedCliente(null);
+      setSearch("");
     }
-  }, [equipoSeleccionado]);
+  }, [equipoSeleccionado, clientes]);
+
+  // Filtrar clientes al escribir
+  useEffect(() => {
+    if (search.trim() === "") {
+      setFilteredClientes(clientes);
+    } else {
+      const query = search.toLowerCase();
+      setFilteredClientes(
+        clientes.filter(
+          (c) =>
+            c.nombre.toLowerCase().includes(query) ||
+            c.apellido.toLowerCase().includes(query) ||
+            (c.celular && c.celular.includes(query))
+        )
+      );
+    }
+  }, [search, clientes]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleSelectCliente = (cliente) => {
+    setSelectedCliente(cliente);
+    setFormData((prev) => ({ ...prev, cliente_id: cliente.id }));
+    setSearch(`${cliente.nombre} ${cliente.apellido}`);
+    setShowDropdown(false); // 🔹 Ocultar al seleccionar
+  };
 
   const handleSubmit = (e) => {
-    console.log(formData)
-    e?.preventDefault?.();
-    onSubmit(formData); // manejar alta o modificación desde EquiposPage.jsx
+    e.preventDefault();
+    if (!formData.tipo || !formData.marca || !formData.modelo || !formData.problema) {
+      alert("Por favor complete los campos obligatorios (*)");
+      return;
+    }
+    if (!formData.cliente_id) {
+      alert("Debe seleccionar un cliente.");
+      return;
+    }
+
+    onSubmit(formData);
     onClose();
   };
 
   if (!isOpen) return null;
 
   return (
-    
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-      <div className="bg-neutral-800 p-6 rounded-xl w-full max-w-lg shadow-lg text-neutral-100  max-h-[80vh] overflow-y-auto p-4">
+      <div className="bg-neutral-800 p-6 rounded-xl w-full max-w-lg shadow-lg text-neutral-100 max-h-[80vh] overflow-y-auto p-4">
         <h2 className="text-xl font-semibold mb-4">
           {equipoSeleccionado ? "Modificar Equipo" : "Agregar Nuevo Equipo"}
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Tipo de equipo */}
           <select
             name="tipo"
             value={formData.tipo}
@@ -80,7 +137,7 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
             className="w-full bg-neutral-700 text-white p-2 rounded"
             required
           >
-            <option value="">Tipo de equipo</option>
+            <option value="">Tipo de equipo *</option>
             <option value="celular">Celular</option>
             <option value="notebook">Notebook</option>
             <option value="pc">PC</option>
@@ -89,10 +146,11 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
             <option value="otro">Otro</option>
           </select>
 
+          {/* Marca y modelo */}
           <input
             type="text"
             name="marca"
-            placeholder="Marca"
+            placeholder="Marca *"
             value={formData.marca}
             onChange={handleChange}
             className="w-full bg-neutral-700 text-white p-2 rounded"
@@ -101,45 +159,62 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
           <input
             type="text"
             name="modelo"
-            placeholder="Modelo"
+            placeholder="Modelo *"
             value={formData.modelo}
             onChange={handleChange}
             className="w-full bg-neutral-700 text-white p-2 rounded"
             required
           />
-           <input
+
+          {/* Password */}
+          <input
             type="text"
             name="password"
-            placeholder="Password "
+            placeholder="Password"
             value={formData.password}
             onChange={handleChange}
             className="w-full bg-neutral-700 text-white p-2 rounded"
-            required
           />
+
+          {/* Problema */}
           <textarea
             name="problema"
-            placeholder="Inconveniente / Problema"
+            placeholder="Inconveniente / Problema *"
             value={formData.problema}
             onChange={handleChange}
             className="w-full bg-neutral-700 text-white p-2 rounded"
             required
           />
-          <select
-            name="cliente_id"
-            value={formData.cliente_id}
-            onChange={handleChange}
-            className="w-full bg-neutral-700 text-white p-2 rounded"
-            required
-          >
-            <option value="">Seleccionar cliente</option>
-            {clientes.map(cliente => (
-              <option key={cliente.id} value={cliente.id}>
-                {cliente.nombre} {cliente.apellido}
-              </option>
-            ))}
-          </select>
-          
-          <div className="mb-4">
+
+          {/* 🔹 Buscador de clientes */}
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Buscar cliente por nombre o celular *"
+              value={search}
+              onFocus={() => setShowDropdown(true)}   // 🔹 Solo al hacer focus
+              onBlur={() => setTimeout(() => setShowDropdown(false), 200)} // 🔹 Oculta tras perder foco
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-neutral-700 text-white p-2 rounded"
+              required
+            />
+            {showDropdown && filteredClientes.length > 0 && (
+              <ul className="absolute z-50 bg-neutral-700 w-full mt-1 rounded max-h-40 overflow-y-auto shadow-lg">
+                {filteredClientes.map((cliente) => (
+                  <li
+                    key={cliente.id}
+                    onClick={() => handleSelectCliente(cliente)}
+                    className="px-3 py-2 hover:bg-neutral-600 cursor-pointer"
+                  >
+                    {cliente.nombre} {cliente.apellido} - {cliente.celular}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Fecha ingreso */}
+          <div>
             <label htmlFor="fecha_ingreso" className="block text-sm font-medium text-white mb-1">
               Fecha de ingreso
             </label>
@@ -152,7 +227,9 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
               className="w-full bg-neutral-700 text-white p-2 rounded"
             />
           </div>
-          <div className="mb-4">
+
+          {/* Presupuesto */}
+          <div>
             <label className="block text-sm font-medium text-white mb-1">
               Presupuesto de reparación (opcional)
             </label>
@@ -162,30 +239,26 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
               value={formData.presupuesto || 0}
               onChange={handleChange}
               placeholder="Ej: 15000"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-orange-500"
+              className="w-full bg-neutral-700 text-white p-2 rounded"
             />
           </div>
-          {
-            /* Componente PatronInput para seleccionar el patrón si el tipo == celular */
-            formData.tipo === "celular" && (
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-white mb-1">
-                    Patrón de desbloqueo
-                  </label>
-                  <PatronInput
-                    value={formData.patron || ""}
-                    onChange={(nuevoPatron) =>
-                      setFormData({ ...formData, patron: nuevoPatron })
-                    }
-                  />
-                </div>
-            )
-          }
-        
 
+          {/* Patrón de desbloqueo solo si es celular */}
+          {formData.tipo === "celular" && (
+            <div>
+              <label className="block text-sm font-medium text-white mb-1">
+                Patrón de desbloqueo
+              </label>
+              <PatronInput
+                value={formData.patron || ""}
+                onChange={(nuevoPatron) =>
+                  setFormData({ ...formData, patron: nuevoPatron })
+                }
+              />
+            </div>
+          )}
 
-
-
+          {/* Botones */}
           <div className="flex justify-end gap-3 mt-4">
             <button
               type="button"
@@ -201,8 +274,6 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
               {equipoSeleccionado ? "Guardar Cambios" : "Agregar"}
             </button>
           </div>
-
-
         </form>
       </div>
     </div>
@@ -210,4 +281,3 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado, clientes }
 };
 
 export default EquipoModal;
-

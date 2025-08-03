@@ -37,3 +37,8 @@ export const getEquiposByTipo = async (tipo) => {
   const res = await axios.get(`${API_URL}/tipo/${tipo}`);
   return res.data?.data || []; // Aseguramos que siempre sea un array
 };
+
+export const getEquiposByClienteId = async (clienteId) => {
+  const res = await axios.get(`${API_URL}/cliente/${clienteId}`);
+  return res.data?.data; // Dependiendo de tu backend: { status, data }
+};

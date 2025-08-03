@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import EquipoModal from '../components/EquipoModal.jsx';
 import { getEquipos, createEquipo, updateEquipo, deleteEquipo, getEquiposByTipo } from '../api/EquiposApi.jsx';
+import SidebarEquipos from "../components/SidebarEquipos.jsx";
+import BuscadorComponent from "../components/BuscadorComponent.jsx";
+import { getEquiposByClienteId } from "../api/EquiposApi.jsx";
+import CargaPresupuestoModal from "../components/CargaPresupuestoModal.jsx";
 
 const EquipoPage = () => {
   const [filtro, setFiltro] = useState("todos"); // 🔹 nuevo estado para f
@@ -9,11 +12,9 @@ const EquipoPage = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [equipoSeleccionado, setEquipoSeleccionado] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const clientesMock = [
-    { id: 1, nombre: 'Juan', apellido: 'Pérez' },
-    { id: 2, nombre: 'Ana', apellido: 'Torres' },
-  ];
+  const [isPresupuestoOpen, setIsPresupuestoOpen] = useState(false);
+  const [equipoPresupuesto, setEquipoPresupuesto] = useState(null);
+    
 
   // 🔹 Obtener todos los equipos al montar el componente
   useEffect(() => {
@@ -71,7 +72,22 @@ const EquipoPage = () => {
     }
   };
 
- 
+  
+ // Abrir modal
+const handleAgregarPresupuesto = (equipo) => {
+  setEquipoPresupuesto(equipo);
+  setIsPresupuestoOpen(true);
+};
+
+// Guardar presupuesto
+const handleSubmitPresupuesto = async (formData) => {
+  try {
+    await createPresupuesto(formData);
+    alert("Presupuesto cargado correctamente");
+  } catch (error) {
+    console.error("Error guardando presupuesto:", error);
+  }
+};
 
 
   // 🔹 Manejar filtro desde backend
@@ -97,123 +113,124 @@ const EquipoPage = () => {
     }
   };
 
+  
+
 
   return (
-    <div className="flex h-screen w-screen bg-neutral-900 text-white overflow-hidden">
-      {/* Columna izquierda 30% */}
-      <div className="w-[30%] border-r border-neutral-700 p-6 flex flex-col">
-        <Link
-          to="/"
-          className="inline-block mb-4 text-sm text-emerald-400 hover:text-emerald-200 underline"
-        >
-          ← Volver al Dashboard
-        </Link>
+    <div className="flex flex-col md:flex-row h-screen w-screen bg-neutral-900 text-white overflow-hidden">
+  {/* Columna izquierda 30% */}
+  
+
+    <SidebarEquipos
+      filtro={filtro}
+      handleFiltro={handleFiltro}
+      handleAgregar={handleAgregar}
+    />
+  
+
+  {/* Columna derecha 70% */}
+  <div className="w-full md:w-[70%] p-6 overflow-y-auto">
+    <h3 className="text-xl font-semibold mb-4">Lista de Equipos</h3>
+     {/* 🔹 Buscador por cliente */}
+  <BuscadorComponent
+  onBuscar={async (clienteId) => {
+    setLoading(true);
+
+    if (!clienteId) {
+      // 🔹 Si es null → cargar todos los equipos
+      const data = await getEquipos();
+      setEquipos(Array.isArray(data) ? data : []);
+    } else {
+      const data = await getEquiposByClienteId(clienteId);
+      setEquipos(Array.isArray(data) ? data : []);
+    }
+
+    setLoading(false);
+  }}
+/>
 
 
-        <h2 className="text-2xl font-bold text-emerald-400 mb-4">
-          Gestión de Equipos
-        </h2>
-        <h2 className="text-xl font-bold text-emerald-400 mb-4">Filtros</h2>
+    {loading ? (
+      <p className="text-gray-400">Cargando equipos...</p>
+    ) : !Array.isArray(equipos) || equipos.length === 0 ? (
+      <p className="text-gray-400">Aún no hay equipos cargados.</p>
+    ) : (
+      Object.entries(
+        equipos.reduce((grupos, eq) => {
+          const fecha = eq.fecha_ingreso ? new Date(eq.fecha_ingreso) : null;
+          const key = fecha
+            ? `${fecha.toLocaleString("es-AR", { month: "long" })} ${fecha.getFullYear()}`
+            : "Sin fecha";
+          if (!grupos[key]) grupos[key] = [];
+          grupos[key].push(eq);
+          return grupos;
+        }, {})
+      ).map(([mes, equiposMes]) => (
+        <div key={mes} className="mb-6">
+          {/* Divisor de mes */}
+          <div className="border-b border-gray-600 my-4">
+            <h4 className="text-lg font-semibold text-gray-300 capitalize">
+              {mes}
+            </h4>
+          </div>
 
-        <div className="flex flex-col gap-3 mb-8">
-          {["todos", "celular", "notebook","PC",  "otros"].map((tipo) => (
-            <button
-              key={tipo}
-              onClick={() => handleFiltro(tipo)}
-              className={`px-4 py-2 rounded font-semibold ${filtro === tipo
-                  ? "bg-emerald-600"
-                  : "bg-neutral-700 hover:bg-neutral-600"
-                }`}
-            >
-              {tipo.charAt(0).toUpperCase() + tipo.slice(1)}
-            </button>
-          ))}
-        </div>
+          <ol className="space-y-4 list-decimal list-inside">
+            {equiposMes.map((eq) => {
+              const fechaFormateada = eq.fecha_ingreso
+                ? new Date(eq.fecha_ingreso).toLocaleDateString("es-AR", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                  })
+                : "Sin fecha";
 
-
-        <button
-          onClick={handleAgregar}
-          className="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded font-semibold"
-        >
-          + Agregar Equipo
-        </button>
-      </div>
-
-      {/* Columna derecha 70% */}
-      {/* Columna derecha 70% */}
-<div className="w-[70%] p-6 overflow-y-auto">
-  <h3 className="text-xl font-semibold mb-4">Lista de Equipos</h3>
-
-  {loading ? (
-    <p className="text-gray-400">Cargando equipos...</p>
-  ) : !Array.isArray(equipos) || equipos.length === 0 ? (
-    <p className="text-gray-400">Aún no hay equipos cargados.</p>
-  ) : (
-    Object.entries(
-      equipos.reduce((grupos, eq) => {
-        const fecha = eq.fecha_ingreso ? new Date(eq.fecha_ingreso) : null;
-        const key = fecha
-          ? `${fecha.toLocaleString("es-AR", { month: "long" })} ${fecha.getFullYear()}`
-          : "Sin fecha";
-        if (!grupos[key]) grupos[key] = [];
-        grupos[key].push(eq);
-        return grupos;
-      }, {})
-    ).map(([mes, equiposMes]) => (
-      <div key={mes} className="mb-6">
-        {/* Divisor de mes */}
-        <div className="border-b border-gray-600 my-4">
-          <h4 className="text-lg font-semibold text-gray-300 capitalize">
-            {mes}
-          </h4>
-        </div>
-
-        <ol className="space-y-4 list-decimal list-inside">
-          {equiposMes.map((eq) => {
-            const fechaFormateada = eq.fecha_ingreso
-              ? new Date(eq.fecha_ingreso).toLocaleDateString("es-AR", {
-                  year: "numeric",
-                  month: "2-digit",
-                  day: "2-digit",
-                })
-              : "Sin fecha";
-
-            return (
-              <li
-                key={eq.id}
-                className="bg-neutral-800 p-4 rounded shadow flex justify-between items-center"
-              >
-                <div>
-                  <p className="font-semibold text-white">
-                    {eq.tipo?.toUpperCase()} - {eq.marca} {eq.modelo}
-                  </p>
-                  <p className="text-sm text-gray-400">{eq.problema}</p>
-                  <p className="text-sm text-gray-500">
-                    Ingreso: {fechaFormateada}
-                  </p>
-                </div>
-                <div className="flex gap-2">
+              return (
+                <li
+                  key={eq.id}
+                  className="bg-neutral-800 p-4 rounded shadow flex flex-col md:flex-row justify-between md:items-center gap-3"
+                >
+                  <div className="flex-1">
+                    <p className="font-semibold text-white">
+                      {eq.tipo?.toUpperCase()} - {eq.marca} {eq.modelo}
+                    </p>
+                    <p className="text-sm text-gray-400">{eq.problema}</p>
+                    <p className="text-sm text-gray-500">
+                      Ingreso: {fechaFormateada}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 self-end md:self-auto">
                   <button
-                    onClick={() => handleModificar(eq)}
-                    className="bg-indigo-600 hover:bg-indigo-700 px-3 py-1 rounded text-sm font-medium"
-                  >
-                    Modificar
-                  </button>
-                  <button
-                    onClick={() => handleDelete(eq.id)}
-                    className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm font-medium"
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              </li>
-            );
-          })}
-        </ol>
-      </div>
-    ))
-  )}
-</div>
+                      onClick={() => {
+                        setEquipoSeleccionado(eq);
+                        setIsPresupuestoOpen(true);
+                      }}
+                      className="bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded text-sm font-medium"
+                    >
+                      Agregar Presupuesto
+                    </button>
+                    <button
+                      onClick={() => handleModificar(eq)}
+                      className="bg-indigo-600 hover:bg-indigo-700 px-3 py-1 rounded text-sm font-medium"
+                    >
+                      Modificar
+                    </button>
+                    <button
+                      onClick={() => handleDelete(eq.id)}
+                      className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm font-medium"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      ))
+    )}
+  </div>
+
+
 
 
 
@@ -223,7 +240,13 @@ const EquipoPage = () => {
         onClose={handleClose}
         onSubmit={handleSubmit}
         equipoSeleccionado={equipoSeleccionado}
-        clientes={clientesMock}
+        
+      />
+      <CargaPresupuestoModal
+        isOpen={isPresupuestoOpen}
+        onClose={() => setIsPresupuestoOpen(false)}
+        equipoSeleccionado={equipoSeleccionado}
+        
       />
     </div>
   );
