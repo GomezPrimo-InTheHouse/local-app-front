@@ -1,6 +1,6 @@
 // src/components/BuscadorComponent.jsx
 import { useEffect, useState } from "react";
-import { getClientes } from "../api/ClienteApi.jsx";
+import { getClientes } from "../../api/ClienteApi.jsx";
 import { X } from "lucide-react"; // 🔹 Icono para botón de limpiar (instala lucide-react si no lo tienes)
 
 const BuscadorComponent = ({ onBuscar }) => {

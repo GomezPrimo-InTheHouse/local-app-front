@@ -6,7 +6,7 @@ import {
   updateCliente,
   deleteCliente,
 } from "../api/ClienteApi";
-import ClienteModal from "../components/ClienteModal.jsx";
+import ClienteModal from "../components/Cliente/ClienteModal.jsx";
 
 const ClientePage = () => {
   const [clientes, setClientes] = useState([]);
@@ -15,6 +15,26 @@ const ClientePage = () => {
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
+const [presupuestos, setPresupuestos] = useState([]);
+
+const handleDeletePresupuesto = async (id) => {
+  if (!window.confirm("¿Seguro que deseas eliminar este presupuesto?")) return;
+
+  try {
+    await deletePresupuesto(id);
+
+    // ✅ 1. Actualizamos el estado local inmediatamente
+    setPresupuestos((prev) => prev.filter((p) => p.presupuesto_id !== id));
+
+    // ✅ 2. Opcional: Volver a pedir al backend para asegurar sincronización
+    onPresupuestoActualizado && onPresupuestoActualizado();
+
+    onSuccess && onSuccess("Presupuesto eliminado correctamente");
+  } catch (error) {
+    console.error("Error al eliminar presupuesto:", error);
+    onError && onError("No se pudo eliminar el presupuesto");
+  }
+};
 
   // 🔹 Obtener clientes al montar el componente
   useEffect(() => {
@@ -55,15 +75,15 @@ const ClientePage = () => {
     setIsOpen(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("¿Seguro que deseas eliminar este cliente?")) return;
-    try {
-      await deleteCliente(id);
-      cargarClientes();
-    } catch (error) {
-      console.error("Error eliminando cliente:", error);
-    }
-  };
+  // const handleDelete = async (id) => {
+  //   if (!window.confirm("¿Seguro que deseas eliminar este cliente?")) return;
+  //   try {
+  //     await deleteCliente(id);
+  //     cargarClientes();
+  //   } catch (error) {
+  //     console.error("Error eliminando cliente:", error);
+  //   }
+  // };
 
   const handleSubmit = async (formData) => {
     try {
@@ -141,7 +161,7 @@ const ClientePage = () => {
                     Modificar
                   </button>
                   <button
-                    onClick={() => handleDelete(cli.id)}
+                    onClick={() => handleDeletePresupuesto(cli.id)}
                     className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm font-medium"
                   >
                     Eliminar

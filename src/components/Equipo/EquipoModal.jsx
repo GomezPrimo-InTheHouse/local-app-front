@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import PatronInput from "./PatronInput.jsx"; 
-import { getClientes } from "../api/ClienteApi";
+import PatronInput from "../Equipo/PatronInput.jsx"; 
+import { getClientes } from "../../api/ClienteApi";
 
 const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
   const [formData, setFormData] = useState({
@@ -11,7 +11,6 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
     problema: "",
     cliente_id: "",
     fecha_ingreso: "",
-    presupuesto: 0,
     patron: ""
   });
 
@@ -46,7 +45,7 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
         fecha_ingreso: equipoSeleccionado.fecha_ingreso
           ? new Date(equipoSeleccionado.fecha_ingreso).toISOString().split("T")[0]
           : "",
-        presupuesto: equipoSeleccionado.presupuesto || 0,
+       
         patron: equipoSeleccionado.patron || ""
       });
 
@@ -66,8 +65,8 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
         password: "",
         problema: "",
         cliente_id: "",
-        fecha_ingreso: "",
-        presupuesto: 0,
+        fecha_ingreso:  new Date().toISOString().split("T")[0],
+        
         patron: ""
       });
       setSelectedCliente(null);
@@ -228,20 +227,6 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
             />
           </div>
 
-          {/* Presupuesto */}
-          <div>
-            <label className="block text-sm font-medium text-white mb-1">
-              Presupuesto de reparación (opcional)
-            </label>
-            <input
-              type="number"
-              name="presupuesto"
-              value={formData.presupuesto || 0}
-              onChange={handleChange}
-              placeholder="Ej: 15000"
-              className="w-full bg-neutral-700 text-white p-2 rounded"
-            />
-          </div>
 
           {/* Patrón de desbloqueo solo si es celular */}
           {formData.tipo === "celular" && (
