@@ -15,26 +15,26 @@ const ClientePage = () => {
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
-const [presupuestos, setPresupuestos] = useState([]);
+  const [presupuestos, setPresupuestos] = useState([]);
 
-const handleDeletePresupuesto = async (id) => {
-  if (!window.confirm("¿Seguro que deseas eliminar este presupuesto?")) return;
+// const handleDeletePresupuesto = async (id) => {
+//   if (!window.confirm("¿Seguro que deseas eliminar este presupuesto?")) return;
 
-  try {
-    await deletePresupuesto(id);
+//   try {
+//     await deletePresupuesto(id);
 
-    // ✅ 1. Actualizamos el estado local inmediatamente
-    setPresupuestos((prev) => prev.filter((p) => p.presupuesto_id !== id));
+//     // ✅ 1. Actualizamos el estado local inmediatamente
+//     setPresupuestos((prev) => prev.filter((p) => p.presupuesto_id !== id));
 
-    // ✅ 2. Opcional: Volver a pedir al backend para asegurar sincronización
-    onPresupuestoActualizado && onPresupuestoActualizado();
+//     // ✅ 2. Opcional: Volver a pedir al backend para asegurar sincronización
+//     onPresupuestoActualizado && onPresupuestoActualizado();
 
-    onSuccess && onSuccess("Presupuesto eliminado correctamente");
-  } catch (error) {
-    console.error("Error al eliminar presupuesto:", error);
-    onError && onError("No se pudo eliminar el presupuesto");
-  }
-};
+//     onSuccess && onSuccess("Presupuesto eliminado correctamente");
+//   } catch (error) {
+//     console.error("Error al eliminar presupuesto:", error);
+//     onError && onError("No se pudo eliminar el presupuesto");
+//   }
+// };
 
   // 🔹 Obtener clientes al montar el componente
   useEffect(() => {
@@ -75,15 +75,15 @@ const handleDeletePresupuesto = async (id) => {
     setIsOpen(true);
   };
 
-  // const handleDelete = async (id) => {
-  //   if (!window.confirm("¿Seguro que deseas eliminar este cliente?")) return;
-  //   try {
-  //     await deleteCliente(id);
-  //     cargarClientes();
-  //   } catch (error) {
-  //     console.error("Error eliminando cliente:", error);
-  //   }
-  // };
+  const handleDeleteCliente = async (id) => {
+    if (!window.confirm("¿Seguro que deseas eliminar este cliente?")) return;
+    try {
+      await deleteCliente(id);
+      cargarClientes();
+    } catch (error) {
+      console.error("Error eliminando cliente:", error);
+    }
+  };
 
   const handleSubmit = async (formData) => {
     try {
@@ -161,7 +161,7 @@ const handleDeletePresupuesto = async (id) => {
                     Modificar
                   </button>
                   <button
-                    onClick={() => handleDeletePresupuesto(cli.id)}
+                    onClick={() => handleDeleteCliente(cli.id)}
                     className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm font-medium"
                   >
                     Eliminar

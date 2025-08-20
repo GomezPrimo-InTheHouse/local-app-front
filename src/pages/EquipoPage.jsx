@@ -1,9 +1,15 @@
+//dependencias
 import { useState, useEffect } from 'react';
-import EquipoModal from '../components/Equipo/EquipoModal.jsx';
-import { getEquipos, createEquipo, updateEquipo, deleteEquipo, getEquiposByTipo, getEquiposByClienteId } from '../api/EquiposApi.jsx';
-import SidebarEquipos from "../components/Equipo/SidebarEquipos.jsx";
-import BuscadorComponent from "../components/General/BuscadorComponent.jsx";
 import { Link } from "react-router-dom";
+//api
+import { getEquipos, createEquipo, updateEquipo, deleteEquipo, getEquiposByTipo, getEquiposByClienteId } from '../api/EquiposApi.jsx';
+//componentes
+import SidebarEquipos from "../components/Equipo/SidebarEquipos.jsx";
+import EquipoModal from '../components/Equipo/EquipoModal.jsx';
+import BuscadorComponent from "../components/General/BuscadorComponent.jsx";
+import AlertNotification from '../components/Alerta/AlertNotification.jsx';
+
+import { getEstados } from "../api/EstadoApi.jsx";
 
 const EquipoPage = () => {
   const [filtro, setFiltro] = useState("todos");
@@ -11,12 +17,14 @@ const EquipoPage = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [equipoSeleccionado, setEquipoSeleccionado] = useState(null);
   const [loading, setLoading] = useState(true);
-
+  const [alert, setAlert] = useState({ message: "", type: "success" });
+  const [estados, setEstados] = useState([]);
   // 🔹 Centralizamos la carga de equipos
   const fetchEquipos = async () => {
     setLoading(true);
     try {
       const data = await getEquipos();
+      console.log(data)
       setEquipos(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error al obtener equipos:', err);
@@ -24,6 +32,21 @@ const EquipoPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // fetch a estados
+
+  useEffect(() => {
+    (async () => {
+      const lista = await getEstados();
+      setEstados(lista);
+    })();
+  }, []);
+
+  // Función para obtener el nombre del estado a partir del id
+  const getNombreEstado = (id) => {
+    const estado = estados.find((e) => e.id === id);
+    return estado ? estado.nombre : "Desconocido";
   };
 
   // Cargar al montar el componente
@@ -50,24 +73,62 @@ const EquipoPage = () => {
     if (!window.confirm("¿Seguro que deseas eliminar este equipo?")) return;
     await deleteEquipo(id);
     await fetchEquipos(); // ✅ refrescar después de borrar
+
+    setAlert({ message: "✅ Equipo eliminado correctamente", type: "success" });
   };
+
+  // const handleSubmit = async (formData) => {
+  //   console.log('equipo seleccionado: ', equipoSeleccionado);
+  //   console.log('data desde equipo page: ', formData);
+  //   try {
+  //     if (equipoSeleccionado) {
+        
+  //       await updateEquipo(equipoSeleccionado.id, formData);
+  //     } else {
+  //       await createEquipo(formData);
+  //     }
+
+  //     // ✅ siempre recargar desde la DB después de crear/modificar
+  //     await fetchEquipos();
+  //   } catch (err) {
+  //     console.error('Error al guardar equipo:', err);
+  //   } finally {
+  //     handleClose();
+  //   }
+  // };
+
 
   const handleSubmit = async (formData) => {
-    try {
-      if (equipoSeleccionado) {
-        await updateEquipo(equipoSeleccionado.id, formData);
-      } else {
-        await createEquipo(formData);
-      }
-
-      // ✅ siempre recargar desde la DB después de crear/modificar
-      await fetchEquipos();
-    } catch (err) {
-      console.error('Error al guardar equipo:', err);
-    } finally {
-      handleClose();
-    }
+  // ✅ Normalizamos el payload que viaja al backend
+  const payload = {
+    tipo: String(formData.tipo || "").trim(),
+    marca: String(formData.marca || "").trim(),
+    modelo: String(formData.modelo || "").trim(),
+    password: formData.password ?? null,
+    problema: String(formData.problema || "").trim(),
+    cliente_id: Number(formData.cliente_id),
+    fecha_ingreso: formData.fecha_ingreso || null,
+    // 👇 patron SIEMPRE presente; si está vacío, mandamos null (útil si tu SQL usa COALESCE)
+    patron: (formData.patron && formData.patron.trim() !== "") ? formData.patron.trim() : null,
+    estado_id: Number(formData.estado_id),
   };
+
+  try {
+    if (equipoSeleccionado) {
+      await updateEquipo(equipoSeleccionado.id, payload);
+        setAlert({ message: "✅ Equipo actualizado correctamente", type: "success" });
+    } else {
+      await createEquipo(payload);
+        setAlert({ message: "✅ Equipo creado correctamente", type: "success" });
+    }
+    await fetchEquipos(); // refresca tabla
+  } catch (err) {
+    console.error("Error al guardar equipo:", err);
+    setAlert({ message: "❌ Error al guardar el equipo", type: "error" });
+  } finally {
+    handleClose();
+  }
+};
 
   const handleFiltro = async (tipo) => {
     setFiltro(tipo);
@@ -161,6 +222,9 @@ const EquipoPage = () => {
                           {eq.tipo?.toUpperCase()} - {eq.marca} {eq.modelo}
                         </p>
                         <p className="text-sm text-gray-400">{eq.problema}</p>
+                          <p className="text-sm text-gray-400">
+                            Estado: {getNombreEstado(eq.estado_id)}
+                          </p>
                         <p className="text-sm text-gray-500">Ingreso: {fechaFormateada}</p>
                       </div>
                       <div className="flex gap-2 self-end md:self-auto">
@@ -198,7 +262,18 @@ const EquipoPage = () => {
         onSubmit={handleSubmit}
         equipoSeleccionado={equipoSeleccionado}
       />
+
+      {alert.message && (
+        <AlertNotification
+          message={alert.message}
+          type={alert.type}
+          duration={4000}
+          onClose={() => setAlert({ message: "", type: "success" })}
+        />
+      )}
     </div>
+
+    
   );
 };
 

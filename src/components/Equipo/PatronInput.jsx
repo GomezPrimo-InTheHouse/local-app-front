@@ -1,17 +1,26 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 export default function PatronInput({ value, onChange }) {
   const [seleccionados, setSeleccionados] = useState(
     value ? value.split("-").map(Number) : []
   );
 
+  // 🔹 Sincronizar con value cada vez que cambia
+  useEffect(() => {
+    setSeleccionados(value ? value.split("-").map(Number) : []);
+  }, [value]);
+
   const handleClick = (num) => {
-    // if (!seleccionados.includes(num)) {
-      
-    // }
-    const nuevos = [...seleccionados, num];
-      setSeleccionados(nuevos);
-      onChange(nuevos.join("-"));
+    let nuevos;
+    if (seleccionados.includes(num)) {
+      // si ya está seleccionado, lo quitamos
+      nuevos = seleccionados.filter((x) => x !== num);
+    } else {
+      // si no está seleccionado, lo agregamos
+      nuevos = [...seleccionados, num];
+    }
+    setSeleccionados(nuevos);
+    onChange(nuevos.join("-"));
   };
 
   const handleReset = () => {
@@ -37,7 +46,7 @@ export default function PatronInput({ value, onChange }) {
         Patrón: {seleccionados.join("-") || "ninguno"}
       </div>
       <button
-      type="button"
+        type="button"
         onClick={handleReset}
         className="mt-1 px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-500"
       >

@@ -7,9 +7,11 @@ import { getEquipoById } from "../api/EquiposApi.jsx";
 import { getPresupuestosByEquipo, deletePresupuesto } from "../api/PresupuestoApi.jsx";
 import { updateIngreso } from "../api/IngresoApi.jsx";
 import PresupuestoModal from "../components/Presupuesto/PresupuestoModal.jsx";
-// import EditarPresupuestoModal from "../components/EditarPresupuestoModal.jsx";
-import CambiarEstadoModal from "../components/General/CambiarEstadoModal.jsx";
+
+import CambiarEstadoModal from "../components/Ingreso/CambiarEstadoModal.jsx";
 import AlertNotification from "../components/Alerta/AlertNotification.jsx";
+
+
 
 const DetalleEquiposPage = () => {
   const { id } = useParams();
@@ -20,11 +22,7 @@ const DetalleEquiposPage = () => {
   const [presupuestos, setPresupuestos] = useState([]); // lista de presupuestos por equipo
 
   // Modales
-  const [isPresupuestoOpen, setIsPresupuestoOpen] = useState(false);
   const [isEstadoModalOpen, setIsEstadoModalOpen] = useState(false);
-  const [isEditarPresupuestoOpen, setIsEditarPresupuestoOpen] = useState(false);
-
-
   const [modalAbierto, setModalAbierto] = useState(false);
   const [presupuestoSeleccionado, setPresupuestoSeleccionado] = useState(null);
   const [ingresoSeleccionado, setIngresoSeleccionado] = useState(null);
@@ -112,23 +110,7 @@ const DetalleEquiposPage = () => {
   };
 
   // Manejo actualización de estado del ingreso (desde CambiarEstadoModal)
-  // const handleUpdateIngreso = async (ingresoActual) => {
-  //   console.log(ingresoActual)
-  //   if (!ingresoActual?.id) {
-  //     showAlert("No hay ingreso activo para actualizar", "error");
-  //     return;
-  //   }
-  //   try {
-  //     await updateIngreso(ingresoActual.id, { ...ingresoActual, estado, fecha_egreso });
-  //     showAlert("Estado actualizado correctamente", "success");
-  //     setIsEstadoModalOpen(false);
-  //     // recargar todo (equipo + presupuestos)
-  //     await refrescarPresupuestos();
-  //   } catch (err) {
-  //     console.error("Error actualizando ingreso:", err);
-  //     showAlert("Error al actualizar estado", "error");
-  //   }
-  // };
+ 
   const handleUpdateIngreso = async (data) => {
     try {
       await updateIngreso(data.id, {
@@ -173,6 +155,10 @@ const DetalleEquiposPage = () => {
     ? new Date(ingresoActual.fecha_ingreso).toLocaleDateString("es-AR")
     : "Sin fecha";
 
+  const presupuestosValidos = Array.isArray(presupuestos)
+    ? presupuestos.filter(p => p && (p.presupuesto_id || p.id))
+    : [];
+
   return (
     <div className="flex flex-col h-screen w-screen bg-neutral-900 text-white overflow-hidden relative">
       {/* alerta global */}
@@ -198,7 +184,7 @@ const DetalleEquiposPage = () => {
             {equipo?.tipo?.toUpperCase()} - {equipo?.marca} {equipo?.modelo}
           </p>
           <p className="text-gray-400">{equipo?.problema}</p>
-          <p className="text-gray-500">Ingreso: {fechaIngreso}</p>
+          <p className="text-gray-500">Ingreso: {ingresoActual?.fecha_ingreso ? new Date(ingresoActual.fecha_ingreso).toLocaleDateString("es-AR") : "Sin fecha"}</p>
           <p className="text-sm text-gray-400">
             Cliente: {cliente?.nombre} {cliente?.apellido} | {cliente?.celular}
           </p>
@@ -233,68 +219,88 @@ const DetalleEquiposPage = () => {
               setIsEstadoModalOpen(true); // 🔹 abre modal
             }}
           >
-            Cambiar Estado
+            Actualizar Ingreso
           </button>
 
         </div>
 
         {/* Lista de presupuestos */}
+
         <div className="bg-neutral-800 p-4 rounded shadow max-h-64 overflow-y-auto">
           <h3 className="text-lg font-semibold mb-2">Historial de presupuestos</h3>
-          {presupuestos.length > 0 ? (
-            <ul className="space-y-3">
-              {presupuestos.map((p) => (
-                <li key={p.presupuesto_id ?? p.id ?? `${p.ingreso_id}-${p.fecha_presupuesto}`}
-                  className="border-b border-neutral-700 pb-2 last:border-0 flex justify-between items-start">
-                  <div>
-                    <p className="text-sm text-gray-400">
-                      Fecha: {new Date(p.fecha_presupuesto || p.fecha || "").toLocaleDateString("es-AR")}
-                    </p>
-                    <p className="text-sm">Costo: ${p.costo_presupuesto ?? p.costo}</p>
-                    <p className="text-sm">Total: ${p.total_presupuesto ?? p.total}</p>
-                    <p className="text-sm">Observaciones: {p.observaciones_presupuesto ?? p.observaciones}</p>
-                    <p className={`text-sm font-medium ${(p.estado_presupuesto || p.estado) === "aprobado" ? "text-green-400"
-                        : (p.estado_presupuesto || p.estado) === "no aprobado" ? "text-red-400"
-                          : "text-yellow-400"
-                      }`}>
-                      Estado: {p.estado_presupuesto ?? p.estado ?? "pendiente"}
-                    </p>
-                    {p.observaciones && <p className="text-gray-500 text-sm italic">{p.observaciones}</p>}
-                  </div>
 
-                  {/* Modificar presupuesto */}
-                  <div className="flex flex-col gap-2">
-                    <button onClick={() => handleEditarPresupuesto(p)}
-                      className="ml-4 bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded text-sm font-medium self-start">
-                      Modificar
-                    </button>
-                    <button
-                      onClick={() => handleEliminarPresupuesto(p.presupuesto_id)}
-                      className="ml-4 bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm font-medium self-start"
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-500">No hay presupuestos cargados.</p>
-          )}
+          {presupuestosValidos.length > 0 ? (
+  <ul className="space-y-3">
+    {presupuestosValidos.map((p) => {
+      const id = p.presupuesto_id ?? p.id ?? `${p.ingreso_id}-${p.fecha_presupuesto}`;
+      const fecha = new Date(p.fecha_presupuesto || p.fecha || "").toLocaleDateString("es-AR");
+      const costo = p.costo_presupuesto ?? p.costo;
+      const total = p.total_presupuesto ?? p.total;
+      const observaciones = p.observaciones_presupuesto ?? p.observaciones;
+
+      // 🔹 Usamos el nombre real del estado
+      const estadoNombre = p.estado_presupuesto_nombre ?? p.estado ?? "Pendiente";
+
+      // 🔹 Colores según el estado
+      const estadoColor =
+        estadoNombre.toLowerCase() === "entregado y cobrado"
+          ? "text-green-400"
+          : estadoNombre.toLowerCase() === "rechazado"
+          ? "text-red-400"
+          : "text-yellow-400";
+         estadoNombre.toLowerCase() === "finalizado"
+          ? "text-orange-400"
+          : estadoNombre.toLowerCase() === "rechazado"
+          ? "text-red-400"
+          : "text-yellow-400";
+
+      return (
+        <li
+          key={id}
+          className="border-b border-neutral-700 pb-2 last:border-0 flex justify-between items-start"
+        >
+          <div>
+            <p className="text-sm text-gray-400">Fecha: {fecha}</p>
+            <p className="text-sm">Costo: ${costo}</p>
+            <p className="text-sm">Total: ${total}</p>
+            {observaciones && (
+              <p className="text-sm text-gray-500 italic">{observaciones}</p>
+            )}
+            <p className={`text-sm font-medium ${estadoColor}`}>
+              Estado: {estadoNombre}
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={() => handleEditarPresupuesto(p)}
+              className="ml-4 bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded text-sm font-medium"
+            >
+              Modificar
+            </button>
+            <button
+              onClick={() => handleEliminarPresupuesto(p.presupuesto_id)}
+              className="ml-4 bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm font-medium"
+            >
+              Eliminar
+            </button>
+          </div>
+        </li>
+      );
+    })}
+  </ul>
+) : (
+  <p className="text-gray-500 italic">No hay presupuestos cargados.</p>
+)}
+
         </div>
+
       </div>
 
       {/* Modal crear presupuesto */}
 
 
       {/* Modal cambio estado */}
-      {/* <CambiarEstadoModal
-        isOpen={isEstadoModalOpen}
-        onClose={() => setIsEstadoModalOpen(false)}
-        estadoActual={ingresoActual?.estado}
-        fechaEgresoActual={ingresoActual?.fecha_egreso}
-        onSubmit={handleUpdateIngreso}
-      /> */}
 
       <CambiarEstadoModal
         isOpen={isEstadoModalOpen}
@@ -304,11 +310,20 @@ const DetalleEquiposPage = () => {
       />
 
 
+      {/* <PresupuestoModal
+        isOpen={modalAbierto}
+        onClose={() => setModalAbierto(false)}
+        ingresoSeleccionado={ingresoSeleccionado}
+        presupuesto={presupuestoSeleccionado}
+        onPresupuestoGuardado={fetchAll}
+      /> */}
+
       <PresupuestoModal
         isOpen={modalAbierto}
         onClose={() => setModalAbierto(false)}
         ingresoSeleccionado={ingresoSeleccionado}
         presupuesto={presupuestoSeleccionado}
+        esEdicion={!!presupuestoSeleccionado} // 👈 Agregar esta línea
         onPresupuestoGuardado={fetchAll}
       />
     </div>
