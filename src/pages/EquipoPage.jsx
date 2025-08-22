@@ -2,7 +2,14 @@
 import { useState, useEffect } from 'react';
 import { Link } from "react-router-dom";
 //api
-import { getEquipos, createEquipo, updateEquipo, deleteEquipo, getEquiposByTipo, getEquiposByClienteId } from '../api/EquiposApi.jsx';
+import { 
+  getEquipos, 
+  createEquipo, 
+  updateEquipo, 
+  deleteEquipo, 
+  getEquiposByTipo, 
+  getEquiposByClienteId } from '../api/EquiposApi.jsx';
+
 //componentes
 import SidebarEquipos from "../components/Equipo/SidebarEquipos.jsx";
 import EquipoModal from '../components/Equipo/EquipoModal.jsx';
@@ -221,11 +228,27 @@ const EquipoPage = () => {
                         <p className="font-semibold text-white">
                           {eq.tipo?.toUpperCase()} - {eq.marca} {eq.modelo}
                         </p>
+
                         <p className="text-sm text-gray-400">{eq.problema}</p>
                           <p className="text-sm text-gray-400">
                             Estado: {getNombreEstado(eq.estado_id)}
                           </p>
+                          {/* Patrón: solo si es celular */}
+                        {eq.tipo?.toLowerCase() === "celular" && eq.patron && (
+                          <p className="text-sm text-gray-400">Patrón: {eq.patron}</p>
+                        )}
+                         {eq.tipo?.toLowerCase() != "consola" && eq.password && (
+                          
+                          <p className="text-sm text-gray-400" > Password: {eq.password}</p>
+                        )}
+
+                        {/* Cliente */}
+
+                       <p className="text-sm text-gray-400">Cliente: {eq.cliente_nombre} {eq.cliente_apellido}</p>
+                         
+
                         <p className="text-sm text-gray-500">Ingreso: {fechaFormateada}</p>
+
                       </div>
                       <div className="flex gap-2 self-end md:self-auto">
                         <Link

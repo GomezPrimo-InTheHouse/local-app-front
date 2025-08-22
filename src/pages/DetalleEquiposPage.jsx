@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getEquipoById } from "../api/EquiposApi.jsx";
 import { getPresupuestosByEquipo, deletePresupuesto } from "../api/PresupuestoApi.jsx";
-import { updateIngreso } from "../api/IngresoApi.jsx";
+import { getEstados } from "../api/EstadoApi.jsx";
 import PresupuestoModal from "../components/Presupuesto/PresupuestoModal.jsx";
 
 import CambiarEstadoModal from "../components/Ingreso/CambiarEstadoModal.jsx";
@@ -20,7 +20,7 @@ const DetalleEquiposPage = () => {
 
   const [ingresoActual, setIngresoActual] = useState(null); // ingreso activo (detalles.ingreso)
   const [presupuestos, setPresupuestos] = useState([]); // lista de presupuestos por equipo
-
+  const [estados, setEstados] = useState([]); // lista de estados
   // Modales
   const [isEstadoModalOpen, setIsEstadoModalOpen] = useState(false);
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -35,6 +35,19 @@ const DetalleEquiposPage = () => {
     setAlertType(type);
     setTimeout(() => setAlertMessage(""), 2000); // 2s
   };
+
+  // asigno la data a estados 
+
+  useEffect(() => {
+    (async () => {
+      const data = await getEstados();
+      setEstados(data);
+    })();
+  }, []);
+  // 🔹 Buscar el nombre del estado del ingreso
+  const estadoIngresoNombre =
+    estados.find((e) => e.id === ingresoActual?.estado)?.nombre ||
+    "Sin estado definido";
 
   // --- Helpers para obtener y normalizar datos ---
   const normalizePresupuestosResponse = (res) => {
@@ -74,7 +87,7 @@ const DetalleEquiposPage = () => {
 
   useEffect(() => {
     fetchAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [id]);
 
 
@@ -110,21 +123,21 @@ const DetalleEquiposPage = () => {
   };
 
   // Manejo actualización de estado del ingreso (desde CambiarEstadoModal)
- 
-  const handleUpdateIngreso = async (data) => {
-    try {
-      await updateIngreso(data.id, {
-        estado: data.estado,
-        fecha_ingreso: data.fecha_ingreso,
-        fecha_egreso: data.fecha_egreso,
-      });
-      showAlert("Estado actualizado correctamente", "success");
-      await fetchAll();
-    } catch (err) {
-      console.error("Error actualizando ingreso:", err);
-      showAlert("Error al actualizar estado", "error");
-    }
-  };
+
+  // const handleUpdateIngreso = async (data) => {
+  //   try {
+  //     await updateIngreso(data.id, {
+  //       estado: data.estado,
+  //       fecha_ingreso: data.fecha_ingreso,
+  //       fecha_egreso: data.fecha_egreso,
+  //     });
+  //     showAlert("Estado actualizado correctamente", "success");
+  //     await fetchAll();
+  //   } catch (err) {
+  //     console.error("Error actualizando ingreso:", err);
+  //     showAlert("Error al actualizar estado", "error");
+  //   }
+  // };
 
 
 
@@ -151,13 +164,25 @@ const DetalleEquiposPage = () => {
   if (!data) return <p className="text-gray-400 p-6">Equipo no encontrado.</p>;
 
   const { equipo, cliente, detalles } = data;
-  const fechaIngreso = ingresoActual?.fecha_ingreso
-    ? new Date(ingresoActual.fecha_ingreso).toLocaleDateString("es-AR")
-    : "Sin fecha";
+
+
 
   const presupuestosValidos = Array.isArray(presupuestos)
     ? presupuestos.filter(p => p && (p.presupuesto_id || p.id))
     : [];
+
+  // 🔹 CALCULOS TOTALES
+  const totalCostos = presupuestosValidos.reduce(
+    (acc, p) => acc + (p.costo_presupuesto ?? p.costo ?? 0),
+    0
+  );
+
+  const totalIngresos = presupuestosValidos.reduce(
+    (acc, p) => acc + (p.total_presupuesto ?? p.total ?? 0),
+    0
+  );
+
+  const totalFinal = totalIngresos - totalCostos;
 
   return (
     <div className="flex flex-col h-screen w-screen bg-neutral-900 text-white overflow-hidden relative">
@@ -188,10 +213,19 @@ const DetalleEquiposPage = () => {
           <p className="text-sm text-gray-400">
             Cliente: {cliente?.nombre} {cliente?.apellido} | {cliente?.celular}
           </p>
-          <p className="text-sm text-gray-400">Estado: {ingresoActual?.estado || "Sin estado definido"}</p>
+          {/* ESTADO */}
+          <p className="text-sm text-gray-400">
+            Estado actual:{" "}
+            <span className="font-medium text-emerald-400">
+              {estadoIngresoNombre}
+            </span>
+          </p>
+          {/* EGRESO */}
           <p className="text-sm text-gray-400">
             Fecha de egreso: {ingresoActual?.fecha_egreso ? new Date(ingresoActual.fecha_egreso).toLocaleDateString("es-AR") : "No definido"}
           </p>
+
+
         </div>
 
         {/* Botones header */}
@@ -223,107 +257,152 @@ const DetalleEquiposPage = () => {
           </button>
 
         </div>
+        {/* 🔹 Card de total */}
+   
+       
 
         {/* Lista de presupuestos */}
 
-        <div className="bg-neutral-800 p-4 rounded shadow max-h-64 overflow-y-auto">
+
+        <div className="bg-neutral-800 p-4 rounded shadow  overflow-y-auto">
+           <div className="mt-4 w-full max-w-md mx-auto">
+          <div className="bg-gradient-to-r from-emerald-600 to-teal-500 p-4 md:p-5 rounded-xl shadow-md flex flex-col items-center md:items-start text-white">
+            
+            {/* Título: se oculta en sm */}
+            <h3 className="text-md md:text-lg font-semibold mb-1 md:mb-2 hidden sm:block">
+              Balance Total
+            </h3>
+
+            {/* Total siempre visible */}
+            <p className="text-xl md:text-2xl font-bold tracking-wide">
+              ${totalFinal.toLocaleString("es-AR")}
+            </p>
+
+            {/* Desglose de Ingresos/Costos: solo en md+ */}
+            <div className="mt-1 md:mt-3 flex flex-col md:flex-row gap-1 md:gap-2 text-xs md:text-sm text-emerald-100 hidden md:flex">
+              <span>Ingresos: ${totalIngresos.toLocaleString("es-AR")}</span>
+              <span> | </span>
+              <span>Costos: ${totalCostos.toLocaleString("es-AR")}</span>
+            </div>
+
+          </div>
+        </div>
           <h3 className="text-lg font-semibold mb-2">Historial de presupuestos</h3>
+          
 
           {presupuestosValidos.length > 0 ? (
-  <ul className="space-y-3">
-    {presupuestosValidos.map((p) => {
-      const id = p.presupuesto_id ?? p.id ?? `${p.ingreso_id}-${p.fecha_presupuesto}`;
-      const fecha = new Date(p.fecha_presupuesto || p.fecha || "").toLocaleDateString("es-AR");
-      const costo = p.costo_presupuesto ?? p.costo;
-      const total = p.total_presupuesto ?? p.total;
-      const observaciones = p.observaciones_presupuesto ?? p.observaciones;
+            // 🔹 Mapeamos presupuestos válidos
 
-      // 🔹 Usamos el nombre real del estado
-      const estadoNombre = p.estado_presupuesto_nombre ?? p.estado ?? "Pendiente";
 
-      // 🔹 Colores según el estado
-      const estadoColor =
-        estadoNombre.toLowerCase() === "entregado y cobrado"
-          ? "text-green-400"
-          : estadoNombre.toLowerCase() === "rechazado"
-          ? "text-red-400"
-          : "text-yellow-400";
-         estadoNombre.toLowerCase() === "finalizado"
-          ? "text-orange-400"
-          : estadoNombre.toLowerCase() === "rechazado"
-          ? "text-red-400"
-          : "text-yellow-400";
+            <ul className="space-y-3">
+              {presupuestosValidos.map((p) => {
 
-      return (
-        <li
-          key={id}
-          className="border-b border-neutral-700 pb-2 last:border-0 flex justify-between items-start"
-        >
-          <div>
-            <p className="text-sm text-gray-400">Fecha: {fecha}</p>
-            <p className="text-sm">Costo: ${costo}</p>
-            <p className="text-sm">Total: ${total}</p>
-            {observaciones && (
-              <p className="text-sm text-gray-500 italic">{observaciones}</p>
-            )}
-            <p className={`text-sm font-medium ${estadoColor}`}>
-              Estado: {estadoNombre}
-            </p>
-          </div>
+                const id = p.presupuesto_id ?? p.id ?? `${p.ingreso_id}-${p.fecha_presupuesto}`;
+                const fecha = new Date(p.fecha_presupuesto || p.fecha || "").toLocaleDateString("es-AR");
+                const costo = p.costo_presupuesto ?? p.costo;
+                const total = p.total_presupuesto ?? p.total;
+                const observaciones = p.observaciones_presupuesto ?? p.observaciones;
 
-          <div className="flex flex-col gap-2">
-            <button
-              onClick={() => handleEditarPresupuesto(p)}
-              className="ml-4 bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded text-sm font-medium"
-            >
-              Modificar
-            </button>
-            <button
-              onClick={() => handleEliminarPresupuesto(p.presupuesto_id)}
-              className="ml-4 bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm font-medium"
-            >
-              Eliminar
-            </button>
-          </div>
-        </li>
-      );
-    })}
-  </ul>
-) : (
-  <p className="text-gray-500 italic">No hay presupuestos cargados.</p>
-)}
+                // 🔹 Usamos el nombre real del estado
+                const estadoNombre = p.estado_presupuesto_nombre ?? p.estado ?? "Pendiente";
+
+                // 🔹 Colores según el estado
+                const estadoColor =
+                  estadoNombre.toLowerCase() === "entregado y cobrado"
+                    ? "text-green-400"
+                    : estadoNombre.toLowerCase() === "rechazado"
+                      ? "text-red-400"
+                      : "text-yellow-400";
+                estadoNombre.toLowerCase() === "finalizado"
+                  ? "text-orange-400"
+                  : estadoNombre.toLowerCase() === "rechazado"
+                    ? "text-red-400"
+                    : "text-yellow-400";
+
+                return (
+                  
+
+
+                  <li
+                    key={id}
+                    className="border-b border-neutral-700 pb-2 last:border-0 flex justify-between items-start"
+                  >
+
+                    <div>
+
+
+                      <p className="text-sm text-gray-400">Fecha: {fecha}</p>
+                      <p className="text-sm">Costo: ${costo}</p>
+                      <p className="text-sm">Total: ${total}</p>
+                      {observaciones && (
+                        <p className="text-sm text-gray-500 italic">{observaciones}</p>
+                      )}
+                      <p className={`text-sm font-medium ${estadoColor}`}>
+                        Estado: {estadoNombre}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={() => handleEditarPresupuesto(p)}
+                        className="ml-4 bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded text-sm font-medium"
+                      >
+                        Modificar
+                      </button>
+                      <button
+                        onClick={() => handleEliminarPresupuesto(p.presupuesto_id)}
+                        className="ml-4 bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm font-medium"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+
+          ) : (
+            <p className="text-gray-500 italic">No hay presupuestos cargados.</p>
+          )}
+
+
+
 
         </div>
 
+
+
       </div>
 
-      {/* Modal crear presupuesto */}
+
 
 
       {/* Modal cambio estado */}
 
-      <CambiarEstadoModal
+      {/* <CambiarEstadoModal
         isOpen={isEstadoModalOpen}
         onClose={() => setIsEstadoModalOpen(false)}
         ingresoActual={ingresoActual} // 🔹 todo el objeto
         onSubmit={handleUpdateIngreso} // 🔹 maneja la API en el padre
+      /> */}
+      <CambiarEstadoModal
+        isOpen={isEstadoModalOpen}
+        onClose={() => setIsEstadoModalOpen(false)}
+        ingresoActual={ingresoActual}
+        onSuccess={(m) => showAlert(m, "success")}
+        onError={(m) => showAlert(m, "error")}
+        onUpdated={fetchAll}
       />
 
-
-      {/* <PresupuestoModal
-        isOpen={modalAbierto}
-        onClose={() => setModalAbierto(false)}
-        ingresoSeleccionado={ingresoSeleccionado}
-        presupuesto={presupuestoSeleccionado}
-        onPresupuestoGuardado={fetchAll}
-      /> */}
+      {/* Modal crear presupuesto */}
 
       <PresupuestoModal
         isOpen={modalAbierto}
         onClose={() => setModalAbierto(false)}
         ingresoSeleccionado={ingresoSeleccionado}
         presupuesto={presupuestoSeleccionado}
-        esEdicion={!!presupuestoSeleccionado} // 👈 Agregar esta línea
+        esEdicion={!!presupuestoSeleccionado}
         onPresupuestoGuardado={fetchAll}
       />
     </div>
