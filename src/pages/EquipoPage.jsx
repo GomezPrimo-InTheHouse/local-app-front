@@ -1,22 +1,27 @@
 //dependencias
 import { useState, useEffect } from 'react';
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import Swal from 'sweetalert2'
+
 //api
-import { 
-  getEquipos, 
-  createEquipo, 
-  updateEquipo, 
-  deleteEquipo, 
-  getEquiposByTipo, 
-  getEquiposByClienteId } from '../api/EquiposApi.jsx';
+import {
+  getEquipos,
+  createEquipo,
+  updateEquipo,
+  deleteEquipo,
+  getEquiposByTipo,
+  getEquiposByClienteId
+} from '../api/EquiposApi.jsx';
 
 //componentes
 import SidebarEquipos from "../components/Equipo/SidebarEquipos.jsx";
 import EquipoModal from '../components/Equipo/EquipoModal.jsx';
 import BuscadorComponent from "../components/General/BuscadorComponent.jsx";
 import AlertNotification from '../components/Alerta/AlertNotification.jsx';
-
+import { getBalancesPresupuestos } from "../api/PresupuestoApi.jsx";
+import { useMemo } from "react";
 import { getEstados } from "../api/EstadoApi.jsx";
+import { createIngreso } from "../api/IngresoApi";
 
 const EquipoPage = () => {
   const [filtro, setFiltro] = useState("todos");
@@ -26,12 +31,16 @@ const EquipoPage = () => {
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState({ message: "", type: "success" });
   const [estados, setEstados] = useState([]);
+  const [balances, setBalances] = useState([]);
+  const navigate = useNavigate();
+
   // 🔹 Centralizamos la carga de equipos
   const fetchEquipos = async () => {
+   
     setLoading(true);
     try {
       const data = await getEquipos();
-      console.log(data)
+    
       setEquipos(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error al obtener equipos:', err);
@@ -40,6 +49,32 @@ const EquipoPage = () => {
       setLoading(false);
     }
   };
+
+  //Fetch a los balances
+  useEffect(() => {
+    const fetchBalances = async () => {
+      try {
+        const res = await getBalancesPresupuestos();
+        setBalances(res.balances || []);
+      } catch (error) {
+        console.error("Error al traer balances:", error);
+      }
+    };
+    fetchBalances();
+  }, []);
+  // 🔹 Calculo del total general
+
+  const balanceByEquipoId = useMemo(() => {
+    const map = {};
+    for (const b of balances) map[b.equipo_id] = b;
+    return map;
+  }, [balances]);
+
+  const totalBalanceGeneral = useMemo(
+    () => balances.reduce((acc, b) => acc + (b?.balance_final ?? 0), 0),
+    [balances]
+  );
+
 
   // fetch a estados
 
@@ -76,66 +111,92 @@ const EquipoPage = () => {
     setEquipoSeleccionado(null);
   };
 
+  //handle delete con alertas
   const handleDelete = async (id) => {
-    if (!window.confirm("¿Seguro que deseas eliminar este equipo?")) return;
-    await deleteEquipo(id);
-    await fetchEquipos(); // ✅ refrescar después de borrar
+   
+    Swal.fire({
+      title: 'Info!',
+      text: '¿Estás seguro de que deseas eliminar este equipo?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      theme: 'dark'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        await deleteEquipo(id);
+        await fetchEquipos(); // ✅ refrescar después de borrar
 
-    setAlert({ message: "✅ Equipo eliminado correctamente", type: "success" });
+        setAlert({ message: "✅ Equipo eliminado correctamente", type: "success" });
+      }else{
+        setAlert({ message: "Operación cancelada", type: "info" });
+      }
+    });
   };
 
-  // const handleSubmit = async (formData) => {
-  //   console.log('equipo seleccionado: ', equipoSeleccionado);
-  //   console.log('data desde equipo page: ', formData);
-  //   try {
-  //     if (equipoSeleccionado) {
-        
-  //       await updateEquipo(equipoSeleccionado.id, formData);
-  //     } else {
-  //       await createEquipo(formData);
-  //     }
+//handle crear ingreso con alertas
+const handleCrearIngreso = async (eq) => {
+  Swal.fire({
+    title: "Crear Ingreso",
+    text: "¿Estás seguro de que deseas crear un nuevo ingreso?",
+    icon: "warning",
+    theme: "dark",
+    showCancelButton: true,
+    confirmButtonText: "Sí, crear",
+    cancelButtonText: "Cancelar"
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      try {
+        const payload = {
+          equipo_id: eq.id,
+          fecha_ingreso: new Date().toISOString(),
+          estado_id: 1, // Pendiente
+        };
+        const ingresoCreado = await createIngreso(payload);
+        setAlert({ message: "✅ Ingreso creado correctamente", type: "success" });
 
-  //     // ✅ siempre recargar desde la DB después de crear/modificar
-  //     await fetchEquipos();
-  //   } catch (err) {
-  //     console.error('Error al guardar equipo:', err);
-  //   } finally {
-  //     handleClose();
-  //   }
-  // };
-
-
-  const handleSubmit = async (formData) => {
-  // ✅ Normalizamos el payload que viaja al backend
-  const payload = {
-    tipo: String(formData.tipo || "").trim(),
-    marca: String(formData.marca || "").trim(),
-    modelo: String(formData.modelo || "").trim(),
-    password: formData.password ?? null,
-    problema: String(formData.problema || "").trim(),
-    cliente_id: Number(formData.cliente_id),
-    fecha_ingreso: formData.fecha_ingreso || null,
-    // 👇 patron SIEMPRE presente; si está vacío, mandamos null (útil si tu SQL usa COALESCE)
-    patron: (formData.patron && formData.patron.trim() !== "") ? formData.patron.trim() : null,
-    estado_id: Number(formData.estado_id),
-  };
-
-  try {
-    if (equipoSeleccionado) {
-      await updateEquipo(equipoSeleccionado.id, payload);
-        setAlert({ message: "✅ Equipo actualizado correctamente", type: "success" });
-    } else {
-      await createEquipo(payload);
-        setAlert({ message: "✅ Equipo creado correctamente", type: "success" });
+        // Navegamos al detalle pasando el ingreso_id recién creado
+        navigate(`/equipos/${eq.id}`, { state: { nuevoIngresoId: ingresoCreado.id } });
+      } catch (e) {
+        console.error("Error creando ingreso:", e);
+        setAlert({ message: "No se pudo crear el ingreso.", type: "error" });
+      }
     }
-    await fetchEquipos(); // refresca tabla
-  } catch (err) {
-    console.error("Error al guardar equipo:", err);
-    setAlert({ message: "❌ Error al guardar el equipo", type: "error" });
-  } finally {
-    handleClose();
-  }
+  });
 };
+
+ 
+  const handleSubmit = async (formData) => {
+    // ✅ Normalizamos el payload que viaja al backend
+    const payload = {
+      tipo: String(formData.tipo || "").trim(),
+      marca: String(formData.marca || "").trim(),
+      modelo: String(formData.modelo || "").trim(),
+      password: formData.password ?? null,
+      problema: String(formData.problema || "").trim(),
+      cliente_id: Number(formData.cliente_id),
+      fecha_ingreso: formData.fecha_ingreso || null,
+      // 👇 patron SIEMPRE presente; si está vacío, mandamos null (útil si tu SQL usa COALESCE)
+      patron: (formData.patron && formData.patron.trim() !== "") ? formData.patron.trim() : null,
+      estado_id: Number(formData.estado_id),
+    };
+
+    try {
+      if (equipoSeleccionado) {
+        await updateEquipo(equipoSeleccionado.id, payload);
+        setAlert({ message: "✅ Equipo actualizado correctamente", type: "success" });
+      } else {
+        await createEquipo(payload);
+        setAlert({ message: "✅ Equipo creado correctamente", type: "success" });
+      }
+      await fetchEquipos(); // refresca tabla
+    } catch (err) {
+      console.error("Error al guardar equipo:", err);
+      setAlert({ message: "❌ Error al guardar el equipo", type: "error" });
+    } finally {
+      handleClose();
+    }
+  };
 
   const handleFiltro = async (tipo) => {
     setFiltro(tipo);
@@ -151,6 +212,7 @@ const EquipoPage = () => {
             eq.tipo?.toLowerCase() !== "notebook" &&
             eq.tipo?.toLowerCase() !== "pc"
         );
+      
         setEquipos(filtrados);
       } else {
         const data = await getEquiposByTipo(tipo);
@@ -160,6 +222,7 @@ const EquipoPage = () => {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="flex flex-col md:flex-row h-screen w-screen bg-neutral-900 text-white overflow-hidden">
@@ -171,6 +234,16 @@ const EquipoPage = () => {
 
       <div className="w-full md:w-[70%] p-6 overflow-y-auto">
         <h3 className="text-xl font-semibold mb-4">Lista de Equipos</h3>
+
+        {/* 🔹 Balance global */}
+        <div className="mb-4">
+          <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-4 flex items-center justify-between">
+            <span className="text-sm text-gray-300">Balance global</span>
+            <span className="text-xl font-semibold text-emerald-400">
+              ${totalBalanceGeneral.toLocaleString("es-AR")}
+            </span>
+          </div>
+        </div>
 
         <BuscadorComponent
           onBuscar={async (clienteId) => {
@@ -203,79 +276,116 @@ const EquipoPage = () => {
               grupos[key].push(eq);
               return grupos;
             }, {})
-          ).map(([mes, equiposMes]) => (
-            <div key={mes} className="mb-6">
-              <div className="border-b border-gray-600 my-4">
-                <h4 className="text-lg font-semibold text-gray-300 capitalize">{mes}</h4>
-              </div>
+          ).map(([mes, equiposMes]) => {
+            // 🔹 Total mensual
+            const totalMes = equiposMes.reduce(
+              (acc, eq) => acc + (balanceByEquipoId[eq.id]?.balance_final ?? 0),
+              0
+            );
 
-              <ol className="space-y-4 list-decimal list-inside">
-                {equiposMes.map((eq) => {
-                  const fechaFormateada = eq.fecha_ingreso
-                    ? new Date(eq.fecha_ingreso).toLocaleDateString("es-AR", {
+            return (
+              <div key={mes} className="mb-6">
+                <div className="border-b border-gray-600 my-4">
+                  <h4 className="text-lg font-semibold text-gray-300 capitalize">{mes}</h4>
+                </div>
+
+                {/* 🔹 Balance del mes */}
+                <div className="mb-4">
+                  <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3 flex items-center justify-between">
+                    <span className="text-sm text-gray-300">Balance del mes</span>
+                    <span className="text-lg font-semibold text-emerald-400">
+                      ${totalMes.toLocaleString("es-AR")}
+                    </span>
+                  </div>
+                </div>
+
+                <ol className="space-y-4 list-decimal list-inside">
+                  {equiposMes.map((eq) => {
+                    const fechaFormateada = eq.fecha_ingreso
+                      ? new Date(eq.fecha_ingreso).toLocaleDateString("es-AR", {
                         year: "numeric",
                         month: "2-digit",
                         day: "2-digit",
                       })
-                    : "Sin fecha";
+                      : "Sin fecha";
 
-                  return (
-                    <li
-                      key={eq.id}
-                      className="bg-neutral-800 p-4 rounded shadow flex flex-col md:flex-row justify-between md:items-center gap-3"
-                    >
-                      <div className="flex-1">
-                        <p className="font-semibold text-white">
-                          {eq.tipo?.toUpperCase()} - {eq.marca} {eq.modelo}
-                        </p>
+                    const monto = balanceByEquipoId[eq.id]?.balance_final ?? 0;
 
-                        <p className="text-sm text-gray-400">{eq.problema}</p>
+                    return (
+                      <li
+                        key={eq.id}
+                        className="bg-neutral-800 p-4 rounded shadow flex flex-col md:flex-row justify-between md:items-center gap-3"
+                      >
+                        {/* 🔹 Info principal a la izquierda */}
+                        <div className="flex-1">
+                          <p className="font-semibold text-white">
+                            {eq.tipo?.toUpperCase()} - {eq.marca} {eq.modelo}
+                          </p>
+
+                          <p className="text-sm text-gray-400">{eq.problema}</p>
                           <p className="text-sm text-gray-400">
                             Estado: {getNombreEstado(eq.estado_id)}
                           </p>
-                          {/* Patrón: solo si es celular */}
-                        {eq.tipo?.toLowerCase() === "celular" && eq.patron && (
-                          <p className="text-sm text-gray-400">Patrón: {eq.patron}</p>
-                        )}
-                         {eq.tipo?.toLowerCase() != "consola" && eq.password && (
-                          
-                          <p className="text-sm text-gray-400" > Password: {eq.password}</p>
-                        )}
 
-                        {/* Cliente */}
+                          {eq.tipo?.toLowerCase() === "celular" && eq.patron && (
+                            <p className="text-sm text-gray-400">Patrón: {eq.patron}</p>
+                          )}
+                          {eq.tipo?.toLowerCase() !== "consola" && eq.password && (
+                            <p className="text-sm text-gray-400">Password: {eq.password}</p>
+                          )}
 
-                       <p className="text-sm text-gray-400">Cliente: {eq.cliente_nombre} {eq.cliente_apellido}</p>
-                         
+                          <p className="text-sm text-gray-400">
+                            Cliente: {eq.cliente_nombre} {eq.cliente_apellido}
+                          </p>
 
-                        <p className="text-sm text-gray-500">Ingreso: {fechaFormateada}</p>
+                          <p className="text-sm text-gray-500">Ingreso: {fechaFormateada}</p>
+                        </div>
 
-                      </div>
-                      <div className="flex gap-2 self-end md:self-auto">
-                        <Link
-                          to={`/equipos/${eq.id}`}
-                          className="text-emerald-400 hover:text-emerald-200 text-sm  mt-2 block"
-                        >
-                          Ver Detalles
-                        </Link>
-                        <button
-                          onClick={() => handleModificar(eq)}
-                          className="bg-indigo-600 hover:bg-indigo-700 px-3 py-1 rounded text-sm font-medium"
-                        >
-                          Modificar
-                        </button>
-                        <button
-                          onClick={() => handleDelete(eq.id)}
-                          className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm font-medium"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ol>
-            </div>
-          ))
+                        {/* 🔹 Mini-card de balance a la derecha */}
+                        <div className="flex flex-col items-end gap-2">
+                          <div className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 flex items-center justify-between md:justify-center gap-2">
+                            <span className="hidden sm:block text-xs text-gray-300">Balance</span>
+                            <span className="text-base md:text-lg font-semibold text-emerald-400">
+                              ${monto.toLocaleString("es-AR")}
+                            </span>
+                          </div>
+
+                          {/* 🔹 Botones */}
+                          <div className="flex gap-2">
+                             <button
+                              onClick={() => handleCrearIngreso(eq)}
+                              className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm font-medium"
+                            >
+                              Nuevo Ingreso
+                            </button>
+                            <Link
+                              to={`/equipos/${eq.id}`}
+                              className="bg-neutral-700 hover:bg-neutral-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+                            >
+                              Ver Detalles
+                            </Link>
+
+                            <button
+                              onClick={() => handleModificar(eq)}
+                              className="bg-indigo-600 hover:bg-indigo-700 px-3 py-1 rounded text-sm font-medium"
+                            >
+                              Modificar
+                            </button>
+                            <button
+                              onClick={() => handleDelete(eq.id)}
+                              className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm font-medium"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+            );
+          })
         )}
       </div>
 
@@ -295,9 +405,8 @@ const EquipoPage = () => {
         />
       )}
     </div>
-
-    
   );
+
 };
 
 export default EquipoPage;

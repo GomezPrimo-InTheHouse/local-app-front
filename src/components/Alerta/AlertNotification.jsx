@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { CheckCircle, XCircle, AlertTriangle, X } from "lucide-react";
 
-const AlertNotification = ({ message, type = "success", duration = 4000, onClose }) => {
+const AlertNotification = ({ message, type = "success", duration = 2000, onClose }) => {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -12,7 +12,7 @@ const AlertNotification = ({ message, type = "success", duration = 4000, onClose
         setVisible(false);
         setTimeout(() => {
           onClose?.();
-        }, 300);
+        });
       }, duration);
 
       return () => clearTimeout(timer);

@@ -2,10 +2,12 @@
 
 // src/pages/DetalleEquiposPage.jsx
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import { getEquipoById } from "../api/EquiposApi.jsx";
 import { getPresupuestosByEquipo, deletePresupuesto } from "../api/PresupuestoApi.jsx";
 import { getEstados } from "../api/EstadoApi.jsx";
+
+
 import PresupuestoModal from "../components/Presupuesto/PresupuestoModal.jsx";
 
 import CambiarEstadoModal from "../components/Ingreso/CambiarEstadoModal.jsx";
@@ -26,6 +28,9 @@ const DetalleEquiposPage = () => {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [presupuestoSeleccionado, setPresupuestoSeleccionado] = useState(null);
   const [ingresoSeleccionado, setIngresoSeleccionado] = useState(null);
+  const location = useLocation();
+  const nuevoIngresoId = location.state?.nuevoIngresoId;
+  const navigate = useNavigate();
 
   // Alertas globales (padre)
   const [alertMessage, setAlertMessage] = useState("");
@@ -35,6 +40,15 @@ const DetalleEquiposPage = () => {
     setAlertType(type);
     setTimeout(() => setAlertMessage(""), 2000); // 2s
   };
+
+  useEffect(() => {
+  if (!nuevoIngresoId) return;
+  setIngresoActual((prev) => {
+    if (prev && prev.id === nuevoIngresoId) return prev; // ya está
+    // preservamos datos previos si existen, pero forzamos el id nuevo
+    return prev ? { ...prev, id: nuevoIngresoId } : { id: nuevoIngresoId };
+  });
+}, [nuevoIngresoId]);
 
   // asigno la data a estados 
 
@@ -90,23 +104,32 @@ const DetalleEquiposPage = () => {
 
   }, [id]);
 
-
+  //elimiar presu con alerta
   const handleEliminarPresupuesto = async (presupuestoId) => {
     if (!presupuestoId) return;
 
-    const confirmar = window.confirm("¿Seguro que deseas eliminar este presupuesto?");
-    if (!confirmar) return;
+   swal.fire({
+     title: "Eliminar Presupuesto",
+     text: "¿Estás seguro de que deseas eliminar este presupuesto?",
+     icon: "warning",
+     showCancelButton: true,
+     confirmButtonText: "Sí, eliminar",
+     cancelButtonText: "Cancelar",
+     theme: "dark"
+   }).then(async (result) => {
+     if (result.isConfirmed) {
+       try {
+         await deletePresupuesto(presupuestoId);
+         console.log(`Presupuesto ${presupuestoId} eliminado con éxito`);
+         setAlertMessage("✅ Presupuesto eliminado con éxito");
+          await refrescarPresupuestos();
+       } catch (error) {
+         console.error("Error al eliminar presupuesto:", error);
+         setAlertMessage("❌ Ocurrió un error al eliminar el presupuesto.");
+       }
+     }
+   });
 
-    try {
-      await deletePresupuesto(presupuestoId);
-      console.log(`Presupuesto ${presupuestoId} eliminado con éxito`);
-
-      // 🔁 Refrescar lista de presupuestos
-      await refrescarPresupuestos();
-    } catch (error) {
-      console.error("Error al eliminar presupuesto:", error);
-      alert("Ocurrió un error al eliminar el presupuesto.");
-    }
   };
 
   // Refrescar solo presupuestos
@@ -124,20 +147,7 @@ const DetalleEquiposPage = () => {
 
   // Manejo actualización de estado del ingreso (desde CambiarEstadoModal)
 
-  // const handleUpdateIngreso = async (data) => {
-  //   try {
-  //     await updateIngreso(data.id, {
-  //       estado: data.estado,
-  //       fecha_ingreso: data.fecha_ingreso,
-  //       fecha_egreso: data.fecha_egreso,
-  //     });
-  //     showAlert("Estado actualizado correctamente", "success");
-  //     await fetchAll();
-  //   } catch (err) {
-  //     console.error("Error actualizando ingreso:", err);
-  //     showAlert("Error al actualizar estado", "error");
-  //   }
-  // };
+
 
 
 
@@ -184,6 +194,8 @@ const DetalleEquiposPage = () => {
 
   const totalFinal = totalIngresos - totalCostos;
 
+
+
   return (
     <div className="flex flex-col h-screen w-screen bg-neutral-900 text-white overflow-hidden relative">
       {/* alerta global */}
@@ -203,30 +215,65 @@ const DetalleEquiposPage = () => {
 
       {/* Contenido */}
       <div className="flex-1 p-6 overflow-y-auto space-y-6">
+
         {/* Info principal */}
-        <div className="bg-neutral-800 p-4 rounded shadow space-y-1">
-          <p className="font-semibold text-white">
-            {equipo?.tipo?.toUpperCase()} - {equipo?.marca} {equipo?.modelo}
-          </p>
-          <p className="text-gray-400">{equipo?.problema}</p>
-          <p className="text-gray-500">Ingreso: {ingresoActual?.fecha_ingreso ? new Date(ingresoActual.fecha_ingreso).toLocaleDateString("es-AR") : "Sin fecha"}</p>
-          <p className="text-sm text-gray-400">
-            Cliente: {cliente?.nombre} {cliente?.apellido} | {cliente?.celular}
-          </p>
-          {/* ESTADO */}
-          <p className="text-sm text-gray-400">
-            Estado actual:{" "}
-            <span className="font-medium text-emerald-400">
-              {estadoIngresoNombre}
-            </span>
-          </p>
-          {/* EGRESO */}
-          <p className="text-sm text-gray-400">
-            Fecha de egreso: {ingresoActual?.fecha_egreso ? new Date(ingresoActual.fecha_egreso).toLocaleDateString("es-AR") : "No definido"}
-          </p>
+        <div className="bg-neutral-800 p-4 rounded shadow flex flex-col md:flex-row justify-between gap-4">
+          {/* INFO PRINCIPAL (lado izquierdo) */}
+          <div className="flex-1 space-y-1">
+            <p className="font-semibold text-white">
+              {equipo?.tipo?.toUpperCase()} - {equipo?.marca} {equipo?.modelo}
+            </p>
+            <p className="text-gray-400">{equipo?.problema}</p>
+            <p className="text-gray-500">
+              Ingreso:{" "}
+              {ingresoActual?.fecha_ingreso
+                ? new Date(ingresoActual.fecha_ingreso).toLocaleDateString("es-AR")
+                : "Sin fecha"}
+            </p>
+            <p className="text-sm text-gray-400">
+              Cliente: {cliente?.nombre} {cliente?.apellido} | {cliente?.celular}
+            </p>
 
+            {/* ESTADO */}
+            <p className="text-sm text-gray-400">
+              Estado actual:{" "}
+              <span className="font-medium text-emerald-400">
+                {estadoIngresoNombre}
+              </span>
+            </p>
 
+            {/* EGRESO */}
+            <p className="text-sm text-gray-400">
+              Fecha de egreso:{" "}
+              {ingresoActual?.fecha_egreso
+                ? new Date(ingresoActual.fecha_egreso).toLocaleDateString("es-AR")
+                : "No definido"}
+            </p>
+          </div>
+
+          {/* CARD DE BALANCE (lado derecho) */}
+          <div className="w-full md:w-1/4">
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-500 p-4 rounded-xl shadow-md flex flex-col items-center md:items-start text-white">
+              {/* Título: se oculta en sm */}
+              <h3 className="text-md md:text-lg font-semibold mb-1 md:mb-2 hidden sm:block">
+                Balance Total
+              </h3>
+
+              {/* Total siempre visible */}
+              <p className="text-xl md:text-2xl font-bold tracking-wide">
+                ${totalFinal.toLocaleString("es-AR")}
+              </p>
+
+              {/* Desglose de Ingresos/Costos: solo en md+ */}
+              <div className="mt-1 md:mt-3 flex flex-col md:flex-row gap-1 md:gap-2 text-xs md:text-sm text-emerald-100 hidden md:flex">
+                <span>Ingresos: ${totalIngresos.toLocaleString("es-AR")}</span>
+                <span> | </span>
+                <span>Costos: ${totalCostos.toLocaleString("es-AR")}</span>
+              </div>
+            </div>
+          </div>
         </div>
+
 
         {/* Botones header */}
         <div className="flex flex-wrap gap-3">
@@ -256,39 +303,27 @@ const DetalleEquiposPage = () => {
             Actualizar Ingreso
           </button>
 
+          <button
+            onClick={() => navigate(`/equipos/${equipo.id}/historial`)}
+            className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm font-medium"
+          >
+            Ver Historial
+          </button>
+
+          
+
         </div>
-        {/* 🔹 Card de total */}
-   
-       
+
+
+
 
         {/* Lista de presupuestos */}
 
 
         <div className="bg-neutral-800 p-4 rounded shadow  overflow-y-auto">
-           <div className="mt-4 w-full max-w-md mx-auto">
-          <div className="bg-gradient-to-r from-emerald-600 to-teal-500 p-4 md:p-5 rounded-xl shadow-md flex flex-col items-center md:items-start text-white">
-            
-            {/* Título: se oculta en sm */}
-            <h3 className="text-md md:text-lg font-semibold mb-1 md:mb-2 hidden sm:block">
-              Balance Total
-            </h3>
 
-            {/* Total siempre visible */}
-            <p className="text-xl md:text-2xl font-bold tracking-wide">
-              ${totalFinal.toLocaleString("es-AR")}
-            </p>
-
-            {/* Desglose de Ingresos/Costos: solo en md+ */}
-            <div className="mt-1 md:mt-3 flex flex-col md:flex-row gap-1 md:gap-2 text-xs md:text-sm text-emerald-100 hidden md:flex">
-              <span>Ingresos: ${totalIngresos.toLocaleString("es-AR")}</span>
-              <span> | </span>
-              <span>Costos: ${totalCostos.toLocaleString("es-AR")}</span>
-            </div>
-
-          </div>
-        </div>
           <h3 className="text-lg font-semibold mb-2">Historial de presupuestos</h3>
-          
+
 
           {presupuestosValidos.length > 0 ? (
             // 🔹 Mapeamos presupuestos válidos
@@ -320,7 +355,7 @@ const DetalleEquiposPage = () => {
                     : "text-yellow-400";
 
                 return (
-                  
+
 
 
                   <li

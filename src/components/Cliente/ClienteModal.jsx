@@ -4,31 +4,38 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
   const [formData, setFormData] = useState({
     nombre: "",
     apellido: "",
+    dni: "",
     direccion: "",
     celular: "",
     celular_contacto: "",
   });
 
   // 🔹 Cargar datos si estamos editando
-  useEffect(() => {
-    if (clienteSeleccionado) {
-      setFormData({
-        nombre: clienteSeleccionado.nombre || "",
-        apellido: clienteSeleccionado.apellido || "",
-        direccion: clienteSeleccionado.direccion || "",
-        celular: clienteSeleccionado.celular || "",
-        celular_contacto: clienteSeleccionado.celular_contacto || "",
-      });
-    } else {
-      setFormData({
-        nombre: "",
-        apellido: "",
-        direccion: "",
-        celular: "",
-        celular_contacto: "",
-      });
-    }
-  }, [clienteSeleccionado]);
+useEffect(() => {
+  if (!isOpen) return; // solo ejecutar cuando se abre el modal
+
+  if (clienteSeleccionado) {
+    setFormData({
+      nombre: clienteSeleccionado.nombre || "",
+      apellido: clienteSeleccionado.apellido || "",
+      dni: clienteSeleccionado.dni || "",
+      direccion: clienteSeleccionado.direccion || "",
+      celular: clienteSeleccionado.celular || "",
+      celular_contacto: clienteSeleccionado.celular_contacto || "",
+    });
+  } else {
+    // 👇 reset al abrir en modo "nuevo cliente"
+    setFormData({
+      nombre: "",
+      apellido: "",
+      dni: "",
+      direccion: "",
+      celular: "",
+      celular_contacto: "",
+    });
+  }
+}, [isOpen, clienteSeleccionado]);
+
 
   // 🔹 Manejar cambios de input
   const handleChange = (e) => {
@@ -45,7 +52,8 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
       !formData.nombre.trim() ||
       !formData.apellido.trim() ||
       !formData.direccion.trim() ||
-      !formData.celular.trim()
+      !formData.celular.trim() ||
+      !formData.dni.trim()
     ) {
       alert("Por favor complete todos los campos obligatorios (*)");
       return;
@@ -79,6 +87,16 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
             name="apellido"
             placeholder="Apellido *"
             value={formData.apellido}
+            onChange={handleChange}
+            className="w-full bg-neutral-700 text-white p-2 rounded"
+            required
+          />
+          {/* dni */}
+          <input
+            type="text"
+            name="dni"
+            placeholder="DNI *"
+            value={formData.dni}
             onChange={handleChange}
             className="w-full bg-neutral-700 text-white p-2 rounded"
             required

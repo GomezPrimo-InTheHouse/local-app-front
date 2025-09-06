@@ -45,6 +45,10 @@ export const getPresupuestoById = async (id) => {
   return data;
 };
 
+export const getBalancesPresupuestos = async () => {
+  const { data } = await axios.get(`${API_URL}/balance`);
+  return data;
+};
 
 // src/api/PresupuestoAp
 

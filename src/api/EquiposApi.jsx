@@ -43,3 +43,5 @@ export const getEquiposByClienteId = async (clienteId) => {
   return res.data?.data; // Dependiendo de tu backend: { status, data }
 };
 
+
+

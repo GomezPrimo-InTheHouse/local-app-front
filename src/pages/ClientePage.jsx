@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from 'react-router-dom';
+import Swal from 'sweetalert2'
 import {
   getClientes,
   createCliente,
@@ -17,24 +18,7 @@ const ClientePage = () => {
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [presupuestos, setPresupuestos] = useState([]);
 
-// const handleDeletePresupuesto = async (id) => {
-//   if (!window.confirm("¿Seguro que deseas eliminar este presupuesto?")) return;
 
-//   try {
-//     await deletePresupuesto(id);
-
-//     // ✅ 1. Actualizamos el estado local inmediatamente
-//     setPresupuestos((prev) => prev.filter((p) => p.presupuesto_id !== id));
-
-//     // ✅ 2. Opcional: Volver a pedir al backend para asegurar sincronización
-//     onPresupuestoActualizado && onPresupuestoActualizado();
-
-//     onSuccess && onSuccess("Presupuesto eliminado correctamente");
-//   } catch (error) {
-//     console.error("Error al eliminar presupuesto:", error);
-//     onError && onError("No se pudo eliminar el presupuesto");
-//   }
-// };
 
   // 🔹 Obtener clientes al montar el componente
   useEffect(() => {
@@ -76,13 +60,26 @@ const ClientePage = () => {
   };
 
   const handleDeleteCliente = async (id) => {
-    if (!window.confirm("¿Seguro que deseas eliminar este cliente?")) return;
-    try {
-      await deleteCliente(id);
-      cargarClientes();
-    } catch (error) {
-      console.error("Error eliminando cliente:", error);
-    }
+
+    Swal.fire({
+      title: "¿Estás seguro?",
+      text: "No podrás deshacer esta acción.",
+      icon: "warning",
+      theme: "dark",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar"
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await deleteCliente(id);
+          cargarClientes();
+        } catch (error) {
+          console.error("Error eliminando cliente:", error);
+          Swal.fire("Error", "No se pudo eliminar el cliente", "error");
+        }
+      }
+    });
   };
 
   const handleSubmit = async (formData) => {
@@ -91,10 +88,12 @@ const ClientePage = () => {
         await updateCliente(clienteSeleccionado.id, formData);
       } else {
         await createCliente(formData);
+       
       }
       cargarClientes();
     } catch (error) {
       console.error("Error guardando cliente:", error);
+      Swal.fire("Error", "Ya existe el cliente", "error");
     }
   };
 
