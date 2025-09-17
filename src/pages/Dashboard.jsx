@@ -2,11 +2,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import EstadisticasModal from "../components/General/EstadisticasModal";
+import useAuth from "../hooks/UseAuth.jsx";
 
 const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
-
+  const { logout } = useAuth();
   const handleOpenModal = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
 
@@ -14,10 +15,25 @@ const Dashboard = () => {
     // Redirige a EstadisticasPage con query params
     navigate(`/estadisticas?mes=${mes}&anio=${anio}`);
   };
+   const handleLogout = async () => {
+    try {
+      await logout(); // llama a AuthService.logout() desde el contexto
+      navigate("/login", { replace: true }); // redirige al login
+    } catch (err) {
+      console.error("Error al cerrar sesión:", err);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-neutral-900 text-neutral-100 flex flex-col items-center justify-center px-4">
+        <button
+        onClick={handleLogout}
+        className="px-4 py-2 mb-4 rounded bg-black-400 hover:bg-gray-500 text-white font-semibold transition"
+      >
+        Cerrar sesión
+      </button>
       <h1 className="text-4xl font-bold mb-10">Panel Principal</h1>
+      
       <div className="grid grid-cols-2 sm:grid-cols-2 gap-6 w-full max-w-md">
         <Link
           to="/clientes"
@@ -43,6 +59,12 @@ const Dashboard = () => {
         >
           Ventas
         </Link> 
+        <Link
+          to="/productos"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-4 px-6 rounded-2xl shadow transition-colors duration-200 text-center"
+        >
+          Productos
+        </Link>
       </div>
 
       <EstadisticasModal

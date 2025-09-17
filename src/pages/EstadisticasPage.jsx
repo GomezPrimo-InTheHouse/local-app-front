@@ -1,6 +1,9 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getResumenPorMes } from "../api/EstadisticasApi";
+
+import { getResumenVentasPorMes } from "../api/EstadisticasApi"; // <-- Importa también esta
+
 import {
   PieChart,
   Pie,
@@ -51,6 +54,28 @@ const EstadisticasPage = () => {
 
   const [resumen, setResumen] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [ventasResumen, setVentasResumen] = useState(null);
+
+  useEffect(() => {
+    if (!mes || !anio) return;
+
+    const fetchData = async () => {
+      try {
+        const [resumenData, ventasData] = await Promise.all([
+          getResumenPorMes(mes, anio),
+          getResumenVentasPorMes(mes, anio)
+        ]);
+        setResumen(resumenData);
+        setVentasResumen(ventasData);
+      } catch (error) {
+        console.error("Error cargando estadísticas:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [mes, anio]);
 
   useEffect(() => {
     if (!mes || !anio) return;
@@ -68,6 +93,39 @@ const EstadisticasPage = () => {
 
     fetchData();
   }, [mes, anio]);
+
+  // Datos de ventas
+  const totalVentas = ventasResumen?.data?.total_ventas || 0;
+
+  const clientesQueMasGastaron = ventasResumen?.data?.ventas.reduce((acc, venta) => {
+    const existente = acc.find(c => c.cliente_id === venta.cliente_id);
+    if (existente) {
+      existente.total += venta.total;
+    } else {
+      acc.push({
+        cliente_id: venta.cliente_id,
+        nombre: venta.nombre_cliente,
+        total: venta.total
+      });
+    }
+    return acc;
+  }, []).sort((a, b) => b.total - a.total).slice(0, 5) || [];
+
+  const productosMasVendidos = ventasResumen?.data?.ventas.flatMap(v => v.productos)
+    .reduce((acc, prod) => {
+      const existente = acc.find(p => p.producto_id === prod.producto_id);
+      if (existente) {
+        existente.cantidad += prod.cantidad;
+      } else {
+        acc.push({
+          producto_id: prod.producto_id,
+          nombre: prod.nombre_producto,
+          cantidad: prod.cantidad
+        });
+      }
+      return acc;
+    }, []).sort((a, b) => b.cantidad - a.cantidad).slice(0, 5) || [];
+
 
   if (!mes || !anio) {
     return (
@@ -283,7 +341,76 @@ const EstadisticasPage = () => {
               </BarChart>
             </ResponsiveContainer>
           </div>
+
+        
+
         </div>
+          {/* ==================== SECCIÓN DE VENTAS ==================== */}
+          <div className="mt-12">
+            <h2 className="text-2xl font-extrabold mb-6 text-purple-400">🛒 Ventas del Mes</h2>
+
+            {/* KPIs de Ventas */}
+           
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 w-full">
+              <div className="bg-neutral-800 rounded-3xl p-6 shadow-xl">
+                <h2 className="text-lg font-semibold text-green-400 mb-2">Total Ventas</h2>
+                <p className="text-3xl font-extrabold">
+                  ${totalVentas.toLocaleString()}
+                </p>
+              </div>
+              <div className="bg-neutral-800 rounded-3xl p-6 shadow-xl">
+                <h2 className="text-lg font-semibold text-blue-400 mb-2">Top Clientes</h2>
+                <p className="text-sm text-gray-300">
+                  {clientesQueMasGastaron.map(c => (
+                    <div key={c.cliente_id} className="flex justify-between">
+                      <span>{c.nombre}</span>
+                      <span className="font-semibold text-green-400">${c.total.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </p>
+              </div>
+              <div className="bg-neutral-800 rounded-3xl p-6 shadow-xl">
+                <h2 className="text-lg font-semibold text-orange-400 mb-2">Productos Más Vendidos</h2>
+                <p className="text-sm text-gray-300">
+                  {productosMasVendidos.map(p => (
+                    <div key={p.producto_id} className="flex justify-between">
+                      <span>{p.nombre}</span>
+                      <span className="font-semibold text-purple-400">{p.cantidad} u.</span>
+                    </div>
+                  ))}
+                </p>
+              </div>
+            </div>
+
+            {/* Gráficos de Ventas */}
+            <div className="grid grid-cols-1 md:grid-cols-2  gap-6 mb-8 w-full">
+              <div className="bg-neutral-800 p-6 rounded-3xl shadow-xl flex flex-col h-full">
+                <h2 className="text-lg font-bold mb-4 text-green-400">Clientes que más gastaron</h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={clientesQueMasGastaron} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                    <XAxis type="number" tick={{ fill: '#bbb' }} />
+                    <YAxis dataKey="nombre" type="category" tick={{ fill: '#bbb', fontSize: 12 }} width={120} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="total" fill="#33FF57" barSize={30} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="bg-neutral-800 p-6 rounded-3xl shadow-xl flex flex-col h-full">
+                <h2 className="text-lg font-bold mb-4 text-orange-400">Productos más vendidos</h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={productosMasVendidos} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                    <XAxis type="number" tick={{ fill: '#bbb' }} />
+                    <YAxis dataKey="nombre" type="category" tick={{ fill: '#bbb', fontSize: 12 }} width={120} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="cantidad" fill="#FFC300" barSize={30} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
       </div>
     </div>
   );

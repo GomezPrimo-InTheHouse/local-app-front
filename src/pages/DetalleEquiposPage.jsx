@@ -6,7 +6,7 @@ import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import { getEquipoById } from "../api/EquiposApi.jsx";
 import { getPresupuestosByEquipo, deletePresupuesto } from "../api/PresupuestoApi.jsx";
 import { getEstados } from "../api/EstadoApi.jsx";
-
+import Swal from "sweetalert2";
 
 import PresupuestoModal from "../components/Presupuesto/PresupuestoModal.jsx";
 
@@ -108,7 +108,7 @@ const DetalleEquiposPage = () => {
   const handleEliminarPresupuesto = async (presupuestoId) => {
     if (!presupuestoId) return;
 
-   swal.fire({
+   Swal.fire({
      title: "Eliminar Presupuesto",
      text: "¿Estás seguro de que deseas eliminar este presupuesto?",
      icon: "warning",

@@ -51,29 +51,31 @@ const EquipoPage = () => {
   };
 
   //Fetch a los balances
-  useEffect(() => {
-    const fetchBalances = async () => {
-      try {
-        const res = await getBalancesPresupuestos();
-        setBalances(res.balances || []);
-      } catch (error) {
-        console.error("Error al traer balances:", error);
-      }
-    };
-    fetchBalances();
-  }, []);
-  // 🔹 Calculo del total general
 
-  const balanceByEquipoId = useMemo(() => {
-    const map = {};
-    for (const b of balances) map[b.equipo_id] = b;
-    return map;
-  }, [balances]);
+useEffect(() => {
+  const fetchBalances = async () => {
+    try {
+      const res = await getBalancesPresupuestos();
+      // 👇 Ahora toma los datos correctos
+      setBalances(res.data || []);
+    } catch (error) {
+      console.error("Error al traer balances:", error);
+    }
+  };
+  fetchBalances();
+}, []);
 
-  const totalBalanceGeneral = useMemo(
-    () => balances.reduce((acc, b) => acc + (b?.balance_final ?? 0), 0),
-    [balances]
-  );
+// 🔹 Calculo del total general
+const balanceByEquipoId = useMemo(() => {
+  const map = {};
+  for (const b of balances) map[b.equipo_id] = b;
+  return map;
+}, [balances]);
+
+const totalBalanceGeneral = useMemo(
+  () => balances.reduce((acc, b) => acc + (b?.balance_final ?? 0), 0),
+  [balances]
+);
 
 
   // fetch a estados

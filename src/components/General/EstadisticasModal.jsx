@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+
 const EstadisticasModal = ({ isOpen, onClose }) => {
   const [mes, setMes] = useState("");
   const [anio, setAnio] = useState("2025");
@@ -37,9 +38,30 @@ const EstadisticasModal = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 transition-opacity duration-300 ease-in-out">
-      <div className="bg-neutral-800 text-white p-8 rounded-2xl shadow-2xl w-full max-w-sm transform transition-transform duration-300 scale-95 hover:scale-100">
-        <h2 className="text-2xl font-bold mb-6 text-center text-purple-400">
-          Seleccionar Período 📈
+      <div className="bg-neutral-800 text-white p-8 rounded-2xl shadow-2xl w-full max-w-sm transform transition-transform duration-300 scale-95 hover:scale-100 relative">
+        {/* 🔹 NUEVO BOTÓN PARA CERRAR EL MODAL */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-200 transition-colors"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+
+        <h2 className="text-xl font-bold mb-6 text-center text-purple-400">
+          Seleccionar Período 
         </h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">

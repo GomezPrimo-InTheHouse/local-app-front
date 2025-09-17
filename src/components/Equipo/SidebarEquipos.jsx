@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const SidebarEquipos = ({ filtro, handleFiltro, handleAgregar }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const tipos = ["todos", "celular", "notebook", "PC", "otros"];
+  const navigate = useNavigate();
 
   return (
     <div className="
@@ -15,12 +16,12 @@ const SidebarEquipos = ({ filtro, handleFiltro, handleAgregar }) => {
     ">
       {/* 🔹 Bloque superior */}
       <div className="flex flex-col gap-4">
-        <Link
-          to="/"
-          className="inline-block text-sm text-emerald-400 hover:text-emerald-200 underline"
+        <button
+          onClick={() => navigate("/")}
+          className="px-4 py-2 mb-6 bg-neutral-700 hover:bg-neutral-600 rounded-lg transition text-sm"
         >
-          ← Volver al Dashboard
-        </Link>
+          ⬅️ Volver al Dashboard
+        </button>
 
         <h2 className="text-2xl font-bold text-emerald-400">
           Gestión de Equipos

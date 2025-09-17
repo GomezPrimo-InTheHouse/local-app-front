@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from 'react-router-dom';
+
 import Swal from 'sweetalert2'
 import {
   getClientes,
@@ -8,6 +8,10 @@ import {
   deleteCliente,
 } from "../api/ClienteApi";
 import ClienteModal from "../components/Cliente/ClienteModal.jsx";
+import { Link, useNavigate } from "react-router-dom";
+
+
+// import useAuth from "../hooks/UseAuth.jsx";
 
 const ClientePage = () => {
   const [clientes, setClientes] = useState([]);
@@ -17,8 +21,9 @@ const ClientePage = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [presupuestos, setPresupuestos] = useState([]);
-
-
+  const navigate = useNavigate();
+  
+  // const { user, logout } = useAuth();
 
   // 🔹 Obtener clientes al montar el componente
   useEffect(() => {
@@ -101,12 +106,12 @@ const ClientePage = () => {
     <div className="flex flex-col md:flex-row h-screen w-screen bg-neutral-900 text-white overflow-hidden">
       {/* 🔹 Columna izquierda 30% */}
       <div className="w-full md:w-[30%] border-b md:border-b-0 md:border-r border-neutral-700 p-6 flex flex-col items-start gap-4">
-        <Link
-          to="/"
-          className="text-sm text-emerald-400 hover:text-emerald-200 underline"
+        <button
+          onClick={() => navigate("/")}
+          className="px-4 py-2 mb-6 bg-neutral-700 hover:bg-neutral-600 rounded-lg transition"
         >
-          ← Volver al Dashboard
-        </Link>
+          ⬅️ Volver al Dashboard
+        </button>
 
         <h2 className="text-2xl font-bold text-emerald-400">
           Gestión de Clientes
