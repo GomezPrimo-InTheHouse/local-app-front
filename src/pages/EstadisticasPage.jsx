@@ -220,7 +220,14 @@ const EstadisticasPage = () => {
       </div>
 
       {/* Contenido Principal (80%) - Con scroll */}
+
+
+     
+
       <div className="flex-1 p-8 overflow-y-auto">
+
+         {/* ==================== SECCIÓN DE SERVICIO TECNICO ==================== */}
+         
         {/* Resumen General (KPIs) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 w-full">
           <div className="bg-neutral-800 rounded-3xl p-6 shadow-xl">
@@ -345,6 +352,8 @@ const EstadisticasPage = () => {
         
 
         </div>
+
+
           {/* ==================== SECCIÓN DE VENTAS ==================== */}
           <div className="mt-12">
             <h2 className="text-2xl font-extrabold mb-6 text-purple-400">🛒 Ventas del Mes</h2>

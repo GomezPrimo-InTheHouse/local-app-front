@@ -26,12 +26,16 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-neutral-900 text-neutral-100 flex flex-col items-center justify-center px-4">
+      {/* elevar este div arriba de todo */}
+      <div className="absolute top-0 left-0 w-full" style={{backgroundColor: 'rgba(0, 0, 0, 0.5)'}}>
         <button
         onClick={handleLogout}
-        className="px-4 py-2 mb-4 rounded bg-black-400 hover:bg-gray-500 text-white font-semibold transition"
+        className="mt-2 px-4 py-2 mb-4 rounded bg-black-400 hover:bg-gray-500 text-white font-semibold transition"
       >
         Cerrar sesión
       </button>
+
+      </div>
       <h1 className="text-4xl font-bold mb-10">Panel Principal</h1>
       
       <div className="grid grid-cols-2 sm:grid-cols-2 gap-6 w-full max-w-md">

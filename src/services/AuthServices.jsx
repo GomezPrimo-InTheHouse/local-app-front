@@ -38,7 +38,7 @@ const AuthService = {
 
   refreshAccessToken: async (email) => {
     const resp = await axios.post(`${API_URL}/auth/refresh-token`, { email });
-    return resp.data; // { accessToken }
+    return resp.data; 
   },
 };
 

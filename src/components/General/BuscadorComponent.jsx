@@ -2,13 +2,34 @@
 import { useEffect, useState } from "react";
 import { getClientes } from "../../api/ClienteApi.jsx";
 import { X } from "lucide-react"; // 🔹 Icono para botón de limpiar (instala lucide-react si no lo tienes)
+import { getEquipos } from "../../api/EquiposApi.jsx"; // Asegúrate de tener esta función en tu API
 
 const BuscadorComponent = ({ onBuscar }) => {
   const [clientes, setClientes] = useState([]);
   const [search, setSearch] = useState("");
   const [filteredClientes, setFilteredClientes] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [equipos, setEquipos] = useState(null);
 
+   useEffect(() => {
+    const cargarEquipos = async () => {
+      try {
+        // ❗ Actualiza esta llamada a tu API real de equipos
+        const data = await getEquipos(); 
+        
+        if (!Array.isArray(data) || data.length === 0) {
+          console.warn("No se encontraron equipos.");
+          setEquipos([]);
+          return;
+        }
+        setEquipos(Array.isArray(data) ? data : data.data || []);
+      } catch (error) {
+        console.error("Error cargando equipos:", error);
+      }
+    };
+    cargarEquipos();
+  }, []);
+  
   // 🔹 Cargar clientes al montar el componente
   useEffect(() => {
     const cargarClientes = async () => {
@@ -28,6 +49,9 @@ const BuscadorComponent = ({ onBuscar }) => {
     };
     cargarClientes();
   }, []);
+
+  // cargar equipos al montar el componente
+ 
 
   // 🔹 Filtrar clientes por nombre o celular
   useEffect(() => {

@@ -40,7 +40,7 @@ export const getEquiposByTipo = async (tipo) => {
 
 export const getEquiposByClienteId = async (clienteId) => {
   const res = await axios.get(`${API_URL}/cliente/${clienteId}`);
-  return res.data?.data; // Dependiendo de tu backend: { status, data }
+  return res.data?.data; 
 };
 
 

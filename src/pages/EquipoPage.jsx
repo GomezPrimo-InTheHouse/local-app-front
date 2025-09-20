@@ -32,15 +32,17 @@ const EquipoPage = () => {
   const [alert, setAlert] = useState({ message: "", type: "success" });
   const [estados, setEstados] = useState([]);
   const [balances, setBalances] = useState([]);
+  const [mostrarBalances, setMostrarBalances] = useState(false);
+
   const navigate = useNavigate();
 
   // 🔹 Centralizamos la carga de equipos
   const fetchEquipos = async () => {
-   
+
     setLoading(true);
     try {
       const data = await getEquipos();
-    
+
       setEquipos(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error al obtener equipos:', err);
@@ -51,31 +53,31 @@ const EquipoPage = () => {
   };
 
   //Fetch a los balances
+  //Fetch a los balances
+  useEffect(() => {
+    const fetchBalances = async () => {
+      try {
+        const res = await getBalancesPresupuestos();
+        // 👇 Ahora toma los datos correctos
+        setBalances(res.data || []);
+      } catch (error) {
+        console.error("Error al traer balances:", error);
+      }
+    };
+    fetchBalances();
+  }, []);
 
-useEffect(() => {
-  const fetchBalances = async () => {
-    try {
-      const res = await getBalancesPresupuestos();
-      // 👇 Ahora toma los datos correctos
-      setBalances(res.data || []);
-    } catch (error) {
-      console.error("Error al traer balances:", error);
-    }
-  };
-  fetchBalances();
-}, []);
+  // 🔹 Calculo del total general
+  const balanceByEquipoId = useMemo(() => {
+    const map = {};
+    for (const b of balances) map[b.equipo_id] = b;
+    return map;
+  }, [balances]);
 
-// 🔹 Calculo del total general
-const balanceByEquipoId = useMemo(() => {
-  const map = {};
-  for (const b of balances) map[b.equipo_id] = b;
-  return map;
-}, [balances]);
-
-const totalBalanceGeneral = useMemo(
-  () => balances.reduce((acc, b) => acc + (b?.balance_final ?? 0), 0),
-  [balances]
-);
+  const totalBalanceGeneral = useMemo(
+    () => balances.reduce((acc, b) => acc + (b?.balance_final ?? 0), 0),
+    [balances]
+  );
 
 
   // fetch a estados
@@ -115,7 +117,7 @@ const totalBalanceGeneral = useMemo(
 
   //handle delete con alertas
   const handleDelete = async (id) => {
-   
+
     Swal.fire({
       title: 'Info!',
       text: '¿Estás seguro de que deseas eliminar este equipo?',
@@ -130,44 +132,44 @@ const totalBalanceGeneral = useMemo(
         await fetchEquipos(); // ✅ refrescar después de borrar
 
         setAlert({ message: "✅ Equipo eliminado correctamente", type: "success" });
-      }else{
+      } else {
         setAlert({ message: "Operación cancelada", type: "info" });
       }
     });
   };
 
-//handle crear ingreso con alertas
-const handleCrearIngreso = async (eq) => {
-  Swal.fire({
-    title: "Crear Ingreso",
-    text: "¿Estás seguro de que deseas crear un nuevo ingreso?",
-    icon: "warning",
-    theme: "dark",
-    showCancelButton: true,
-    confirmButtonText: "Sí, crear",
-    cancelButtonText: "Cancelar"
-  }).then(async (result) => {
-    if (result.isConfirmed) {
-      try {
-        const payload = {
-          equipo_id: eq.id,
-          fecha_ingreso: new Date().toISOString(),
-          estado_id: 1, // Pendiente
-        };
-        const ingresoCreado = await createIngreso(payload);
-        setAlert({ message: "✅ Ingreso creado correctamente", type: "success" });
+  //handle crear ingreso con alertas
+  const handleCrearIngreso = async (eq) => {
+    Swal.fire({
+      title: "Crear Ingreso",
+      text: "¿Estás seguro de que deseas crear un nuevo ingreso?",
+      icon: "warning",
+      theme: "dark",
+      showCancelButton: true,
+      confirmButtonText: "Sí, crear",
+      cancelButtonText: "Cancelar"
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const payload = {
+            equipo_id: eq.id,
+            fecha_ingreso: new Date().toISOString(),
+            estado_id: 1, // Pendiente
+          };
+          const ingresoCreado = await createIngreso(payload);
+          setAlert({ message: "✅ Ingreso creado correctamente", type: "success" });
 
-        // Navegamos al detalle pasando el ingreso_id recién creado
-        navigate(`/equipos/${eq.id}`, { state: { nuevoIngresoId: ingresoCreado.id } });
-      } catch (e) {
-        console.error("Error creando ingreso:", e);
-        setAlert({ message: "No se pudo crear el ingreso.", type: "error" });
+          // Navegamos al detalle pasando el ingreso_id recién creado
+          navigate(`/equipos/${eq.id}`, { state: { nuevoIngresoId: ingresoCreado.id } });
+        } catch (e) {
+          console.error("Error creando ingreso:", e);
+          setAlert({ message: "No se pudo crear el ingreso.", type: "error" });
+        }
       }
-    }
-  });
-};
+    });
+  };
 
- 
+
   const handleSubmit = async (formData) => {
     // ✅ Normalizamos el payload que viaja al backend
     const payload = {
@@ -214,7 +216,7 @@ const handleCrearIngreso = async (eq) => {
             eq.tipo?.toLowerCase() !== "notebook" &&
             eq.tipo?.toLowerCase() !== "pc"
         );
-      
+
         setEquipos(filtrados);
       } else {
         const data = await getEquiposByTipo(tipo);
@@ -235,14 +237,20 @@ const handleCrearIngreso = async (eq) => {
       />
 
       <div className="w-full md:w-[70%] p-6 overflow-y-auto">
-        <h3 className="text-xl font-semibold mb-4">Lista de Equipos</h3>
 
+        <h3 className="text-xl font-semibold mb-4">Lista de Equipos</h3>
+        <button
+          onClick={() => setMostrarBalances(!mostrarBalances)}
+          className="mb-4 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm font-medium"
+        >
+          {mostrarBalances ? "Mostrar balances" : "Ocultar balances"}
+        </button>
         {/* 🔹 Balance global */}
         <div className="mb-4">
           <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-4 flex items-center justify-between">
             <span className="text-sm text-gray-300">Balance global</span>
             <span className="text-xl font-semibold text-emerald-400">
-              ${totalBalanceGeneral.toLocaleString("es-AR")}
+              ${mostrarBalances ? ' ********' : totalBalanceGeneral.toLocaleString("es-AR")}
             </span>
           </div>
         </div>
@@ -285,7 +293,9 @@ const handleCrearIngreso = async (eq) => {
               0
             );
 
+
             return (
+
               <div key={mes} className="mb-6">
                 <div className="border-b border-gray-600 my-4">
                   <h4 className="text-lg font-semibold text-gray-300 capitalize">{mes}</h4>
@@ -296,7 +306,7 @@ const handleCrearIngreso = async (eq) => {
                   <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3 flex items-center justify-between">
                     <span className="text-sm text-gray-300">Balance del mes</span>
                     <span className="text-lg font-semibold text-emerald-400">
-                      ${totalMes.toLocaleString("es-AR")}
+                      ${mostrarBalances ? ' ********' : totalMes.toLocaleString("es-AR")}
                     </span>
                   </div>
                 </div>
@@ -348,23 +358,23 @@ const handleCrearIngreso = async (eq) => {
                           <div className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 flex items-center justify-between md:justify-center gap-2">
                             <span className="hidden sm:block text-xs text-gray-300">Balance</span>
                             <span className="text-base md:text-lg font-semibold text-emerald-400">
-                              ${monto.toLocaleString("es-AR")}
+                              ${mostrarBalances ? ' ******' : monto.toLocaleString("es-AR")}
                             </span>
                           </div>
 
                           {/* 🔹 Botones */}
                           <div className="flex gap-2">
-                             <button
+                            {/* <button
                               onClick={() => handleCrearIngreso(eq)}
                               className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm font-medium"
                             >
                               Nuevo Ingreso
-                            </button>
+                            </button> */}
                             <Link
                               to={`/equipos/${eq.id}`}
                               className="bg-neutral-700 hover:bg-neutral-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
                             >
-                              Ver Detalles
+                              Presupuestos
                             </Link>
 
                             <button
