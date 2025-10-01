@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import PatronInput from "../Equipo/PatronInput.jsx";
 import { getClientes } from "../../api/ClienteApi";
-import { getEstados } from "../../api/EstadoApi.jsx";
+import { getEstadoByAmbito } from "../../api/EstadoApi.jsx";
 
 const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
   const [formData, setFormData] = useState({
@@ -44,7 +44,7 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
     (async () => {
       try {
         setLoadingEstados(true);
-        const lista = await getEstados();
+        const lista = await getEstadoByAmbito('equipo');
         setEstados(lista || []);
       } catch (e) {
         console.error("Error cargando estados:", e);

@@ -5,6 +5,7 @@ const API_URL = "http://localhost:7001/venta"; // tu endpoint base
 
 // Crear una nueva venta
 export const createVenta = async (ventaData) => {
+  console.log("Datos de venta a enviar:", ventaData);
   try {
     const { data } = await axios.post(API_URL, ventaData);
     return data;

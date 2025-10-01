@@ -1,7 +1,7 @@
 // src/components/ingresos/CambiarEstadoModal.jsx
 import { useEffect, useState } from "react";
 import { updateIngreso } from "../../api/IngresoApi";
-import { getEstados } from "../../api/EstadoApi.jsx";
+import { getEstadoByAmbito } from "../../api/EstadoApi.jsx";
 
 const toInputDate = (value) => {
   if (!value) return "";
@@ -45,7 +45,7 @@ const CambiarEstadoModal = ({
     (async () => {
       try {
         setLoadingEstados(true);
-        const lista = await getEstados();
+        const lista = await getEstadoByAmbito('ingreso');
         setEstados(Array.isArray(lista) ? lista : []);
       } catch (e) {
         console.error("Error cargando estados:", e);

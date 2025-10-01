@@ -18,6 +18,7 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
 
   useEffect(() => {
     const fetchInitialData = async () => {
+
       try {
         const clientesResponse = await getClientes();
 
@@ -25,6 +26,8 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
         setFilteredClientes(Array.isArray(clientesResponse) ? clientesResponse : []);
 
         const productosResponse = await getProductos();
+      
+
         setProductos(Array.isArray(productosResponse.data) ? productosResponse.data : []);
       } catch (err) {
         console.error("Error cargando datos iniciales:", err);
@@ -34,9 +37,10 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
   }, []);
 
   useEffect(() => {
+   
     if (initialData && productos.length > 0 && clientes.length > 0) {
-      if (initialData.cliente_id) {
-        const clienteEncontrado = clientes.find(c => c.id === initialData.cliente_id);
+      if (initialData?.cliente.id) {
+        const clienteEncontrado = clientes.find(c => c.id === initialData.cliente.id);
         if (clienteEncontrado) {
           setClienteSeleccionado(clienteEncontrado);
           setSearch(`${clienteEncontrado.nombre} ${clienteEncontrado.apellido}`);
@@ -49,20 +53,22 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
         setSearch("");
       }
 
-      const loadedItems = (initialData.detalles || []).map(detail => {
+      const loadedItems = (initialData.detalle_venta || []).map(detail => {
         const productInfo = productos.find(p => p.id === detail.producto_id);
+        
         return {
-          id: detail.producto_id,
-          nombre: productInfo ? productInfo.nombre : 'Producto desconocido',
+          detalle_id: detail.id, // id real del detalle de venta
+          producto_id: detail.producto_id, // id del producto
+          nombre: productInfo ? productInfo.nombre : "Producto desconocido",
           cantidad: detail.cantidad,
           precio: detail.precio_unitario,
           stock: productInfo ? productInfo.stock : 0,
-          detalle_id: detail.detalle_id,
         };
       });
+      
       setItems(loadedItems);
       // 🔹 MODIFICACIÓN AQUÍ: Se asegura de que el valor sea un entero y 0 si es nulo
-      console.log('Monto Abonado Inicial:', initialData.monto_abonado);
+
       setPagado(String(initialData.monto_abonado ? Math.floor(initialData.monto_abonado) : 0));
     }
   }, [initialData, productos, clientes]);
@@ -150,7 +156,8 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
   };
 
   const handleRemoveItem = (id) => {
-    setItems(items.filter((item) => item.id !== id));
+  
+    setItems(items.filter((item) => item.detalle_id !== id));
   };
 
   const total = items.reduce((acc, item) => {
@@ -196,18 +203,23 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
       return;
     }
 
+  
+
     const ventaPayload = {
       cliente_id: clienteSeleccionado?.id || null,
       monto_abonado: montoAbonadoToForm,
-
+      fecha: new Date().toISOString(),
+      total: total,
+      saldo: saldo,
       detalles: items.map(item => ({
+
         id: item.detalle_id || null,
         producto_id: item.id,
         cantidad: Number(item.cantidad),
         precio_unitario: Number(item.precio)
       }))
     };
-    console.log('Venta Payload:', ventaPayload);
+
     onGuardar(ventaPayload);
     handleClose();
   };
@@ -258,8 +270,8 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
                         key={c.id}
                         onClick={() => handleSelectCliente(c)}
                         className={`px-3 py-2 hover:bg-neutral-600 cursor-pointer ${clienteSeleccionado?.id === c.id
-                            ? "bg-neutral-600"
-                            : ""
+                          ? "bg-neutral-600"
+                          : ""
                           }`}
                       >
                         {c.nombre} {c.apellido}{" "}
@@ -357,7 +369,7 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
                     </div>
                     <button
                       type="button"
-                      onClick={() => handleRemoveItem(item.id)}
+                      onClick={() => handleRemoveItem(item.detalle_id)}
                       className="text-red-400 hover:text-red-500 transition-colors self-start"
                     >
                       <svg

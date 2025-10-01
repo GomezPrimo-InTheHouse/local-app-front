@@ -12,6 +12,7 @@ export const getClientes = async () => {
 // 🔹 Obtener cliente por ID
 export const getClienteById = async (id) => {
   const res = await axios.get(`${API_URL}/${id}`);
+  console.log(res.data)
   return res.data;
 };
 

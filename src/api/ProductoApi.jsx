@@ -28,3 +28,19 @@ export const deleteProducto = async (id) => {
   const { data } = await axios.delete(`${API_URL}/${id}`);
   return data;
 };
+
+export const buscarProductos = async (nombre) => {
+  try {
+    const res = await fetch(
+      `${API_URL}/buscar?nombre=${encodeURIComponent(nombre)}`
+    );
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Error buscando productos");
+    }
+    return data.data; // devuelve el array de productos
+  } catch (err) {
+    console.error("Error en buscarProductos:", err.message);
+    return [];
+  }
+};

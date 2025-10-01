@@ -22,6 +22,8 @@ import { getBalancesPresupuestos } from "../api/PresupuestoApi.jsx";
 import { useMemo } from "react";
 import { getEstados } from "../api/EstadoApi.jsx";
 import { createIngreso } from "../api/IngresoApi";
+import { enviarMensaje } from '../api/TwilioApi.jsx';
+import { getClienteById } from '../api/ClienteApi.jsx';
 
 const EquipoPage = () => {
   const [filtro, setFiltro] = useState("todos");
@@ -42,7 +44,7 @@ const EquipoPage = () => {
     setLoading(true);
     try {
       const data = await getEquipos();
-
+      console.log('Equipos cargados:', data);
       setEquipos(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error al obtener equipos:', err);
@@ -53,7 +55,7 @@ const EquipoPage = () => {
   };
 
   //Fetch a los balances
-  //Fetch a los balances
+
   useEffect(() => {
     const fetchBalances = async () => {
       try {
@@ -138,36 +140,36 @@ const EquipoPage = () => {
     });
   };
 
-  //handle crear ingreso con alertas
-  const handleCrearIngreso = async (eq) => {
-    Swal.fire({
-      title: "Crear Ingreso",
-      text: "¿Estás seguro de que deseas crear un nuevo ingreso?",
-      icon: "warning",
-      theme: "dark",
-      showCancelButton: true,
-      confirmButtonText: "Sí, crear",
-      cancelButtonText: "Cancelar"
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          const payload = {
-            equipo_id: eq.id,
-            fecha_ingreso: new Date().toISOString(),
-            estado_id: 1, // Pendiente
-          };
-          const ingresoCreado = await createIngreso(payload);
-          setAlert({ message: "✅ Ingreso creado correctamente", type: "success" });
+  // //handle crear ingreso con alertas
+  // const handleCrearIngreso = async (eq) => {
+  //   Swal.fire({
+  //     title: "Crear Ingreso",
+  //     text: "¿Estás seguro de que deseas crear un nuevo ingreso?",
+  //     icon: "warning",
+  //     theme: "dark",
+  //     showCancelButton: true,
+  //     confirmButtonText: "Sí, crear",
+  //     cancelButtonText: "Cancelar"
+  //   }).then(async (result) => {
+  //     if (result.isConfirmed) {
+  //       try {
+  //         const payload = {
+  //           equipo_id: eq.id,
+  //           fecha_ingreso: new Date().toISOString(),
+  //           estado_id: 1, // Pendiente
+  //         };
+  //         const ingresoCreado = await createIngreso(payload);
+  //         setAlert({ message: "✅ Ingreso creado correctamente", type: "success" });
 
-          // Navegamos al detalle pasando el ingreso_id recién creado
-          navigate(`/equipos/${eq.id}`, { state: { nuevoIngresoId: ingresoCreado.id } });
-        } catch (e) {
-          console.error("Error creando ingreso:", e);
-          setAlert({ message: "No se pudo crear el ingreso.", type: "error" });
-        }
-      }
-    });
-  };
+  //         // Navegamos al detalle pasando el ingreso_id recién creado
+  //         navigate(`/equipos/${eq.id}`, { state: { nuevoIngresoId: ingresoCreado.id } });
+  //       } catch (e) {
+  //         console.error("Error creando ingreso:", e);
+  //         setAlert({ message: "No se pudo crear el ingreso.", type: "error" });
+  //       }
+  //     }
+  //   });
+  // };
 
 
   const handleSubmit = async (formData) => {
@@ -190,15 +192,38 @@ const EquipoPage = () => {
         await updateEquipo(equipoSeleccionado.id, payload);
         setAlert({ message: "✅ Equipo actualizado correctamente", type: "success" });
       } else {
+
         await createEquipo(payload);
         setAlert({ message: "✅ Equipo creado correctamente", type: "success" });
+        // Enviar notificación por WhatsApp
+        await EnviarNotificacionWhatsApp(payload.cliente_id, payload);
       }
+
+
+
       await fetchEquipos(); // refresca tabla
     } catch (err) {
       console.error("Error al guardar equipo:", err);
       setAlert({ message: "❌ Error al guardar el equipo", type: "error" });
     } finally {
       handleClose();
+    }
+
+
+  };
+
+  const EnviarNotificacionWhatsApp = async (clienteId, data) => {
+    try {
+      const equipo = data.marca + ' ' + data.modelo;
+      const cliente = await getClienteById(clienteId);
+
+
+      if (cliente) {
+        await enviarMensaje({ numero: '+5493534275476', cliente, equipo });
+      }
+
+    } catch (error) {
+      console.error("Error enviando mensaje:", error);
     }
   };
 
@@ -278,13 +303,14 @@ const EquipoPage = () => {
         ) : (
           Object.entries(
             equipos.reduce((grupos, eq) => {
-              const fecha = eq.fecha_ingreso ? new Date(eq.fecha_ingreso) : null;
-              const key = fecha
-                ? `${fecha.toLocaleString("es-AR", { month: "long" })} ${fecha.getFullYear()}`
-                : "Sin fecha";
-              if (!grupos[key]) grupos[key] = [];
-              grupos[key].push(eq);
-              return grupos;
+              // APLICAMOS LA CORRECCIÓN AQUÍ: + 'T12:00:00'
+        const fecha = eq.fecha_ingreso ? new Date(eq.fecha_ingreso + 'T12:00:00') : null; 
+        const key = fecha
+            ? `${fecha.toLocaleString("es-AR", { month: "long" })} ${fecha.getFullYear()}`
+            : "Sin fecha";
+        if (!grupos[key]) grupos[key] = [];
+        grupos[key].push(eq);
+        return grupos;
             }, {})
           ).map(([mes, equiposMes]) => {
             // 🔹 Total mensual
@@ -313,8 +339,13 @@ const EquipoPage = () => {
 
                 <ol className="space-y-4 list-decimal list-inside">
                   {equiposMes.map((eq) => {
+
                     const fechaFormateada = eq.fecha_ingreso
-                      ? new Date(eq.fecha_ingreso).toLocaleDateString("es-AR", {
+                      // La clave es añadir 'T00:00:00' para que JavaScript interprete 
+                      // la hora CERO en UTC, o T12:00:00 para forzar una hora intermedia
+                      // que no cruce el límite del día al aplicarle el GMT-3.
+                      // Usaremos el método que crea el objeto Date sin cambiar la fecha:
+                      ? new Date(eq.fecha_ingreso + 'T12:00:00').toLocaleDateString("es-AR", {
                         year: "numeric",
                         month: "2-digit",
                         day: "2-digit",

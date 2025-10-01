@@ -218,7 +218,7 @@ import {
   createPresupuesto,
   updatePresupuesto,
 } from "../../api/PresupuestoApi";
-import { getEstados } from "../../api/EstadoApi.jsx";
+import { getEstadoByAmbito } from "../../api/EstadoApi.jsx";
 
 const PresupuestoModal = ({
   isOpen,
@@ -254,7 +254,7 @@ const PresupuestoModal = ({
     (async () => {
       try {
         setLoadingEstados(true);
-        const lista = await getEstados();
+        const lista = await getEstadoByAmbito('presupuesto');
         setEstados(lista || []);
       } catch (e) {
         console.error("Error cargando estados:", e);

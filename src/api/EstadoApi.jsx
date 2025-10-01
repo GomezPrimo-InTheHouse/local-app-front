@@ -14,3 +14,16 @@ export const findEstadoNombre = (estados, estadoId) => {
   const est = estados?.find(e => Number(e.id) === Number(estadoId));
   return est?.nombre ?? "Sin estado";
 };
+
+
+// obtener estado por ambito
+
+export const getEstadoByAmbito = async (ambito) => {
+  try {
+    const { data } = await axios.get(`${API_URL}/${ambito}`);
+    return data; 
+  } catch (error) {
+    console.error("Error al obtener estado por ambito:", error);
+    throw error;
+  }
+};

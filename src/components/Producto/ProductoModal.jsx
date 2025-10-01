@@ -1,6 +1,6 @@
 // src/components/productos/ProductoModal.jsx
 import { useEffect, useState } from "react";
-import { getEstados } from "../../api/EstadoApi.jsx"; // opcional: para cargar estados de producto
+import { getEstadoByAmbito } from "../../api/EstadoApi.jsx"; // opcional: para cargar estados de producto
 
 const ProductoModal = ({ isOpen, onClose, onSave, producto = null }) => {
   const [form, setForm] = useState({
@@ -9,18 +9,19 @@ const ProductoModal = ({ isOpen, onClose, onSave, producto = null }) => {
     precio: "",
     descripcion: "",
     estado_id: "",
-    categoria: ""
+    categoria: "",
+    costo: ""
   });
 
   const [estados, setEstados] = useState([]);
-  const [focused, setFocused] = useState({ stock: false, precio: false });
+  const [focused, setFocused] = useState({ stock: false, precio: false, costo: false });
 
   // Cargar estados (si los querés en el select)
   useEffect(() => {
     if (!isOpen) return;
     (async () => {
       try {
-        const lista = await getEstados(); // asume getEstados retorna array
+        const lista = await getEstadoByAmbito('producto'); // asume getEstados retorna array
         setEstados(lista || []);
       } catch (e) {
         console.error("No se pudieron cargar estados:", e);
@@ -38,7 +39,8 @@ const ProductoModal = ({ isOpen, onClose, onSave, producto = null }) => {
         precio: "",
         descripcion: "",
         estado_id: "",
-        categoria: ""
+        categoria: "",
+        costo: ""
       });
       setFocused({ stock: false, precio: false });
       return;
@@ -57,7 +59,8 @@ const ProductoModal = ({ isOpen, onClose, onSave, producto = null }) => {
         descripcion: producto.descripcion ?? "",
         estado_id:
           producto.estado_id != null ? String(producto.estado_id) : "",
-        categoria: producto.categoria ?? ""
+        categoria: producto.categoria ?? "",
+        costo: producto.costo != null ? String(producto.costo).replace(",", ".") : ""
       });
     } else {
       // nuevo producto: valores vacíos
@@ -67,7 +70,8 @@ const ProductoModal = ({ isOpen, onClose, onSave, producto = null }) => {
         precio: "",
         descripcion: "",
         estado_id: "",
-        categoria: ""
+        categoria: "",
+        costo: ""
       });
     }
   }, [isOpen, producto]);
@@ -133,6 +137,11 @@ const ProductoModal = ({ isOpen, onClose, onSave, producto = null }) => {
     setForm((prev) => ({ ...prev, precio: s }));
   };
 
+  const handleCostoChange = (rawValue) => {
+    const s = sanitizeDecimalInput(rawValue);
+    setForm((prev) => ({ ...prev, costo: s }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     // validaciones mínimas
@@ -146,13 +155,16 @@ const ProductoModal = ({ isOpen, onClose, onSave, producto = null }) => {
     }
 
     //armo el payload para enviar al padre
+
+    //costo es un valor de tipo decimal
     const payload = {
       nombre: form.nombre.trim(),
       stock: form.stock ? parseInt(form.stock, 10) : 0,
       precio: form.precio ? parseFloat(form.precio) : 0,
       descripcion: form.descripcion.trim(),
       estado_id: form.estado_id ? Number(form.estado_id) : null,
-      categoria: form.categoria.trim()
+      categoria: form.categoria.trim(),
+      costo: form.costo ? parseFloat(form.costo) : 0,
     };
 
     // entregamos payload al padre (que realizará create/update)
@@ -196,7 +208,7 @@ const ProductoModal = ({ isOpen, onClose, onSave, producto = null }) => {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Stock */}
             <div>
               <label className="block text-sm text-gray-300 mb-1">Stock</label>
@@ -209,6 +221,21 @@ const ProductoModal = ({ isOpen, onClose, onSave, producto = null }) => {
                 onChange={(e) => handleStockChange(e.target.value)}
                 placeholder="0"
                 className="w-full bg-neutral-800 text-white p-2 rounded border border-gray-700 focus:outline-none"
+              />
+            </div>
+            {/* Costo */}
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">Costo</label>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={focused.costo ? form.costo : formatDecimalDisplay(form.costo)}
+                onFocus={() => setFocused((f) => ({ ...f, costo: true }))}
+                onBlur={() => setFocused((f) => ({ ...f, costo: false }))}
+                onChange={(e) => handleCostoChange(e.target.value)}
+                placeholder="0.00"
+                className="w-full bg-neutral-800 text-white p-2 rounded border border-gray-700 focus:outline-none"
+                required
               />
             </div>
 

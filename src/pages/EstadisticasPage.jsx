@@ -83,6 +83,7 @@ const EstadisticasPage = () => {
     const fetchData = async () => {
       try {
         const data = await getResumenPorMes(mes, anio);
+        console.log('(resumen-mes) getResumenPorMes: ', data)
         setResumen(data);
       } catch (error) {
         console.error("Error cargando estadísticas:", error);

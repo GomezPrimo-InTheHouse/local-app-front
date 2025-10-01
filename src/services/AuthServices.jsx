@@ -26,7 +26,8 @@ const AuthService = {
   logout: async () => {
     // intenta notificar al backend, pero igual limpia localStorage
     try {
-      await api.post("/auth/logout");
+      const email = localStorage.getItem("auth_email");
+      await axios.post(`${API_URL}/auth/logout`, { email });
     } catch (err) {
       // ignore
     }
