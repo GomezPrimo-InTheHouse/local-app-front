@@ -2,7 +2,7 @@ import { UserCircleIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/o
 
 export default function HeaderActions({ handleLogout, handleProfile }) {
   return (
-    <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-black via-gray-900 to-black bg-opacity-60 backdrop-blur-md shadow-md z-50">
+    <div className="w-full bg-gradient-to-r from-black via-gray-900 to-black bg-opacity-60 backdrop-blur-md shadow-md z-50">
       <div className="flex justify-end items-center gap-4 p-4">
         {/* Botón de perfil */}
         <button

@@ -44,7 +44,7 @@ const EquipoPage = () => {
     setLoading(true);
     try {
       const data = await getEquipos();
-      console.log('Equipos cargados:', data);
+  
       setEquipos(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error al obtener equipos:', err);

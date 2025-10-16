@@ -306,7 +306,7 @@ const PresupuestoModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('es edicion? ', esEdicion, presupuesto, e);
+   
     try {
       if (esEdicion ) {
         console.log('ejecutando el updatePresupuesto', presupuesto.presupuesto_id)

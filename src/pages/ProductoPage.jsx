@@ -89,16 +89,16 @@ const ProductoPage = () => {
         <div className="flex flex-col lg:flex-row min-h-screen w-screen bg-neutral-900 text-white overflow-hidden">
             {/* Columna izquierda fija (30%) - en mobile pasa a top header */}
             <aside className="w-full 
-    lg:w-1/4            /* 25% para pantallas grandes */
-    xl:w-1/5            /* opcional: 20% en pantallas extra grandes */
-    bg-neutral-800 
-    p-4 sm:p-6           /* padding responsive */
-    flex flex-col 
-    justify-start 
-    shadow-xl 
-    z-10
-    lg:flex             /* oculto en pantallas < lg */
-    hidden">
+                lg:w-1/4            /* 25% para pantallas grandes */
+                xl:w-1/5            /* opcional: 20% en pantallas extra grandes */
+                bg-neutral-800 
+                p-4 sm:p-6           /* padding responsive */
+                flex flex-col 
+                justify-start 
+                shadow-xl 
+                z-10
+                lg:flex             /* oculto en pantallas < lg */
+                hidden">
 
 
 

@@ -2,8 +2,16 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import EstadisticasModal from "../components/General/EstadisticasModal";
-import HeaderActions from "../components/General/Header.jsx";
+
+import { useQuery } from '@tanstack/react-query';
+import { getResumenPorMes } from '../api/EstadisticasApi.jsx'; // Asegúrate que la ruta sea correcta
+
 import useAuth from "../hooks/UseAuth.jsx";
+
+import SidebarNav from "../components/Layout/Sidebar.jsx";
+import HeaderActions from "../components/General/Header.jsx";
+import IncomeCostChart from '../components/Chart/IncomeCostChart.jsx';
+import EquiposPieChart from '../components/Chart/EquiposPieChart';
 
 const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -16,7 +24,7 @@ const Dashboard = () => {
     // Redirige a EstadisticasPage con query params
     navigate(`/estadisticas?mes=${mes}&anio=${anio}`);
   };
-   const handleLogout = async () => {
+  const handleLogout = async () => {
     try {
       await logout(); // llama a AuthService.logout() desde el contexto
       navigate("/login", { replace: true }); // redirige al login
@@ -24,69 +32,87 @@ const Dashboard = () => {
       console.error("Error al cerrar sesión:", err);
     }
   };
- 
+
 
   const handleProfile = () => {
     console.log('Ir al perfil');
     // 👉 Aquí redirigís con useNavigate('/perfil')
   };
 
+    // Obtenemos el mes y año actual
+  const today = new Date();
+  const currentMonth = today.getMonth() + 1; // getMonth() es 0-11, sumamos 1
+  const currentYear = today.getFullYear();
+
+  // 🚀 Usamos useQuery para obtener los datos de las estadísticas
+  const { data: resumenData, isLoading: isLoadingResumen } = useQuery({
+    queryKey: ['resumenMes', currentMonth, currentYear],
+    queryFn: () => getResumenPorMes(currentMonth, currentYear),
+  });
+
+  // Procesamos los datos para el gráfico de torta
+  const processDeviceDataForPieChart = (trabajos = []) => {
+    const deviceCounts = trabajos.reduce((acc, trabajo) => {
+      acc[trabajo.tipo] = (acc[trabajo.tipo] || 0) + 1;
+      return acc;
+    }, {});
+
+    return Object.keys(deviceCounts).map(key => ({
+      tipo: key.charAt(0).toUpperCase() + key.slice(1), // Capitalizamos el tipo
+      cantidad: deviceCounts[key],
+    }));
+  };
+
+  const deviceTypeData = resumenData ? processDeviceDataForPieChart(resumenData.trabajos_mes) : [];
+  console.log(resumenData);
+
   return (
-    <div className="min-h-screen bg-neutral-900 text-neutral-100 flex flex-col items-center justify-center px-4">
-      {/* elevar este div arriba de todo */}
-      <div className="absolute top-0 left-0 w-full" >
-         <HeaderActions handleLogout={handleLogout} handleProfile={handleProfile} />
-      </div>
+   <div className="relative h-screen w-screen bg-neutral-900 text-white overflow-hidden">
       
-      <h1 className="text-4xl font-bold mb-10">Panel Principal</h1>
-      
-      {/* 💡 CAMBIO: Usamos flex-col y gap-4 para apilar los botones */}
-      <div className="flex flex-col gap-4 w-full max-w-sm sm:max-w-md">
+      {/* 1. Header flotante */}
+      <HeaderActions handleLogout={handleLogout} handleProfile={handleProfile} />
+
+      {/* 2. Contenedor del contenido principal (Sidebar + Contenido) */}
+      {/* 'pt-20' añade un padding arriba para que el contenido no quede debajo del header */}
+      <div className="flex flex-col md:flex-row h-full pt-20">
         
-        {/* 💡 Botón 1: Clientes */}
-        <Link
-          to="/clientes"
-          // Clases añadidas: hover:font-bold, focus:text-white, active:text-white
-          className="bg-red-600 hover:bg-red-700 text-white font-semibold hover:font-bold py-4 px-6 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 text-center focus:text-white active:text-white"
-        >
-          Clientes
-        </Link>
-        
-        {/* 💡 Botón 2: Equipos */}
-        <Link
-          to="/equipos"
-          // Clases añadidas: hover:font-bold, focus:text-white, active:text-white
-          className="bg-orange-500 hover:bg-orange-600 text-white font-semibold hover:font-bold py-4 px-6 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 text-center focus:text-white active:text-white"
-        >
-          Equipos
-        </Link>
-        
-        {/* 💡 Botón 3: Estadísticas (Es un <button>, no necesita focus/active para el color de texto) */}
-        <button
-          onClick={handleOpenModal}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold hover:font-bold py-4 px-6 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 text-center"
-        >
-          Estadísticas
-        </button>
-        
-        {/* 💡 Botón 4: Ventas */}
-        <Link
-          to="/ventas"
-          // Clases añadidas: hover:font-bold, focus:text-white, active:text-white
-          className="bg-green-600 hover:bg-green-700 text-white font-semibold hover:font-bold py-4 px-6 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 text-center focus:text-white active:text-white"
-        >
-          Ventas
-        </Link> 
-        
-        {/* 💡 Botón 5: Productos */}
-        <Link
-          to="/productos"
-          // Clases añadidas: hover:font-bold, focus:text-white, active:text-white
-          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold hover:font-bold py-4 px-6 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 text-center focus:text-white active:text-white"
-        >
-          Productos
-        </Link>
+        {/* Barra de Navegación Lateral */}
+        <SidebarNav handleOpenModal={handleOpenModal} />
+
+        {/* Área de Contenido Principal */}
+        <main className="w-full md:w-[70%] p-6 flex flex-col items-start gap-6 overflow-y-auto">
+          <h1 className="text-4xl font-bold text-neutral-200">Dashboard de Estadísticas</h1>
+          <p className="text-neutral-400 -mt-4">
+            Resumen del mes de {today.toLocaleString('es-AR', { month: 'long' })} {currentYear}
+          </p>
+
+          {/* Sección de Gráficos */}
+          <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* Gráfico de Ingresos vs Costos */}
+            <IncomeCostChart 
+              data={resumenData?.resumen_general} 
+              isLoading={isLoadingResumen} 
+            />
+
+            {/* Gráfico de Tipos de Equipo */}
+            <EquiposPieChart 
+              data={deviceTypeData} 
+              isLoading={isLoadingResumen} 
+            />
+
+            {/* Puedes añadir más gráficos aquí usando los datos de `resumenData` */}
+
+          </div>
+        </main>
+
       </div>
+    
+
+
+
+
+
 
       <EstadisticasModal
         isOpen={isModalOpen}
@@ -94,6 +120,7 @@ const Dashboard = () => {
         onSubmit={handleSubmitEstadisticas}
       />
     </div>
+
   );
 };
 
