@@ -54,10 +54,11 @@ const AppRoutes = () => (
         <Route path="/clientes" element={<ClientePage />} />
         <Route path="/estadisticas" element={<Estadisticas />} />
         <Route path="/equipos" element={<EquipoPage />} />
-        <Route path="/equipos/:id" element={<DetalleDeEquipoPage />} />
-        <Route path="/equipos/:id/historial" element={<Historial />} />
         <Route path="/ventas" element={<VentasPage />} />
         <Route path="/productos" element={<ProductoPage />} />
+        <Route path="/equipos/:id" element={<DetalleDeEquipoPage />} />
+        <Route path="/equipos/:id/historial" element={<Historial />} />
+        <Route path="/historial/cliente/:clienteId" element={<Historial />} />
       </Route>
     </Routes>
   </Router>

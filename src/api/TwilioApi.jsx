@@ -1,6 +1,15 @@
-import axios from "axios";
+import axios from './Axios';
 
-const API_URL = "http://localhost:7002/twilio";
+const API_BASE_URL_TWILIO = import.meta.env.VITE_API_URL_BACKEND;
+const API_URL = `${API_BASE_URL_TWILIO}/twilio`;
+
+export const http = axios.create({
+  baseURL: API_URL,
+  withCredentials: true, // si usás cookies
+  headers: {
+    "ngrok-skip-browser-warning": "true",   // <-- CLAVE
+  },
+});
 
 
 // enviar mensaje a un numero

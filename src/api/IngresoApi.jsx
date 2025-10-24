@@ -1,6 +1,15 @@
-import axios from "axios";
+import axios from './Axios';
 
-const API_URL = "http://localhost:7001/ingreso";
+const API_BASE_URL = import.meta.env.VITE_API_URL_BACKEND;
+const API_URL = `${API_BASE_URL}/ingreso`;
+
+export const http = axios.create({
+  baseURL: API_URL,
+  withCredentials: true, // si usás cookies
+  headers: {
+    "ngrok-skip-browser-warning": "true",   // <-- CLAVE
+  },
+});
 
 // Obtener todos los ingresos
 export const getIngresos = async () => {
