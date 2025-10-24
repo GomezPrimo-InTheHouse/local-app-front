@@ -1,7 +1,21 @@
 // src/api/clienteApi.js
-import axios from "axios";
+// import axios from "axios";
+import axios from "./Axios.jsx" 
 
-const API_URL = "http://localhost:7001/cliente";
+const API_BASE_URL = import.meta.env.VITE_API_URL_BACKEND;
+const API_URL = `${API_BASE_URL}/cliente`.replace(/\/$/, "");
+
+export const http = axios.create({
+  baseURL: API_URL,
+  withCredentials: true, // si usás cookies
+  headers: {
+    "ngrok-skip-browser-warning": "true",   // <-- CLAVE
+  },
+  params: {
+    "ngrok-skip-browser-warning": "true", // <-- CLAVE extra
+  },
+
+});
 
 // 🔹 Obtener todos los clientes
 export const getClientes = async () => {

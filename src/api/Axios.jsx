@@ -3,11 +3,18 @@ import axios from "axios";
 
 
 
-const API_URL =  "http://localhost:7001";
+const API_BASE_URL = import.meta.env.VITE_API_URL_BACKEND;
+const API_URL = `${API_BASE_URL}`.replace(/\/$/, "");
 
 const api = axios.create({
   baseURL: API_URL,
-  headers: { "Content-Type": "application/json" },
+  withCredentials: true,
+  headers: {
+    "ngrok-skip-browser-warning": "true",
+  },
+  params: {
+    "ngrok-skip-browser-warning": "true", // <-- CLAVE extra
+  },
 });
 
 // --- Manejo de refresh en concurrencia ---
