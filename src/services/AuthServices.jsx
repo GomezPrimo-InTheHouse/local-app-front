@@ -3,7 +3,8 @@ import api from "../api/Axios.jsx";
 import axios from "axios";
 
 
-const API_URL =  "http://localhost:7001";
+const API_BASE_URL = import.meta.env.VITE_API_URL_BACKEND;
+const API_URL = `${API_BASE_URL}`.replace(/\/$/, "");
 
 const AuthService = {
   register: async (payload) => {
