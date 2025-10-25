@@ -1,7 +1,11 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
-// https://vite.dev/config/
+// Configuración principal de Vite
 export default defineConfig({
   plugins: [react()],
-})
+  build: {
+    outDir: "dist",                // Carpeta de salida
+    chunkSizeWarningLimit: 1200,   // Aumenta el límite de tamaño para evitar warnings
+  },
+});
