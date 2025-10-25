@@ -149,7 +149,7 @@ const EquipoPage = () => {
       } else {
         await createEquipo(payload);
         setAlert({ message: "✅ Equipo creado correctamente", type: "success" });
-        await EnviarNotificacionWhatsApp(payload.cliente_id, payload);
+        // await EnviarNotificacionWhatsApp(payload.cliente_id, payload);
       }
       await fetchEquipos();
     } catch (err) {
@@ -160,17 +160,17 @@ const EquipoPage = () => {
     }
   };
 
-  const EnviarNotificacionWhatsApp = async (clienteId, data) => {
-    try {
-      const equipo = data.marca + " " + data.modelo;
-      const cliente = await getClienteById(clienteId);
-      if (cliente) {
-        await enviarMensaje({ numero: "+5493534275476", cliente, equipo });
-      }
-    } catch (error) {
-      console.error("Error enviando mensaje:", error);
-    }
-  };
+  // const EnviarNotificacionWhatsApp = async (clienteId, data) => {
+  //   try {
+  //     const equipo = data.marca + " " + data.modelo;
+  //     const cliente = await getClienteById(clienteId);
+  //     if (cliente) {
+  //       await enviarMensaje({ numero: "+5493534275476", cliente, equipo });
+  //     }
+  //   } catch (error) {
+  //     console.error("Error enviando mensaje:", error);
+  //   }
+  // };
 
   const handleFiltro = async (tipo) => {
     setFiltro(tipo);
