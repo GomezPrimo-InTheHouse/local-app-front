@@ -9,7 +9,7 @@ const SidebarEquipos = ({ filtro, handleFiltro, handleAgregar }) => {
 
   return (
     <div className="
-      w-full md:w-[30%] 
+      w-full 
       border-b md:border-b-0 md:border-r border-neutral-700 
       p-6 flex flex-col justify-between
       bg-neutral-900
@@ -18,16 +18,16 @@ const SidebarEquipos = ({ filtro, handleFiltro, handleAgregar }) => {
       <div className="flex flex-col gap-4">
         <button
           onClick={() => navigate("/")}
-          className="px-4 py-2 mb-6 bg-neutral-700 hover:bg-neutral-600 rounded-lg transition text-sm"
+          className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-neutral-700 hover:bg-neutral-600 text-[11px] sm:text-sm"
         >
-          ⬅️ Volver al Dashboard
+          ← Dashboard
         </button>
 
         <h2 className="text-2xl font-bold text-emerald-400">
           Gestión de Equipos
         </h2>
 
-        
+
 
         {/* 🔹 Dropdown para mobile */}
         <div className="md:hidden relative">
@@ -47,11 +47,10 @@ const SidebarEquipos = ({ filtro, handleFiltro, handleAgregar }) => {
                     handleFiltro(tipo);
                     setDropdownOpen(false);
                   }}
-                  className={`px-4 py-2 text-left rounded font-semibold ${
-                    filtro === tipo
+                  className={`px-4 py-2 text-left rounded font-semibold ${filtro === tipo
                       ? "bg-emerald-600 text-white"
                       : "hover:bg-neutral-600 text-gray-200"
-                  }`}
+                    }`}
                 >
                   {tipo.charAt(0).toUpperCase() + tipo.slice(1)}
                 </button>
@@ -66,11 +65,10 @@ const SidebarEquipos = ({ filtro, handleFiltro, handleAgregar }) => {
             <button
               key={tipo}
               onClick={() => handleFiltro(tipo)}
-              className={`px-4 py-2 rounded font-semibold transition ${
-                filtro === tipo
+              className={`px-4 py-2 rounded font-semibold transition ${filtro === tipo
                   ? "bg-emerald-600 text-white"
                   : "bg-neutral-700 hover:bg-neutral-600 text-gray-200"
-              }`}
+                }`}
             >
               {tipo.charAt(0).toUpperCase() + tipo.slice(1)}
             </button>
