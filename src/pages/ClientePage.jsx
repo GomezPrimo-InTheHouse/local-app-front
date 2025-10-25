@@ -671,9 +671,12 @@ const ClientePage = () => {
 
   return (
     // Contenedor general, fondos atenuados por sección
-    <div className="min-h-dvh w-screen bg-neutral-900 text-white/95">
+    <div className="min-h-dvh w-screen bg-neutral-900 text-white/95 overflow-hidden">
+      <div className="px-4 sm:px-6 lg:px-8">
+
+      
       {/* Grid 30/70, solo scrollea el lado derecho en desktop */}
-      <div className="max-w-6xl mx-auto md:grid md:grid-cols-[30%_70%] gap-0 md:gap-6 h-screen">
+      <div className="grid grid-cols-1 md:grid-cols-[30%_70%] gap-0 md:gap-6 w-full">
         {/* Lateral (30%) fijo/sticky y con su propio scroll si hiciera falta */}
         <aside className="bg-neutral-900 md:bg-transparent md:sticky md:top-0 md:h-screen md:overflow-y-auto px-3 sm:px-4 py-4 sm:py-6 border-b md:border-b-0 md:border-r border-white/10">
           {/* Sección Acción principal */}
@@ -893,6 +896,7 @@ const ClientePage = () => {
         onSubmit={handleSubmit}
         clienteSeleccionado={clienteSeleccionado}
       />
+      </div>
     </div>
   );
 };

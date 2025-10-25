@@ -1,33 +1,78 @@
 // src/components/layout/SidebarNav.jsx
+import { Link } from "react-router-dom";
+// import SidebarCard from "../ui/SidebarCard"; // Opcional, si lo creaste
 
-import { Link } from 'react-router-dom';
+// Definición de estilo base para los botones de navegación
+const btnBase =
+  "w-full h-12 inline-flex items-center justify-start gap-3 " +
+  "rounded-xl px-4 text-base font-semibold text-white " +
+  "shadow-lg hover:shadow-xl transition-all duration-200 " +
+  "whitespace-nowrap truncate";
 
 const SidebarNav = ({ handleOpenModal }) => {
-  const linkStyles = "text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 text-center transform hover:-translate-y-1";
-
   return (
-    // ✨ Contenedor que ocupa el 30% del ancho en desktop
-    <aside className="w-full md:w-[30%] border-b md:border-b-0 md:border-r border-neutral-700 p-6 flex flex-col items-center justify-center">
-      <div className="flex flex-col gap-5 w-full max-w-xs">
-        <h2 className="text-2xl font-bold text-center mb-4 text-neutral-300">Navegación</h2>
-        <Link to="/clientes" className={`${linkStyles} bg-red-600 hover:bg-red-700`}>
-          Clientes
-        </Link>
-        <Link to="/equipos" className={`${linkStyles} bg-orange-500 hover:bg-orange-600`}>
-          Equipos
-        </Link>
-        <button onClick={handleOpenModal} className={`${linkStyles} bg-blue-600 hover:bg-blue-700`}>
-          Estadísticas
-        </button>
-        <Link to="/ventas" className={`${linkStyles} bg-green-600 hover:bg-green-700`}>
-          Ventas
-        </Link>
-        <Link to="/productos" className={`${linkStyles} bg-emerald-600 hover:bg-emerald-700`}>
-          Productos
-        </Link>
+    <aside
+      className="
+        flex flex-col gap-4
+        md:sticky md:top-4
+        h-full md:h-[calc(100vh-2rem)]
+        overflow-y-auto
+        px-3 sm:px-4 py-4
+        min-w-0
+        border-b md:border-b-0 md:border-r border-white/10
+        /* Estilo del scrollbar */
+        [scrollbar-width:thin]
+        [&::-webkit-scrollbar]:w-2
+        [&::-webkit-scrollbar-thumb]:bg-white/10
+      "
+    >
+      {/* Tarjeta de Navegación principal */}
+      <div className="rounded-2xl border border-white/10 bg-neutral-800/70 p-4 sm:p-5 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-neutral-100">
+            Navegación
+          </h2>
+         
+        </div>
+
+        <p className="mt-1 text-sm text-neutral-300/90">
+          Accesos a módulos principales.
+        </p>
+
+        <div className="mt-5 space-y-3">
+          <Link to="/clientes" className={`${btnBase} bg-rose-600 hover:bg-rose-700`}>
+            👥 Clientes
+          </Link>
+
+          <Link to="/equipos" className={`${btnBase} bg-orange-500 hover:bg-orange-600`}>
+            💻 Equipos
+          </Link>
+
+          <button
+            onClick={handleOpenModal}
+            className={`${btnBase} bg-blue-600 hover:bg-blue-700 text-left`}
+          >
+            📊 Estadísticas
+          </button>
+
+          <Link to="/ventas" className={`${btnBase} bg-green-600 hover:bg-green-700`}>
+            🛒 Ventas
+          </Link>
+
+          <Link to="/productos" className={`${btnBase} bg-emerald-600 hover:bg-emerald-700`}>
+            📦 Productos
+          </Link>
+        </div>
+      </div>
+
+      {/* Info/ayuda del panel */}
+      <div className="rounded-2xl border border-white/10 bg-neutral-800/40 p-4 sm:p-5">
+        <p className="text-xs text-neutral-300/80 leading-5">
+          
+        </p>
       </div>
     </aside>
   );
-}
+};
 
 export default SidebarNav;
