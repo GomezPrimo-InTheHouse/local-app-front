@@ -214,6 +214,10 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
           </select>
 
           {/* Marca y modelo */}
+          <div>
+            <label className="block text-sm font-medium text-white mb-1">
+              Marca
+            </label>
           <input
             type="text"
             name="marca"
@@ -223,7 +227,14 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
             className="w-full bg-neutral-700 text-white p-2 rounded"
             required
           />
-          <input
+
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white mb-1">
+              Modelo
+            </label>
+            <input
             type="text"
             name="modelo"
             placeholder="Modelo *"
@@ -232,9 +243,15 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
             className="w-full bg-neutral-700 text-white p-2 rounded"
             required
           />
+          </div>
+          
 
           {/* Password */}
-          <input
+          <div>
+            <label className="block text-sm font-medium text-white mb-1">
+              Password / Código de seguridad
+            </label>
+             <input
             type="text"
             name="password"
             placeholder="Password"
@@ -242,6 +259,8 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
             onChange={handleChange}
             className="w-full bg-neutral-700 text-white p-2 rounded"
           />
+          </div>
+         
 
           {/* Problema */}
           <textarea
@@ -255,6 +274,7 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
 
           {/* Buscador de clientes */}
           <div className="relative">
+            <label className="block text-sm text-gray-300 mb-1">Cliente</label>
             <input
               type="text"
               placeholder="Buscar cliente por nombre o celular *"
