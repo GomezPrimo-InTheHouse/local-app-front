@@ -469,6 +469,7 @@ const DetalleEquiposPage = () => {
   const [loading, setLoading] = useState(true);
 
   const [ingresoActual, setIngresoActual] = useState(null);
+  
   const [presupuestos, setPresupuestos] = useState([]);
   const [estados, setEstados] = useState([]);
 

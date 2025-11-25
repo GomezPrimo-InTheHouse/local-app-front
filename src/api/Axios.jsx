@@ -3,7 +3,7 @@ import axios from "axios";
 
 
 
-const API_BASE_URL = import.meta.env.VITE_API_URL_BACKEND;
+const API_BASE_URL = import.meta.env.REACT_APP_API_UR;
 const API_URL = `${API_BASE_URL}`.replace(/\/$/, "");
 
 const api = axios.create({
