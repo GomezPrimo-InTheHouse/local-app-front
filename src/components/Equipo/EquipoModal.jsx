@@ -15,7 +15,8 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
     cliente_id: "",
     fecha_ingreso: "",
     patron: "",
-    estado_id: ""
+    estado_id: "",
+    imei: "",
   });
 
   const [clientes, setClientes] = useState([]);
@@ -85,6 +86,7 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
           : "",
         patron: equipoSeleccionado.patron || "",
         estado_id: equipoSeleccionado.estado_id ? String(equipoSeleccionado.estado_id) : "",
+        imei: equipoSeleccionado.imei || "",
       });
     } else {
       setFormData({
@@ -97,6 +99,7 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
         fecha_ingreso: "",
         patron: "",
         estado_id: "",
+        imei: "",
       });
     }
   }, [isOpen, equipoSeleccionado]);
@@ -112,6 +115,7 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
       fecha_ingreso: "",
       patron: "",
       estado_id: "",
+      imei: "",
     });
     setSelectedCliente(null); // 👈 limpia el cliente
     setSearch("");            // 👈 limpia el buscador
@@ -328,6 +332,16 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
               />
             </div>
           )}
+
+          {/* IMEI */}
+          <input
+            type="text"
+            name="imei"
+            placeholder="IMEI"
+            value={formData.imei}
+            onChange={handleChange}
+            className="w-full bg-neutral-700 text-white p-2 rounded"
+          />
 
           {/* Botones */}
           <div className="flex justify-end gap-3 mt-4">

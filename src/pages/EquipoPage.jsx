@@ -160,17 +160,7 @@ const EquipoPage = () => {
     }
   };
 
-  // const EnviarNotificacionWhatsApp = async (clienteId, data) => {
-  //   try {
-  //     const equipo = data.marca + " " + data.modelo;
-  //     const cliente = await getClienteById(clienteId);
-  //     if (cliente) {
-  //       await enviarMensaje({ numero: "+5493534275476", cliente, equipo });
-  //     }
-  //   } catch (error) {
-  //     console.error("Error enviando mensaje:", error);
-  //   }
-  // };
+
 
   const handleFiltro = async (tipo) => {
     setFiltro(tipo);
