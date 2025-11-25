@@ -330,18 +330,21 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
                   setFormData(prev => ({ ...prev, patron: nuevoPatron }))
                 }
               />
+              <input
+                type="text"
+                name="imei"
+                placeholder="IMEI"
+                value={formData.imei}
+                onChange={handleChange}
+                className="w-full bg-neutral-700 text-white p-2 rounded"
+              />
             </div>
+
+
+
           )}
 
-          {/* IMEI */}
-          <input
-            type="text"
-            name="imei"
-            placeholder="IMEI"
-            value={formData.imei}
-            onChange={handleChange}
-            className="w-full bg-neutral-700 text-white p-2 rounded"
-          />
+
 
           {/* Botones */}
           <div className="flex justify-end gap-3 mt-4">
