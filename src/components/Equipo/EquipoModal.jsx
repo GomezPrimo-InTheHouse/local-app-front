@@ -218,15 +218,15 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
             <label className="block text-sm font-medium text-white mb-1">
               Marca
             </label>
-          <input
-            type="text"
-            name="marca"
-            placeholder="Marca *"
-            value={formData.marca}
-            onChange={handleChange}
-            className="w-full bg-neutral-700 text-white p-2 rounded"
-            required
-          />
+            <input
+              type="text"
+              name="marca"
+              placeholder="Marca *"
+              value={formData.marca}
+              onChange={handleChange}
+              className="w-full bg-neutral-700 text-white p-2 rounded"
+              required
+            />
 
           </div>
 
@@ -235,32 +235,32 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
               Modelo
             </label>
             <input
-            type="text"
-            name="modelo"
-            placeholder="Modelo *"
-            value={formData.modelo}
-            onChange={handleChange}
-            className="w-full bg-neutral-700 text-white p-2 rounded"
-            required
-          />
+              type="text"
+              name="modelo"
+              placeholder="Modelo *"
+              value={formData.modelo}
+              onChange={handleChange}
+              className="w-full bg-neutral-700 text-white p-2 rounded"
+              required
+            />
           </div>
-          
+
 
           {/* Password */}
           <div>
             <label className="block text-sm font-medium text-white mb-1">
               Password / Código de seguridad
             </label>
-             <input
-            type="text"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleChange}
-            className="w-full bg-neutral-700 text-white p-2 rounded"
-          />
+            <input
+              type="text"
+              name="password"
+              placeholder="Password"
+              value={formData.password}
+              onChange={handleChange}
+              className="w-full bg-neutral-700 text-white p-2 rounded"
+            />
           </div>
-         
+
 
           {/* Problema */}
           <textarea
@@ -350,30 +350,43 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
                   setFormData(prev => ({ ...prev, patron: nuevoPatron }))
                 }
               />
-              
-              
+
+
             </div>
           )}
 
           {/* IMEI */}
-
           {formData.tipo === "celular" && (
             <div>
               <label className="block text-sm font-medium text-white mb-1">
-                IMEI
+                IMEI (opcional)
               </label>
 
-               <input
-              type="text"
-              name="imei"
-              placeholder="IMEI"
-              value={formData.imei}
-              onChange={handleChange}
-              className="w-full bg-neutral-700 text-white p-2 rounded"
-            />
+              <input
+                type="text"
+                name="imei"
+                placeholder="Ej: 356789123456789"
+                value={formData.imei}
+                onChange={(e) => {
+                  const value = e.target.value;
+
+                  // Permite solo números y limita longitud
+                  if (/^\d*$/.test(value) && value.length <= 15) {
+                    handleChange(e);
+                  }
+                }}
+                className="w-full bg-neutral-700 text-white p-2 rounded"
+              />
+
+              {/* Mensaje de ayuda */}
+              {formData.imei && formData.imei.length > 0 && formData.imei.length < 15 && (
+                <p className="text-yellow-400 text-xs mt-1">
+                  El IMEI suele tener 14–15 dígitos (o hasta 30 si es dual SIM).
+                </p>
+              )}
             </div>
-           
           )}
+
 
 
 
