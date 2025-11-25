@@ -330,18 +330,29 @@ const EquipoModal = ({ isOpen, onClose, onSubmit, equipoSeleccionado }) => {
                   setFormData(prev => ({ ...prev, patron: nuevoPatron }))
                 }
               />
-              <input
-                type="text"
-                name="imei"
-                placeholder="IMEI"
-                value={formData.imei}
-                onChange={handleChange}
-                className="w-full bg-neutral-700 text-white p-2 rounded"
-              />
+              
+              
             </div>
+          )}
 
+          {/* IMEI */}
 
+          {formData.tipo === "celular" && (
+            <div>
+              <label className="block text-sm font-medium text-white mb-1">
+                IMEI
+              </label>
 
+               <input
+              type="text"
+              name="imei"
+              placeholder="IMEI"
+              value={formData.imei}
+              onChange={handleChange}
+              className="w-full bg-neutral-700 text-white p-2 rounded"
+            />
+            </div>
+           
           )}
 
 
