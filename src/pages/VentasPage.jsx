@@ -277,129 +277,167 @@ const VentasPage = () => {
         ) : ventasFiltradas.length === 0 ? (
           <p className="text-gray-400">No hay ventas registradas.</p>
         ) : (
-          <div>
-            {Object.entries(
-              ventasFiltradas.reduce((grupos, venta) => {
-                // 💡 CORRECCIÓN APLICADA AQUÍ: Añadimos 'T12:00:00'
-                const fecha = venta.fecha ? new Date(venta.fecha + 'T12:00:00') : null;
-                const key = fecha
-                  ? `${fecha.toLocaleString("es-AR", { month: "long" })} ${fecha.getFullYear()}`
-                  : "Sin fecha";
-                if (!grupos[key]) grupos[key] = [];
-                grupos[key].push(venta);
-                return grupos;
-              }, {})
-            ).map(([mes, ventasMes]) => {
-              const totalMes = ventasMes.reduce(
-                (acc, venta) => acc + (parseFloat(venta.total) || 0),
-                0
-              );
+  <div>
+  {Object.entries(
+    ventasFiltradas.reduce((grupos, venta) => {
+      // 💡 CORRECCIÓN APLICADA AQUÍ: Añadimos 'T12:00:00'
+      const fecha = venta.fecha ? new Date(venta.fecha + "T12:00:00") : null;
+      const key = fecha
+        ? `${fecha.toLocaleString("es-AR", { month: "long" })} ${fecha.getFullYear()}`
+        : "Sin fecha";
 
-              return (
-                <div key={mes} className="mb-6">
-                  <div className="border-b border-gray-600 my-4">
-                    <h4 className="text-lg font-semibold text-gray-300 capitalize">
-                      {mes}
-                    </h4>
-                  </div>
+      if (!grupos[key]) grupos[key] = [];
+      grupos[key].push(venta);
+      return grupos;
+    }, {})
+  ).map(([mes, ventasMes]) => {
+    // ✅ Cálculo de VENTAS, COSTOS y BALANCE por mes
+    const { totalVentasMes, totalCostosMes, balanceMes } = ventasMes.reduce(
+      (acc, venta) => {
+        const totalVenta = parseFloat(venta.total) || 0;
 
-                  {/* Total por mes */}
-                  <div className="mb-4">
-                    <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3 flex items-center justify-between">
-                      <span className="text-sm text-gray-300">
-                        Total de ventas del mes
-                      </span>
-                      <span className="text-lg font-semibold text-emerald-400">
-                        ${totalMes.toLocaleString("es-AR")}
-                      </span>
-                    </div>
-                  </div>
+        const costoVenta = (venta.detalle_venta || []).reduce((costoAcc, det) => {
+          const cantidad = Number(det.cantidad) || 0;
+          const costoUnitario = det.producto ? Number(det.producto.costo) || 0 : 0;
+          return costoAcc + cantidad * costoUnitario;
+        }, 0);
 
-                  {/* Ventas */}
-                  <div className="grid gap-4">
-                    {ventasMes.map((venta, vIndex) => {
-                      // clave única para cada venta: preferir id, luego venta_id, si no usar índice combinado con mes
-                      const ventaKey = getVentaId(venta) ?? `${mes}-${vIndex}`;
+        const balanceVenta = totalVenta - costoVenta;
 
-                      return (
-                        <div
-                          key={ventaKey}
-                          className="bg-neutral-800 p-4 rounded-xl shadow transition-transform transform hover:scale-[1.01] flex flex-col md:flex-row justify-between items-start md:items-center"
-                        >
-                          <div
-                            onClick={() => handleEditVenta(venta)}
-                            className="flex-1 min-w-0 cursor-pointer"
-                          >
-                            <div className="font-semibold text-lg flex items-center gap-2">
-                              <span className="text-purple-400">Total:</span> $
-                              {formatPrice(venta.total)}
-                            </div>
-                            <p className="text-gray-400 text-sm truncate">
-                              Cliente:{" "}
-                              <span className="text-gray-200">
-                                {venta.cliente?.nombre || venta.cliente_nombre || "Sin cliente"}{" "}
-                                {venta.cliente?.apellido || ""}
-                              </span>
-                            </p>
+        acc.totalVentasMes += totalVenta;
+        acc.totalCostosMes += costoVenta;
+        acc.balanceMes += balanceVenta;
+        return acc;
+      },
+      { totalVentasMes: 0, totalCostosMes: 0, balanceMes: 0 }
+    );
 
-                            {/* Detalle productos (keys únicos por detalle usando detalle.id o fallback) */}
-                            <ul className="list-disc list-inside mt-2 text-sm text-gray-300">
-                              {venta.detalle_venta?.length > 0 ? (
-                                venta.detalle_venta.map((detalle, dIndex) => {
-                                  const detalleKey =
-                                    detalle?.id ?? `${ventaKey}-detalle-${dIndex}`;
-                                  const producto = productos.find(
-                                    (p) => p.id === detalle.producto_id
-                                  );
-                                  return (
-                                    <li key={detalleKey}>
-                                      {producto ? producto.nombre : "Producto desconocido"} -{" "}
-                                      {detalle.cantidad} unid. a $
-                                      {formatPrice(detalle.precio_unitario)}
-                                    </li>
-                                  );
-                                })
-                              ) : (
-                                <li>No hay productos en esta venta.</li>
-                              )}
-                            </ul>
-                          </div>
+    return (
+      <div key={mes} className="mb-6">
+        <div className="border-b border-gray-600 my-4">
+          <h4 className="text-lg font-semibold text-gray-300 capitalize">
+            {mes}
+          </h4>
+        </div>
 
-                          <div className="flex flex-col items-end text-sm text-gray-500 mt-4 md:mt-0 md:ml-4">
-                            <p className="text-xs text-gray-400 mb-1">
-                              {formatDate(venta.fecha)}
-                            </p>
+        {/* Total por mes (NETO) */}
+        <div className="mb-4">
+          <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="text-sm text-gray-300">
+              <p className="font-medium">
+                Balance neto del mes <span className="text-xs text-gray-500">(ventas - costos)</span>
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                Ventas brutas:{" "}
+                <span className="text-gray-200">
+                  ${totalVentasMes.toLocaleString("es-AR")}
+                </span>{" "}
+                · Costos:{" "}
+                <span className="text-red-300">
+                  ${totalCostosMes.toLocaleString("es-AR")}
+                </span>
+              </p>
+            </div>
 
-                            <p className="font-semibold text-gray-400">
-                              Monto Abonado:{" "}
-                              <span className="text-gray-200">
-                                ${formatPrice(venta.monto_abonado)}
-                              </span>
-                            </p>
-                            <p className="font-semibold text-gray-400">
-                              Saldo:{" "}
-                              <span
-                                className={`font-bold ${Number(venta.saldo) > 0 ? "text-red-400" : "text-green-400"
-                                  }`}
-                              >
-                                ${formatPrice(venta.saldo)}
-                              </span>
-                            </p>
-                            <button
-                              onClick={() => handleDeleteVenta(venta)}
-                              className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm font-medium mt-2 text-white"
-                            >
-                              Eliminar
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+            <span
+              className={`text-lg sm:text-xl font-semibold ${
+                balanceMes >= 0 ? "text-emerald-400" : "text-red-400"
+              }`}
+            >
+              ${balanceMes.toLocaleString("es-AR")}
+            </span>
           </div>
+        </div>
+
+        {/* Ventas */}
+        <div className="grid gap-4">
+          {ventasMes.map((venta, vIndex) => {
+            // clave única para cada venta
+            const ventaKey = getVentaId(venta) ?? `${mes}-${vIndex}`;
+
+            return (
+              <div
+                key={ventaKey}
+                className="bg-neutral-800 p-4 rounded-xl shadow transition-transform transform hover:scale-[1.01] flex flex-col md:flex-row justify-between items-start md:items-center"
+              >
+                <div
+                  onClick={() => handleEditVenta(venta)}
+                  className="flex-1 min-w-0 cursor-pointer"
+                >
+                  <div className="font-semibold text-lg flex items-center gap-2">
+                    <span className="text-purple-400">Total:</span> $
+                    {formatPrice(venta.total)}
+                  </div>
+                  <p className="text-gray-400 text-sm truncate">
+                    Cliente:{" "}
+                    <span className="text-gray-200">
+                      {venta.cliente?.nombre || venta.cliente_nombre || "Sin cliente"}{" "}
+                      {venta.cliente?.apellido || ""}
+                    </span>
+                  </p>
+
+                  {/* Detalle productos */}
+                  <ul className="list-disc list-inside mt-2 text-sm text-gray-300">
+                    {venta.detalle_venta?.length > 0 ? (
+                      venta.detalle_venta.map((detalle, dIndex) => {
+                        const detalleKey =
+                          detalle?.id ?? `${ventaKey}-detalle-${dIndex}`;
+                        const producto = productos.find(
+                          (p) => p.id === detalle.producto_id
+                        );
+                        return (
+                          <li key={detalleKey}>
+                            {producto ? producto.nombre : "Producto desconocido"}{" "}
+                            - {detalle.cantidad} unid. a $
+                            {formatPrice(detalle.precio_unitario)}
+                          </li>
+                        );
+                      })
+                    ) : (
+                      <li>No hay productos en esta venta.</li>
+                    )}
+                  </ul>
+                </div>
+
+                <div className="flex flex-col items-end text-sm text-gray-500 mt-4 md:mt-0 md:ml-4">
+                  <p className="text-xs text-gray-400 mb-1">
+                    {formatDate(venta.fecha)}
+                  </p>
+
+                  <p className="font-semibold text-gray-400">
+                    Monto Abonado:{" "}
+                    <span className="text-gray-200">
+                      ${formatPrice(venta.monto_abonado)}
+                    </span>
+                  </p>
+                  <p className="font-semibold text-gray-400">
+                    Saldo:{" "}
+                    <span
+                      className={`font-bold ${
+                        Number(venta.saldo) > 0
+                          ? "text-red-400"
+                          : "text-green-400"
+                      }`}
+                    >
+                      ${formatPrice(venta.saldo)}
+                    </span>
+                  </p>
+                  <button
+                    onClick={() => handleDeleteVenta(venta)}
+                    className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm font-medium mt-2 text-white"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  })}
+</div>
+
         )}
       </main>
 
