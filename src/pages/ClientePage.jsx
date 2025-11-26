@@ -836,7 +836,7 @@ const ClientePage = () => {
                       return (
                         <li
                           key={cli.id}
-                          onClick={handleModificar}
+                          onClick={handleModificar(cli)}
                           className="rounded-xl border border-white/10 bg-neutral-800/30 hover:bg-neutral-800/50 transition p-4 flex justify-between items-center"
                         >
                           <div className="min-w-0">
