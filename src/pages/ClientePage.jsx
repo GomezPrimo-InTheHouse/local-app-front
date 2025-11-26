@@ -771,7 +771,7 @@ const ClientePage = () => {
                       return (
                         <li
                           key={cli.id}
-                          onClick={handleModificar}
+                          onClick={() => handleModificar(cli)}
                           className="rounded-xl border border-white/10 bg-neutral-800/50 hover:bg-neutral-800/70 hover:border-white/20 transition p-4 flex flex-col gap-3"
                         >
                           <div className="flex items-start justify-between gap-3">
@@ -836,7 +836,7 @@ const ClientePage = () => {
                       return (
                         <li
                           key={cli.id}
-                          onClick={handleModificar(cli)}
+                          onClick={() => handleModificar(cli)}
                           className="rounded-xl border border-white/10 bg-neutral-800/30 hover:bg-neutral-800/50 transition p-4 flex justify-between items-center"
                         >
                           <div className="min-w-0">
