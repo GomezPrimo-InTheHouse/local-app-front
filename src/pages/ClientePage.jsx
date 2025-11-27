@@ -708,7 +708,21 @@ const ClientePage = () => {
     // Contenedor general, fondos atenuados por sección
     <div className="min-h-dvh w-screen bg-neutral-900 text-white/95 overflow-hidden">
       <div className="px-4 sm:px-6 lg:px-8">
-
+      {/* 🔔 Notificación global de Clientes */}
+      {alert.message && (
+        <AlertNotification
+          key={alert.key}          // fuerza la animación cada vez
+          message={alert.message}
+          type={alert.type}
+          duration={2500}          // ms (2,5 segundos)
+          onClose={() =>
+            setAlert((prev) => ({
+              ...prev,
+              message: "",
+            }))
+          }
+        />
+      )}
       
       {/* Grid 30/70, solo scrollea el lado derecho en desktop */}
       <div className="grid grid-cols-1 md:grid-cols-[30%_70%] gap-0 md:gap-6 w-full">
