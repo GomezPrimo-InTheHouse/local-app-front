@@ -485,6 +485,7 @@ import {
 import { getHistorialCliente } from "../api/HistorialApi.jsx";
 import ClienteModal from "../components/Cliente/ClienteModal.jsx";
 import { useNavigate } from "react-router-dom";
+import AlertNotification from "../components/Alerta/AlertNotification.jsx";
 
 const ClientePage = () => {
   const [clientes, setClientes] = useState([]);
@@ -498,6 +499,12 @@ const ClientePage = () => {
   // mini balances por cliente { [id]: { ingresos, costos, total, balance } }
   const [balances, setBalances] = useState({});
   const [loadingBalances, setLoadingBalances] = useState(false);
+
+   const [alert, setAlert] = useState({
+    message: "",
+    type: "success", // "success" | "error" | "warning"
+    key: 0,          // para forzar el re-render de la animación
+  });
 
   const navigate = useNavigate();
 
@@ -651,21 +658,36 @@ const ClientePage = () => {
     // fotoFile (File | null), foto_url (string | "")
 
     if (clienteSeleccionado) {
-      // 👇 En updateCliente más adelante vamos a decidir si arma FormData o JSON
+      
       await updateCliente(clienteSeleccionado.id, formData);
+        setAlert({
+        message: "Cliente actualizado correctamente ✅",
+        type: "success",
+        key: Date.now(),
+      });
     } else {
-      // 👇 En createCliente más adelante vamos a decidir si arma FormData o JSON
+      
       await createCliente(formData);
+      setAlert({
+        message: "Cliente creado correctamente ✅",
+        type: "success",
+        key: Date.now(),
+      });
     }
 
     cargarClientes();
   } catch (error) {
     console.error("Error guardando cliente:", error);
-    Swal.fire(
-      "Error",
-      "Ya existe el cliente o hubo un problema al guardar",
-      "error"
-    );
+      const msgBackend =
+      error?.response?.data?.msg ||
+      error?.response?.data?.error ||
+      "Ocurrió un error al guardar el cliente";
+
+    setAlert({
+      message: msgBackend,
+      type: "error",
+      key: Date.now(),
+    });
   }
 };
 
