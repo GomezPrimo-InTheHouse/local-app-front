@@ -162,9 +162,12 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
     direccion: "",
     celular: "",
     celular_contacto: "",
-    fotoFile: null,    // 🔹 archivo seleccionado
-    foto_url: "",      // 🔹 URL existente (cuando editás)
+    fotoFile: null, // archivo seleccionado (nuevo)
+    foto_url: "",   // URL existente (cuando editás)
   });
+
+  // Para manejar el objectURL del archivo (y evitar fugas de memoria)
+  const [previewObjectUrl, setPreviewObjectUrl] = useState("");
 
   // 🔹 Cargar datos si estamos editando
   useEffect(() => {
@@ -194,6 +197,10 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
         foto_url: "",
       });
     }
+
+    // Cuando se abre el modal, limpiamos la URL previa generada
+    setPreviewObjectUrl("");
+
   }, [isOpen, clienteSeleccionado]);
 
   // 🔹 Manejar cambios de input de texto
@@ -207,14 +214,33 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Podrías validar tamaño, tipo, etc. acá si quisieras
     setFormData((prev) => ({
       ...prev,
       fotoFile: file,
-      // opcional: podrías limpiar foto_url si querés considerar esto como reemplazo directo
+      // Si querés que al seleccionar una nueva foto se ignore la vieja URL:
       // foto_url: prev.foto_url,
     }));
   };
+
+  // 🔹 Generar / limpiar objectURL para la preview cuando cambia fotoFile
+  useEffect(() => {
+    if (!formData.fotoFile) {
+      // Si no hay nuevo archivo, limpiamos el objectURL
+      if (previewObjectUrl) {
+        URL.revokeObjectURL(previewObjectUrl);
+        setPreviewObjectUrl("");
+      }
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(formData.fotoFile);
+    setPreviewObjectUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.fotoFile]);
 
   // 🔹 Validar y enviar formulario
   const handleSubmit = (e) => {
@@ -240,12 +266,12 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
   if (!isOpen) return null;
 
   // 🔹 Determinar qué imagen mostrar en el preview
-  let previewSrc = null;
-  if (formData.fotoFile) {
-    previewSrc = URL.createObjectURL(formData.fotoFile);
-  } else if (formData.foto_url) {
-    previewSrc = formData.foto_url;
-  }
+  // Prioridad: si hay archivo nuevo → objectURL; sino, foto_url de la BD
+  const previewSrc = formData.fotoFile
+    ? previewObjectUrl
+    : formData.foto_url || null;
+
+  const hayFotoGuardada = Boolean(formData.foto_url) && !formData.fotoFile;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
@@ -339,7 +365,7 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
 
               <input
                 type="file"
-                accept="image/*" // iPhone friendly: jpg, png, heic (el navegador suele convertir)
+                accept="image/*" // iPhone friendly
                 onChange={handleFileChange}
                 className="block w-full text-sm text-gray-300
                            file:mr-4 file:py-2 file:px-4
@@ -349,17 +375,31 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
                            hover:file:bg-purple-700"
               />
 
-              {/* Preview */}
+              {/* Preview + botón descargar */}
               {previewSrc && (
-                <div className="mt-3 flex items-center gap-3">
-                  <div className="h-16 w-16 rounded-lg overflow-hidden border border-white/10 flex-shrink-0">
+                <div className="mt-4 flex flex-col items-center gap-3">
+                  <div className="w-full max-w-xs aspect-[3/4] rounded-xl overflow-hidden border border-white/10 bg-black/40 flex items-center justify-center">
                     <img
                       src={previewSrc}
                       alt="Foto cliente"
-                      className="h-full w-full object-cover"
+                      className="w-full h-full object-cover"
                     />
                   </div>
-                  <p className="text-xs text-gray-400">
+
+                  {/* Botón de descarga solo cuando es una foto ya guardada en BD */}
+                  {hayFotoGuardada && (
+                    <a
+                      href={formData.foto_url}
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center px-3 py-1.5 rounded-md bg-neutral-900 hover:bg-neutral-700 text-xs font-medium text-gray-100 border border-white/20"
+                    >
+                      Descargar imagen
+                    </a>
+                  )}
+
+                  <p className="text-xs text-gray-400 text-center px-2">
                     Vista previa de la foto que se guardará para este cliente.
                   </p>
                 </div>
@@ -390,4 +430,5 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
 };
 
 export default ClienteModal;
+
 
