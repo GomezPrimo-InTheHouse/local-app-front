@@ -643,19 +643,32 @@ const ClientePage = () => {
     });
   };
 
+  //handle submit modificado para manejar foto
   const handleSubmit = async (formData) => {
-    try {
-      if (clienteSeleccionado) {
-        await updateCliente(clienteSeleccionado.id, formData);
-      } else {
-        await createCliente(formData);
-      }
-      cargarClientes();
-    } catch (error) {
-      console.error("Error guardando cliente:", error);
-      Swal.fire("Error", "Ya existe el cliente", "error");
+  try {
+    // formData viene directo del modal e incluye:
+    // nombre, apellido, dni, direccion, celular, celular_contacto,
+    // fotoFile (File | null), foto_url (string | "")
+
+    if (clienteSeleccionado) {
+      // 👇 En updateCliente más adelante vamos a decidir si arma FormData o JSON
+      await updateCliente(clienteSeleccionado.id, formData);
+    } else {
+      // 👇 En createCliente más adelante vamos a decidir si arma FormData o JSON
+      await createCliente(formData);
     }
-  };
+
+    cargarClientes();
+  } catch (error) {
+    console.error("Error guardando cliente:", error);
+    Swal.fire(
+      "Error",
+      "Ya existe el cliente o hubo un problema al guardar",
+      "error"
+    );
+  }
+};
+
 
   const handleVerHistorial = (clienteId) => {
     navigate(`/historial/cliente/${clienteId}`);
@@ -836,7 +849,7 @@ const ClientePage = () => {
                       return (
                         <li
                           key={cli.id}
-                          onClick={() => handleModificar(cli)}
+                          
                           className="rounded-xl border border-white/10 bg-neutral-800/30 hover:bg-neutral-800/50 transition p-4 flex justify-between items-center"
                         >
                           <div className="min-w-0">

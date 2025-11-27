@@ -366,7 +366,7 @@ const EquipoPage = () => {
                           return (
                             <li
                               key={eq.id}
-                              onClick={() => handleModificar(eq)}
+                              
                               className="rounded-xl border border-white/10 bg-neutral-800/50 p-4 shadow-sm flex flex-col md:flex-row justify-between md:items-center gap-3 hover:bg-neutral-800/70 hover:border-white/20 transition"
                             >
                               {/* Info principal */}
