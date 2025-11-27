@@ -166,7 +166,7 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
     foto_url: "",   // URL existente (cuando editás)
   });
 
-  // Para manejar el objectURL del archivo (y evitar fugas de memoria)
+  // Para manejar el objectURL del archivo (preview) y evitar fugas de memoria
   const [previewObjectUrl, setPreviewObjectUrl] = useState("");
 
   // 🔹 Cargar datos si estamos editando
@@ -182,10 +182,10 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
         celular: clienteSeleccionado.celular || "",
         celular_contacto: clienteSeleccionado.celular_contacto || "",
         fotoFile: null,
-        foto_url: clienteSeleccionado.foto_url || "", // si existe en la BD
+        foto_url: clienteSeleccionado.foto_url || "",
       });
     } else {
-      // 👇 reset al abrir en modo "nuevo cliente"
+      // Nuevo cliente → reset completo
       setFormData({
         nombre: "",
         apellido: "",
@@ -198,9 +198,12 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
       });
     }
 
-    // Cuando se abre el modal, limpiamos la URL previa generada
-    setPreviewObjectUrl("");
-
+    // limpiamos objectURL previo si quedaba algo
+    if (previewObjectUrl) {
+      URL.revokeObjectURL(previewObjectUrl);
+      setPreviewObjectUrl("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, clienteSeleccionado]);
 
   // 🔹 Manejar cambios de input de texto
@@ -217,15 +220,14 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
     setFormData((prev) => ({
       ...prev,
       fotoFile: file,
-      // Si querés que al seleccionar una nueva foto se ignore la vieja URL:
+      // si quisieras, podrías limpiar la foto_url anterior al elegir una nueva:
       // foto_url: prev.foto_url,
     }));
   };
 
-  // 🔹 Generar / limpiar objectURL para la preview cuando cambia fotoFile
+  // 🔹 Generar / limpiar objectURL cuando cambia fotoFile
   useEffect(() => {
     if (!formData.fotoFile) {
-      // Si no hay nuevo archivo, limpiamos el objectURL
       if (previewObjectUrl) {
         URL.revokeObjectURL(previewObjectUrl);
         setPreviewObjectUrl("");
@@ -242,7 +244,7 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.fotoFile]);
 
-  // 🔹 Validar y enviar formulario
+  // 🔹 Validar y ENVIAR (acá armamos el payload inteligente)
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -258,19 +260,51 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
       return;
     }
 
-    // Enviamos TODO el formData, incluyendo fotoFile y foto_url
-    onSubmit(formData);
+    let payload;
+
+    if (formData.fotoFile) {
+      // 👉 Si hay archivo: construimos FormData (multipart/form-data)
+      const fd = new FormData();
+      fd.append("nombre", formData.nombre ?? "");
+      fd.append("apellido", formData.apellido ?? "");
+      fd.append("dni", formData.dni ?? "");
+      fd.append("direccion", formData.direccion ?? "");
+      fd.append("celular", formData.celular ?? "");
+      fd.append("celular_contacto", formData.celular_contacto ?? "");
+      if (formData.foto_url) {
+        // por si ya existía una foto y querés mantener la info por ahora
+        fd.append("foto_url", formData.foto_url);
+      }
+      // 👇 muy importante: este nombre tiene que coincidir con upload.single("foto") en el backend
+      fd.append("foto", formData.fotoFile);
+
+      payload = fd;
+    } else {
+      // 👉 Sin archivo: mandamos JSON "normal"
+      payload = {
+        nombre: formData.nombre,
+        apellido: formData.apellido,
+        dni: formData.dni,
+        direccion: formData.direccion,
+        celular: formData.celular,
+        celular_contacto: formData.celular_contacto,
+        foto_url: formData.foto_url || null,
+      };
+    }
+
+    // Enviamos el payload al padre (que llama createCliente / updateCliente)
+    onSubmit(payload);
     onClose();
   };
 
   if (!isOpen) return null;
 
   // 🔹 Determinar qué imagen mostrar en el preview
-  // Prioridad: si hay archivo nuevo → objectURL; sino, foto_url de la BD
   const previewSrc = formData.fotoFile
     ? previewObjectUrl
     : formData.foto_url || null;
 
+  // Sólo hay "imagen guardada" si viene de la BD y no hay archivo nuevo
   const hayFotoGuardada = Boolean(formData.foto_url) && !formData.fotoFile;
 
   return (
@@ -365,7 +399,7 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
 
               <input
                 type="file"
-                accept="image/*" // iPhone friendly
+                accept="image/*"
                 onChange={handleFileChange}
                 className="block w-full text-sm text-gray-300
                            file:mr-4 file:py-2 file:px-4
@@ -386,7 +420,6 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
                     />
                   </div>
 
-                  {/* Botón de descarga solo cuando es una foto ya guardada en BD */}
                   {hayFotoGuardada && (
                     <a
                       href={formData.foto_url}
@@ -430,5 +463,6 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
 };
 
 export default ClienteModal;
+
 
 
