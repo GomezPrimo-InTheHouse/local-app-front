@@ -94,7 +94,7 @@
 
 //   const handleSubmit = async (e) => {
 //     e.preventDefault();
-   
+
 //     try {
 //       if (esEdicion ) {
 //         console.log('ejecutando el updatePresupuesto', presupuesto.presupuesto_id)
@@ -265,7 +265,7 @@ import {
 } from "../../api/PresupuestoApi";
 import { getEstadoByAmbito } from "../../api/EstadoApi.jsx";
 import { getProductosRepuestoByTipoEquipo } from "../../api/ProductoApi.jsx"; // 🔹 nueva función en tu ProductoApi
-import {getPresupuestoWithDetalles} from "../../api/PresupuestoApi.jsx";
+import { getPresupuestoWithDetalles } from "../../api/PresupuestoApi.jsx";
 const PresupuestoModal = ({
   isOpen,
   onClose,
@@ -384,30 +384,30 @@ const PresupuestoModal = ({
     setPrecioProducto("");
   }, [isOpen, esEdicion, presupuesto, pendienteId]);
 
-// 🟢 Cuando abro el modal EN MODO EDICIÓN, traigo también los detalles:
-useEffect(() => {
-  if (!isOpen || !esEdicion || !presupuesto?.presupuesto_id) return;
+  // 🟢 Cuando abro el modal EN MODO EDICIÓN, traigo también los detalles:
+  useEffect(() => {
+    if (!isOpen || !esEdicion || !presupuesto?.presupuesto_id) return;
 
-  const cargarPresupuestoCompleto = async () => {
-    try {
-      const full = await getPresupuestoWithDetalles(presupuesto.presupuesto_id);
+    const cargarPresupuestoCompleto = async () => {
+      try {
+        const full = await getPresupuestoWithDetalles(presupuesto.presupuesto_id);
 
-      const detallesNormalizados = (full.presupuesto_detalle || []).map((d) => ({
-        producto_id: d.producto_id,
-        cantidad: d.cantidad,
-        precio_unitario: d.precio_unitario,
-        nombre: d.producto?.nombre || "",   // útil para mostrar en la UI
-      }));
+        const detallesNormalizados = (full.presupuesto_detalle || []).map((d) => ({
+          producto_id: d.producto_id,
+          cantidad: d.cantidad,
+          precio_unitario: d.precio_unitario,
+          nombre: d.producto?.nombre || "",   // útil para mostrar en la UI
+        }));
 
-      setLineas(detallesNormalizados);
-    } catch (error) {
-      console.error("Error cargando presupuesto con detalles:", error);
-      showAlert?.("No se pudieron cargar los productos del presupuesto", "error");
-    }
-  };
+        setLineas(detallesNormalizados);
+      } catch (error) {
+        console.error("Error cargando presupuesto con detalles:", error);
+        showAlert?.("No se pudieron cargar los productos del presupuesto", "error");
+      }
+    };
 
-  cargarPresupuestoCompleto();
-}, [isOpen, esEdicion, presupuesto, showAlert]);
+    cargarPresupuestoCompleto();
+  }, [isOpen, esEdicion, presupuesto, showAlert]);
   // ===================== Handlers básicos del form =====================
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -420,6 +420,16 @@ useEffect(() => {
 
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
+  // Helper seguro para formatear montos simples (sin símbolo $)
+  const formatMoneySeguro = (valor) => {
+    const n = Number(valor ?? 0);
+    if (Number.isNaN(n)) return "0";
+    return n.toLocaleString("es-AR", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
+  };
+
 
   // Cuando cambia el producto seleccionado, sugerimos precio por defecto
   useEffect(() => {
@@ -646,10 +656,11 @@ useEffect(() => {
               {formData.costo && (
                 <p className="text-xs text-gray-400 mt-1">
                   Vista:{" "}
-                  {Number(formData.costo).toLocaleString("es-AR")}
+                  {formatMoneySeguro(formData.costo)}
                 </p>
               )}
             </div>
+
 
             <div>
               <label className="block mb-1 text-sm text-gray-300">
@@ -667,7 +678,7 @@ useEffect(() => {
               {formData.total && (
                 <p className="text-xs text-gray-400 mt-1">
                   Vista:{" "}
-                  {Number(formData.total).toLocaleString("es-AR")}
+                  {formatMoneySeguro(formData.total)}
                 </p>
               )}
             </div>
@@ -750,7 +761,7 @@ useEffect(() => {
                     <option key={p.id} value={p.id}>
                       {p.nombre}{" "}
                       {p.precio != null
-                        ? `— $${Number(p.precio).toLocaleString("es-AR")}`
+                        ? `— $${formatMoneySeguro(p.precio)}`
                         : ""}
                     </option>
                   ))}
@@ -796,9 +807,7 @@ useEffect(() => {
                     Total productos:{" "}
                     <strong>
                       $
-                      {totalProductos.toLocaleString("es-AR", {
-                        maximumFractionDigits: 2,
-                      })}
+                      {formatMoneySeguro(totalProductos)}
                     </strong>
                   </span>
                 </div>
@@ -813,15 +822,11 @@ useEffect(() => {
                         <p className="font-medium truncate">{l.nombre}</p>
                         <p className="text-neutral-300/80">
                           {l.cantidad} unid. x $
-                          {l.precio_unitario.toLocaleString("es-AR", {
-                            maximumFractionDigits: 2,
-                          })}{" "}
+                          {formatMoneySeguro(l.precio_unitario)}{" "}
                           ={" "}
                           <span className="font-semibold">
                             $
-                            {l.subtotal.toLocaleString("es-AR", {
-                              maximumFractionDigits: 2,
-                            })}
+                            {formatMoneySeguro(l.subtotal)}
                           </span>
                         </p>
                       </div>
