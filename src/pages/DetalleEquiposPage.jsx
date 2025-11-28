@@ -635,6 +635,7 @@ const DetalleEquiposPage = () => {
     setIngresoSeleccionado({ id: presupuesto.ingreso_id });
     setModalAbierto(true);
   };
+  
   const handleGenerarVenta = async (presupuesto) => {
     try {
       const presupuestoId = presupuesto.presupuesto_id ?? presupuesto.id;
@@ -1011,7 +1012,7 @@ const DetalleEquiposPage = () => {
                         {/* 🔹 Botón Generar Venta (solo si NO tiene venta asociada) */}
                         {!tieneVenta && (
                           <button
-                            onClick={() => handleGenerarVentaDesdePresupuesto(p)}
+                            onClick={() => handleGenerarVenta(p)}
                             className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-sm font-semibold"
                           >
                             Generar venta
