@@ -998,6 +998,7 @@ const DetalleEquiposPage = () => {
                         >
                           Modificar
                         </button>
+
                         <button
                           onClick={() =>
                             handleEliminarPresupuesto(p.presupuesto_id ?? p.id)
@@ -1006,7 +1007,25 @@ const DetalleEquiposPage = () => {
                         >
                           Eliminar
                         </button>
+
+                        {/* 🔹 Botón Generar Venta (solo si NO tiene venta asociada) */}
+                        {!tieneVenta && (
+                          <button
+                            onClick={() => handleGenerarVentaDesdePresupuesto(p)}
+                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-sm font-semibold"
+                          >
+                            Generar venta
+                          </button>
+                        )}
+
+                        {/* Opcional: si ya tiene venta, podrías mostrar algo tipo “Ver venta” */}
+                        {tieneVenta && (
+                          <span className="text-[11px] text-emerald-300">
+                            Venta generada (ID: {p.venta_id})
+                          </span>
+                        )}
                       </div>
+
                     </li>
                   );
                 })}
