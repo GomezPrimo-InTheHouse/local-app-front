@@ -59,6 +59,14 @@ export const getBalancesPresupuestos = async () => {
   return data;
 };
 
+// ✅ Aprobar presupuesto y generar venta asociada
+export const aprobarPresupuesto = async (presupuestoId) => {
+  // Ruta sugerida: POST /presupuestos/:id/aprobar-venta
+  const res = await axios.post(`${API_URL}/${presupuestoId}/aprobar-venta`);
+  return res.data;
+};
+
+
 // src/api/PresupuestoAp
 
 
