@@ -75,7 +75,7 @@ export const savePresupuestoDetalles = async (presupuestoId, detalles) => {
 };
 
 export const getPresupuestoWithDetalles = async (id) => {
-  const res = await axios.get(`${BASE_URL}/${id}/with-detalles`);
+  const res = await axios.get(`${API_URL}/${id}/with-detalles`);
   // backend responde { success: true, data: {...} }
   return res.data?.data || res.data;
 };
