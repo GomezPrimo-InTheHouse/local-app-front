@@ -486,6 +486,16 @@ const DetalleEquiposPage = () => {
     // pero dejamos este timeout por compatibilidad con tu patrón actual.
     setTimeout(() => setAlertMessage(""), 2000);
   };
+  // Helper seguro para formatear montos simples (sin símbolo $)
+  const formatMoneySeguro = (valor) => {
+    const n = Number(valor ?? 0);
+    if (Number.isNaN(n)) return "0";
+    return n.toLocaleString("es-AR", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
+  };
+
 
   // Helpers UI
   const currency = (n) =>
@@ -856,19 +866,33 @@ const DetalleEquiposPage = () => {
                 {presupuestosValidos.map((p) => {
                   const pid =
                     p.presupuesto_id ?? p.id ?? `${p.ingreso_id}-${p.fecha_presupuesto}`;
-                  const fecha = p.fecha_presupuesto || p.fecha || null;
-                  const fechaFmt = fecha
-                    ? new Date(fecha).toLocaleDateString("es-AR")
+
+                  const fechaRaw = p.fecha_presupuesto || p.fecha || null;
+                  const fechaFmt = fechaRaw
+                    ? new Date(fechaRaw).toLocaleDateString("es-AR")
                     : "Sin fecha";
+
                   const costo = p.costo_presupuesto ?? p.costo ?? 0;
                   const total = p.total_presupuesto ?? p.total ?? 0;
                   const observaciones =
-                    p.observaciones_presupuesto ?? p.observaciones;
+                    p.observaciones_presupuesto ?? p.observaciones ?? "";
+
                   const estadoNombre =
                     p.estado_presupuesto_nombre ?? p.estado ?? "Pendiente";
 
                   const tieneVenta =
                     p.venta_id !== null && p.venta_id !== undefined;
+
+                  // 🔹 Productos / detalles asociados al presupuesto
+                  // ajustá a cómo venga del backend: p.detalles, p.productos, p.lineas, etc.
+                  const lineas =
+                    Array.isArray(p.detalles)
+                      ? p.detalles
+                      : Array.isArray(p.productos)
+                        ? p.productos
+                        : Array.isArray(p.lineas)
+                          ? p.lineas
+                          : [];
 
                   return (
                     <li
@@ -877,9 +901,7 @@ const DetalleEquiposPage = () => {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-xs text-neutral-300/90 leading-5">
-                            Fecha
-                          </p>
+                          <p className="text-xs text-neutral-300/90 leading-5">Fecha</p>
                           <p className="font-medium">{fechaFmt}</p>
                         </div>
                         <span
@@ -891,10 +913,11 @@ const DetalleEquiposPage = () => {
                         </span>
                       </div>
 
+                      {/* Costo / Total */}
                       <div className="mt-3 grid grid-cols-2 gap-2">
                         <div className="rounded-lg border border-white/10 bg-neutral-900/30 p-2">
                           <p className="text-neutral-300/80 text-[11px] leading-5">
-                            Costo
+                            Costo (materiales)
                           </p>
                           <p className="text-base sm:text-lg font-semibold">
                             {currency(costo)}
@@ -902,7 +925,7 @@ const DetalleEquiposPage = () => {
                         </div>
                         <div className="rounded-lg border border-white/10 bg-neutral-900/30 p-2">
                           <p className="text-neutral-300/80 text-[11px] leading-5">
-                            Total
+                            Total (cliente)
                           </p>
                           <p className="text-base sm:text-lg font-semibold">
                             {currency(total)}
@@ -917,12 +940,57 @@ const DetalleEquiposPage = () => {
                         </p>
                       )}
 
+                      {/* 🧩 Productos incluidos en el presupuesto */}
+                      {lineas.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-[11px] text-neutral-300/90 mb-1">
+                            Productos incluidos
+                          </p>
+                          <ul className="space-y-2 text-xs sm:text-sm">
+                            {lineas.map((s, idx) => {
+                              const cantidad = Number(s.cantidad ?? 0);
+                              const precioUnitario =
+                                Number(s.precio_unitario ?? s.precio ?? 0) || 0;
+                              const subtotal =
+                                Number(
+                                  s.subtotal ??
+                                  cantidad * precioUnitario
+                                ) || 0;
+
+                              return (
+                                <li
+                                  key={s.id ?? `${pid}-detalle-${idx}`}
+                                  className="flex items-center justify-between gap-2 rounded-lg bg-neutral-800/80 px-2 py-1.5"
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium truncate">
+                                      {s.nombre || "Producto sin nombre"}
+                                    </p>
+                                    <p className="text-neutral-300/80">
+                                      {cantidad} unid. x $
+                                      {formatMoneySeguro(precioUnitario)}{" "}
+                                      ={" "}
+                                      <span className="font-semibold">
+                                        $
+                                        {formatMoneySeguro(subtotal)}
+                                      </span>
+                                    </p>
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Observaciones */}
                       {observaciones && (
                         <p className="mt-3 text-xs text-neutral-300/90 italic line-clamp-3 leading-5">
                           {observaciones}
                         </p>
                       )}
 
+                      {/* Acciones */}
                       <div className="mt-4 flex flex-wrap items-center gap-2">
                         <button
                           onClick={() => handleEditarPresupuesto(p)}
@@ -930,7 +998,6 @@ const DetalleEquiposPage = () => {
                         >
                           Modificar
                         </button>
-
                         <button
                           onClick={() =>
                             handleEliminarPresupuesto(p.presupuesto_id ?? p.id)
@@ -939,16 +1006,6 @@ const DetalleEquiposPage = () => {
                         >
                           Eliminar
                         </button>
-
-                        {/* 👇 Solo mostrar "Generar venta" si aún no tiene venta asociada */}
-                        {!tieneVenta && (
-                          <button
-                            onClick={() => handleGenerarVenta(p)}
-                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-sm font-medium"
-                          >
-                            Generar venta
-                          </button>
-                        )}
                       </div>
                     </li>
                   );
@@ -956,9 +1013,7 @@ const DetalleEquiposPage = () => {
               </ul>
             ) : (
               <div className="rounded-xl border border-dashed border-white/15 p-6 text-center">
-                <p className="text-neutral-300">
-                  No hay presupuestos cargados.
-                </p>
+                <p className="text-neutral-300">No hay presupuestos cargados.</p>
                 <button
                   onClick={handleNuevoPresupuesto}
                   className="mt-3 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-sm font-semibold"
@@ -968,6 +1023,7 @@ const DetalleEquiposPage = () => {
               </div>
             )}
           </section>
+
 
         </div>
       </main>
