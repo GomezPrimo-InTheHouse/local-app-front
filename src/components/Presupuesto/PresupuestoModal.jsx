@@ -264,8 +264,8 @@ import {
   savePresupuestoDetalles, // 🔹 nueva función en tu PresupuestoApi
 } from "../../api/PresupuestoApi";
 import { getEstadoByAmbito } from "../../api/EstadoApi.jsx";
-import { getProductosRepuestoByTipoEquipo, getPresupuestoWithDetalles } from "../../api/ProductoApi.jsx"; // 🔹 nueva función en tu ProductoApi
-
+import { getProductosRepuestoByTipoEquipo } from "../../api/ProductoApi.jsx"; // 🔹 nueva función en tu ProductoApi
+import {getPresupuestoWithDetalles} from "../../api/PresupuestoApi.jsx";
 const PresupuestoModal = ({
   isOpen,
   onClose,
@@ -383,7 +383,7 @@ const PresupuestoModal = ({
     setCantidadProducto("1");
     setPrecioProducto("");
   }, [isOpen, esEdicion, presupuesto, pendienteId]);
-  
+
 // 🟢 Cuando abro el modal EN MODO EDICIÓN, traigo también los detalles:
 useEffect(() => {
   if (!isOpen || !esEdicion || !presupuesto?.presupuesto_id) return;
