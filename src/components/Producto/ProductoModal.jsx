@@ -316,7 +316,7 @@
 // src/components/productos/ProductoModal.jsx
 import { useEffect, useState } from "react";
 import { getEstadoByAmbito } from "../../api/EstadoApi.jsx";
-import { getCategoriasProducto } from "../../api/ProductoApi.jsx"; // 👈 nuevo import
+import { getCategoriasProducto } from "../../api/CategoriaProductoApi.jsx"; // 👈 nuevo import
 
 const ProductoModal = ({ isOpen, onClose, onSave, producto = null }) => {
   const [form, setForm] = useState({

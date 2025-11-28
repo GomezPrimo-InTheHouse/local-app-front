@@ -54,8 +54,4 @@ export const buscarProductos = async (nombre) => {
   }
 };
 
-export const getCategoriasProducto = async () => {
-  const res = await axios.get(API_URL);
-  // debería devolver: [{ id, nombre, descripcion, tipo_equipo, ... }, ...]
-  return res.data?.data || res.data; // ajustalo según tu backend
-};
+
