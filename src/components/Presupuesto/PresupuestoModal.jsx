@@ -383,7 +383,31 @@ const PresupuestoModal = ({
     setCantidadProducto("1");
     setPrecioProducto("");
   }, [isOpen, esEdicion, presupuesto, pendienteId]);
+  
+// 🟢 Cuando abro el modal EN MODO EDICIÓN, traigo también los detalles:
+useEffect(() => {
+  if (!isOpen || !esEdicion || !presupuesto?.presupuesto_id) return;
 
+  const cargarPresupuestoCompleto = async () => {
+    try {
+      const full = await getPresupuestoWithDetalles(presupuesto.presupuesto_id);
+
+      const detallesNormalizados = (full.presupuesto_detalle || []).map((d) => ({
+        producto_id: d.producto_id,
+        cantidad: d.cantidad,
+        precio_unitario: d.precio_unitario,
+        nombre: d.producto?.nombre || "",   // útil para mostrar en la UI
+      }));
+
+      setLineas(detallesNormalizados);
+    } catch (error) {
+      console.error("Error cargando presupuesto con detalles:", error);
+      showAlert?.("No se pudieron cargar los productos del presupuesto", "error");
+    }
+  };
+
+  cargarPresupuestoCompleto();
+}, [isOpen, esEdicion, presupuesto, showAlert]);
   // ===================== Handlers básicos del form =====================
   const handleChange = (e) => {
     const { name, value } = e.target;
