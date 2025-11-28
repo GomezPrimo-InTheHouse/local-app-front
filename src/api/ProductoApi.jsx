@@ -54,4 +54,13 @@ export const buscarProductos = async (nombre) => {
   }
 };
 
+export const getProductosRepuestoByTipoEquipo = async (tipoEquipo) => {
+  const res = await axios.get(
+    `${API_URL}/repuestos`,
+    { params: { tipo_equipo: tipoEquipo || null } }
+  );
+  return res.data?.data || res.data;
+};
+
+
 

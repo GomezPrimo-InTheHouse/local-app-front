@@ -989,8 +989,10 @@ const DetalleEquiposPage = () => {
         presupuesto={presupuestoSeleccionado}
         esEdicion={!!presupuestoSeleccionado}
         onPresupuestoGuardado={fetchAll}
-        showAlert={showAlert} // 👈 ahora el modal también usa tu alerta global
+        showAlert={showAlert}
+        tipoEquipo={equipo?.tipo}   // 👈 NUEVO
       />
+
     </div>
   );
 };

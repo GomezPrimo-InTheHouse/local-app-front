@@ -66,6 +66,22 @@ export const aprobarPresupuesto = async (presupuestoId) => {
   return res.data;
 };
 
+export const savePresupuestoDetalles = async (presupuestoId, detalles) => {
+  const res = await axios.post(
+    `${API_URL}/${presupuestoId}/detalles`,
+    { detalles }
+  );
+  return res.data;
+};
+
+export const getPresupuestoWithDetalles = async (id) => {
+  const res = await axios.get(`${BASE_URL}/${id}/with-detalles`);
+  // backend responde { success: true, data: {...} }
+  return res.data?.data || res.data;
+};
+
+
+
 
 // src/api/PresupuestoAp
 
