@@ -9,6 +9,7 @@ import {
 } from "../api/ProductoApi";
 import ProductoModal from "../components/Producto/ProductoModal.jsx";
 import BuscarProducto from "../components/Producto/BuscarProducto.jsx";
+import AlertNotification from "../components/Alerta/AlertNotification.jsx";
 /**
  * Página Productos - layout 30% / 70%
  */
@@ -22,6 +23,13 @@ const ProductoPage = () => {
 
     // simple toast local
     const [toast, setToast] = useState({ message: "", type: "success" });
+    // en ProductoPage.jsx (por ejemplo)
+    const [alert, setAlert] = useState({
+        message: "",
+        type: "success",
+        key: 0,
+    });
+
 
     const fetchProductos = async () => {
         try {
@@ -237,6 +245,20 @@ const ProductoPage = () => {
                         setProductos(res); // si array → setear resultados filtrados
                     }
                 }} />
+                {alert.message && (
+                    <AlertNotification
+                        key={alert.key}
+                        message={alert.message}
+                        type={alert.type}
+                        duration={2500}
+                        onClose={() =>
+                            setAlert((prev) => ({
+                                ...prev,
+                                message: "",
+                            }))
+                        }
+                    />
+                )}
 
 
                 {toast.message && (
@@ -321,17 +343,43 @@ const ProductoPage = () => {
             {/* Modal */}
             <ProductoModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                producto={productoSeleccionado} // null para crear
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setProductoSeleccionado(null);
+                }}
+                producto={productoSeleccionado}
                 onSave={async (payload) => {
-                    if (productoSeleccionado) {
-                        await updateProducto(productoSeleccionado.id, payload);
-                    } else {
-                        await createProducto(payload);
+                    try {
+                        if (productoSeleccionado) {
+                            await updateProducto(productoSeleccionado.id, payload);
+                            setAlert({
+                                message: "Producto actualizado correctamente ✅",
+                                type: "success",
+                                key: Date.now(),
+                            });
+                        } else {
+                            await createProducto(payload);
+                            setAlert({
+                                message: "Producto creado correctamente ✅",
+                                type: "success",
+                                key: Date.now(),
+                            });
+                        }
+
+                        await fetchProductos();
+                    } catch (err) {
+                        console.error(err);
+                        setAlert({
+                            message: "Error al guardar el producto ❌",
+                            type: "error",
+                            key: Date.now(),
+                        });
+                        // IMPORTANTE: lanzarlo de nuevo si querés que el modal maneje errores también
+                        throw err;
                     }
-                    await fetchProductos(); // recargar lista
                 }}
             />
+
 
         </div>
     );
