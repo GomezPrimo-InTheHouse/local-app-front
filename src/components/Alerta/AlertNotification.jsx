@@ -1,3 +1,4 @@
+//src/components/Alerta/AlertNotification.jsx
 import { useEffect, useState } from "react";
 import { CheckCircle, XCircle, AlertTriangle, X } from "lucide-react";
 
