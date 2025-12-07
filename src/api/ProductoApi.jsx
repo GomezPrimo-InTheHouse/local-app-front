@@ -85,6 +85,10 @@ const buildProductoFormData = (producto) => {
   const formData = new FormData();
 
   // Campos básicos
+  //descripcion, descripcion_web, nombre, stock, precio, estado_id, categoria_id, costo
+  if(producto.descripcion != null) {
+    formData.append("descripcion_web", producto.descripcion_web);
+  }
   if (producto.nombre != null) {
     formData.append("nombre", producto.nombre);
   }
