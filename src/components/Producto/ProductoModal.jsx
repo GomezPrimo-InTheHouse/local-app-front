@@ -732,6 +732,7 @@ const ProductoModal = ({ isOpen, onClose, onSave, producto = null }) => {
     estado_id: "",
     categoria_id: "",
     costo: "",
+    descripcion_web: "",
   });
 
   const [subirWeb, setSubirWeb] = useState(false);
@@ -817,6 +818,7 @@ const ProductoModal = ({ isOpen, onClose, onSave, producto = null }) => {
         estado_id: producto.estado_id != null ? String(producto.estado_id) : "",
         categoria_id: producto.categoria_id != null ? String(producto.categoria_id) : "",
         costo: producto.costo != null ? String(producto.costo).replace(",", ".") : "",
+        descripcion_web: producto.descripcion_web ?? "",
       });
       setSubirWeb(Boolean(producto.subir_web));
       setOferta(producto.oferta != null ? String(producto.oferta) : "");
@@ -832,6 +834,7 @@ const ProductoModal = ({ isOpen, onClose, onSave, producto = null }) => {
       setForm({
         nombre: "", stock: "", precio: "", descripcion: "",
         estado_id: "", categoria_id: "", costo: "",
+        descripcion_web: "",
       });
       setSubirWeb(false);
       setOferta("");
@@ -1087,9 +1090,10 @@ const ProductoModal = ({ isOpen, onClose, onSave, producto = null }) => {
                 </button>
             </div>
           </div>
-
+          
+            {/* Descripcion */}
           <div>
-            <label className={labelClass}>Descripción</label>
+            <label className={labelClass}>Descripción corta</label>
             <textarea
               name="descripcion"
               value={form.descripcion}
@@ -1097,6 +1101,21 @@ const ProductoModal = ({ isOpen, onClose, onSave, producto = null }) => {
               rows={3}
               className={inputClass(false)}
               placeholder="Detalles..."
+              disabled={isSaving}
+            />
+          </div>
+
+          {/* Descripcion web */}
+
+               <div>
+            <label className={labelClass}>Descripción Web</label>
+            <textarea
+              name="descripcion_web"
+              value={form.descripcion_web}
+              onChange={handleTextChange}
+              rows={3}
+              className={inputClass(false)}
+              placeholder="Detalles web..."
               disabled={isSaving}
             />
           </div>
