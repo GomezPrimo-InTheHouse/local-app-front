@@ -20,6 +20,7 @@ const VentasPage = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVenta, setEditingVenta] = useState(null);
   const [filtroClienteId, setFiltroClienteId] = useState(null);
+  const [filtroCanal, setFiltroCanal] = useState("todos"); // 👈 NUEVO
   const [loading, setLoading] = useState(true);
 
   // Utilidades para normalizar claves (por si el backend a veces devuelve id o venta_id)
@@ -28,10 +29,10 @@ const VentasPage = () => {
     venta?.cliente?.id ?? venta?.cliente_id ?? venta?.cliente ?? null;
 
   // Cargar ventas y productos
-  const fetchData = async () => {
+  const fetchData = async (canalValor = filtroCanal) => {
     setLoading(true);
     try {
-      const ventasResponse = await getVentas();
+      const ventasResponse = await getVentas(canalValor); // 👈 ahora soporta canal
       const productosResponse = await getProductos();
 
       // soportar respuesta { data: [...] } o directamente [...]
@@ -55,8 +56,10 @@ const VentasPage = () => {
   };
 
   useEffect(() => {
+    // cada vez que cambie el canal, recargamos las ventas
     fetchData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtroCanal]);
 
   // Guardar (crear/actualizar)
   const handleGuardarVenta = async (ventaPayload) => {
@@ -299,6 +302,27 @@ const VentasPage = () => {
 
         <BuscadorComponent onBuscar={setFiltroClienteId} />
 
+        {/* Filtro por canal */}
+        <div className="mt-4 mb-4 flex flex-wrap gap-2">
+          {[
+            { value: "todos", label: "Todas" },
+            { value: "local", label: "Local" },
+            { value: "web_shop", label: "Web (Shop)" },
+          ].map((op) => (
+            <button
+              key={op.value}
+              onClick={() => setFiltroCanal(op.value)}
+              className={`px-3 py-1 rounded-lg text-sm border transition ${
+                filtroCanal === op.value
+                  ? "bg-purple-600 border-purple-500 text-white"
+                  : "bg-neutral-800 border-neutral-700 text-gray-300 hover:bg-neutral-700"
+              }`}
+            >
+              {op.label}
+            </button>
+          ))}
+        </div>
+
         {/* Balance */}
         <div className="mb-4">
           <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-4 flex items-center justify-between">
@@ -407,7 +431,16 @@ const VentasPage = () => {
                               <span className="text-purple-400">Total:</span> $
                               {formatPrice(venta.total)}
                             </div>
-                            <p className="text-gray-400 text-sm truncate">
+
+                            {/* Canal de la venta */}
+                            <p className="text-xs text-gray-500 mt-1 uppercase tracking-wide">
+                              Canal:{" "}
+                              {venta.canal === "web_shop"
+                                ? "Web (Shop)"
+                                : "Local"}
+                            </p>
+
+                            <p className="text-gray-400 text-sm truncate mt-1">
                               Cliente:{" "}
                               <span className="text-gray-200">
                                 {venta.cliente?.nombre ||

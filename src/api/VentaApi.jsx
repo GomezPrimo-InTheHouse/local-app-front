@@ -25,13 +25,37 @@ export const createVenta = async (ventaData) => {
 };
 
 // Obtener todas las ventas
-export const getVentas = async () => {
+// export const getVentas = async () => {
+//   try {
+//     const { data } = await axios.get(API_URL);
+//     return data;
+//   } catch (error) {
+//     console.error("Error al obtener ventas:", error);
+//     throw error.response?.data || { success: false, error: "Error al obtener ventas" };
+//   }
+// };
+
+// Obtener todas las ventas (con soporte de filtro por canal)
+export const getVentas = async (canal = "todos") => {
   try {
-    const { data } = await axios.get(API_URL);
+    // Usamos params de axios para construir el querystring
+    const params = {};
+
+    // Solo enviamos el canal si no es "todos"
+    if (canal && canal !== "todos") {
+      params.canal = canal; // "local" | "web_shop"
+    }
+
+    const { data } = await axios.get(API_URL, { params });
     return data;
   } catch (error) {
     console.error("Error al obtener ventas:", error);
-    throw error.response?.data || { success: false, error: "Error al obtener ventas" };
+    throw (
+      error.response?.data || {
+        success: false,
+        error: "Error al obtener ventas",
+      }
+    );
   }
 };
 
