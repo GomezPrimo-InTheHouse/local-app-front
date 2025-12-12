@@ -170,16 +170,35 @@ const VentasPage = () => {
     });
   };
 
+  // const formatDate = (dateString) => {
+  //   if (!dateString) return "Fecha no disponible";
+  //   return new Date(dateString + 'T12:00:00').toLocaleDateString("es-AR", {
+  //     year: "numeric",
+  //     month: "long",
+  //     day: "numeric",
+  //     hour: "2-digit",
+  //     minute: "2-digit",
+  //   });
+  // };
   const formatDate = (dateString) => {
-    if (!dateString) return "Fecha no disponible";
-    return new Date(dateString + 'T12:00:00').toLocaleDateString("es-AR", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  if (!dateString) return "Fecha no disponible";
+  
+  // Aseguramos que el formato esté en ISO correcto para el constructor de Date
+  const formattedDate = new Date(dateString);
+  
+  if (isNaN(formattedDate)) {
+    return "Fecha no válida";
+  }
+  
+  return formattedDate.toLocaleDateString("es-AR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
 
   const formatPrice = (price) =>
     Number(price || 0).toLocaleString("es-AR", {

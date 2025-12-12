@@ -165,6 +165,7 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
     celular_contacto: "",
     fotoFile: null, // archivo seleccionado (nuevo)
     foto_url: "",   // URL existente (cuando editás)
+    tipo_cliente: ""
   });
 
   // Para manejar el objectURL del archivo (preview) y evitar fugas de memoria
@@ -255,7 +256,8 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
       !formData.apellido.trim() ||
       !formData.direccion.trim() ||
       !formData.celular.trim() ||
-      !formData.dni.trim()
+      !formData.dni.trim() ||
+      !formData.tipo_cliente.trim()
     ) {
       alert("Por favor complete todos los campos obligatorios (*)");
       return;
@@ -272,6 +274,7 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
       fd.append("direccion", formData.direccion ?? "");
       fd.append("celular", formData.celular ?? "");
       fd.append("celular_contacto", formData.celular_contacto ?? "");
+      fd.append("tipo_cliente", formData.tipo_cliente ?? "");
       if (formData.foto_url) {
         // por si ya existía una foto y querés mantener la info por ahora
         fd.append("foto_url", formData.foto_url);
@@ -290,6 +293,7 @@ const ClienteModal = ({ isOpen, onClose, onSubmit, clienteSeleccionado }) => {
         celular: formData.celular,
         celular_contacto: formData.celular_contacto,
         foto_url: formData.foto_url || null,
+        tipo_cliente: formData.tipo_cliente
       };
     }
 
