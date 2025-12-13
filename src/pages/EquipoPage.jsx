@@ -23,7 +23,7 @@ import { getClienteById } from "../api/ClienteApi.jsx";
 //componentes
 import SidebarEquipos from "../components/Equipo/SidebarEquipos.jsx";
 import EquipoModal from "../components/Equipo/EquipoModal.jsx";
-import BuscadorComponent from "../components/General/BuscadorComponent.jsx";
+// import BuscadorComponent from "../components/General/BuscadorComponent.jsx";
 import AlertNotification from "../components/Alerta/AlertNotification.jsx";
 
 const EquipoPage = () => {
