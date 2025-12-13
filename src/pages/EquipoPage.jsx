@@ -23,7 +23,7 @@ import { getClienteById } from "../api/ClienteApi.jsx";
 //componentes
 import SidebarEquipos from "../components/Equipo/SidebarEquipos.jsx";
 import EquipoModal from "../components/Equipo/EquipoModal.jsx";
-// import BuscadorComponent from "../components/General/BuscadorComponent.jsx";
+import BuscadorComponent from "../components/General/BuscadorComponent.jsx";
 import AlertNotification from "../components/Alerta/AlertNotification.jsx";
 
 const EquipoPage = () => {
@@ -186,17 +186,17 @@ const EquipoPage = () => {
     }
   };
 
- return (
-  <div className="min-h-dvh w-screen bg-neutral-900 text-white/95 overflow-hidden">
-    <div className="px-4 sm:px-6 lg:px-8">
+  return (
+    <div className="min-h-dvh w-screen bg-neutral-900 text-white/95 overflow-hidden">
+      <div className="px-4 sm:px-6 lg:px-8">
 
-   
-      {/* Grid: sidebar fijo (280–360px) + contenido */}
-      <div className="grid grid-cols-1 md:grid-cols-[30%_70%] gap-0 md:gap-6 w-full">
 
-        {/* ------- LADO IZQUIERDO (SIDEBAR) ------- */}
-        <aside
-          className="
+        {/* Grid: sidebar fijo (280–360px) + contenido */}
+        <div className="grid grid-cols-1 md:grid-cols-[30%_70%] gap-0 md:gap-6 w-full">
+
+          {/* ------- LADO IZQUIERDO (SIDEBAR) ------- */}
+          <aside
+            className="
             md:sticky md:top-4
             md:h-[calc(100vh-2rem)]
             overflow-y-auto
@@ -207,19 +207,19 @@ const EquipoPage = () => {
             [&::-webkit-scrollbar-thumb]:bg-white/10
             bg-transparent
           "
-        >
-          <div className="space-y-4">
-            {/* Botón principal */}
-            <button
-              onClick={handleAgregar}
-              className="w-full h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-base font-semibold tracking-wide transition-all duration-200 shadow-xl shadow-emerald-900/50"
-            >
-              ➕ Agregar Equipo
-            </button>
+          >
+            <div className="space-y-4">
+              {/* Botón principal */}
+              <button
+                onClick={handleAgregar}
+                className="w-full h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-base font-semibold tracking-wide transition-all duration-200 shadow-xl shadow-emerald-900/50"
+              >
+                ➕ Agregar Equipo
+              </button>
 
-            {/* Tarjeta de filtros/lista del sidebar con RESETS tipográficos y de layout */}
-            <div
-              className="
+              {/* Tarjeta de filtros/lista del sidebar con RESETS tipográficos y de layout */}
+              <div
+                className="
                 rounded-2xl border border-white/10 bg-neutral-800/70 p-4 sm:p-5 shadow-sm
 
                 /* 🔧 Resets para que SidebarEquipos no rompa el layout */
@@ -241,45 +241,45 @@ const EquipoPage = () => {
                 /* Listas internas con separación */
                 [&_li]:mb-2 [&_li:last-child]:mb-0
               "
-            >
-              <SidebarEquipos
-                filtro={filtro}
-                handleFiltro={handleFiltro}
-                handleAgregar={handleAgregar}
-              />
-            </div>
+              >
+                <SidebarEquipos
+                  filtro={filtro}
+                  handleFiltro={handleFiltro}
+                  handleAgregar={handleAgregar}
+                />
+              </div>
 
-            {/* Info/ayuda del panel */}
-            <div className="rounded-2xl border border-white/10 bg-neutral-800/40 p-4 sm:p-5">
-              <p className="text-xs text-neutral-300/80 leading-5">
-                Agrupamos por <b>mes de ingreso</b> y mostramos el <b>balance mensual</b>.
-              </p>
-            </div>
-          </div>
-        </aside>
-
-        {/* ------- LADO DERECHO (MAIN) ------- */}
-        <main className="md:h-[100svh] md:overflow-y-auto">
-          {/* Header sticky del panel derecho */}
-          <div className="sticky top-0 z-10 px-3 sm:px-4 py-3 backdrop-blur bg-neutral-900/85 border-b border-white/10">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="text-base sm:text-lg font-semibold">Lista de Equipos</h3>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setMostrarBalances((v) => !v)}
-                  className="px-3 py-1.5 rounded-lg bg-neutral-800/70 hover:bg-neutral-800 border border-white/10 text-[12px] sm:text-sm"
-                  title={mostrarBalances ? "Mostrar montos" : "Ocultar montos"}
-                >
-                  {mostrarBalances ? "Mostrar montos" : "Ocultar montos"}
-                </button>
+              {/* Info/ayuda del panel */}
+              <div className="rounded-2xl border border-white/10 bg-neutral-800/40 p-4 sm:p-5">
+                <p className="text-xs text-neutral-300/80 leading-5">
+                  Agrupamos por <b>mes de ingreso</b> y mostramos el <b>balance mensual</b>.
+                </p>
               </div>
             </div>
-          </div>
+          </aside>
 
-          {/* Contenido del panel derecho */}
-          <div className="px-3 sm:px-4 py-4 space-y-4">
-            {/* Buscador + Balance global */}
-            <section className="rounded-2xl border border-white/10 bg-neutral-800/40 p-3 sm:p-4">
+          {/* ------- LADO DERECHO (MAIN) ------- */}
+          <main className="md:h-[100svh] md:overflow-y-auto">
+            {/* Header sticky del panel derecho */}
+            <div className="sticky top-0 z-10 px-3 sm:px-4 py-3 backdrop-blur bg-neutral-900/85 border-b border-white/10">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-base sm:text-lg font-semibold">Lista de Equipos</h3>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setMostrarBalances((v) => !v)}
+                    className="px-3 py-1.5 rounded-lg bg-neutral-800/70 hover:bg-neutral-800 border border-white/10 text-[12px] sm:text-sm"
+                    title={mostrarBalances ? "Mostrar montos" : "Ocultar montos"}
+                  >
+                    {mostrarBalances ? "Mostrar montos" : "Ocultar montos"}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Contenido del panel derecho */}
+            <div className="px-3 sm:px-4 py-4 space-y-4">
+              {/* Buscador + Balance global */}
+              {/* <section className="rounded-2xl border border-white/10 bg-neutral-800/40 p-3 sm:p-4">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                 <div className="lg:col-span-2">
                   <BuscadorComponent
@@ -306,158 +306,195 @@ const EquipoPage = () => {
                   </span>
                 </div>
               </div>
-            </section>
+            </section> */}
+              {/* Buscador + Balance global */}
+              <section className="rounded-2xl border border-white/10 bg-neutral-800/40 p-3 sm:p-4">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                  <div className="lg:col-span-2">
+                    <BuscadorComponent
+                      onBuscar={async (clienteId) => {
+                        setLoading(true);  // Empezamos el estado de carga
+                        try {
+                          // Si no hay clienteId (por ejemplo, el usuario borró el texto)
+                          if (!clienteId) {
+                            // Obtener todos los equipos
+                            await fetchEquipos();
+                          } else {
+                            // Obtener equipos por cliente
+                            const data = await getEquiposByClienteId(clienteId);
+                            setEquipos(Array.isArray(data) ? data : []);
+                          }
+                        } catch (error) {
+                          console.error("Error al obtener equipos:", error);
+                          // Aquí podrías manejar un mensaje de error si ocurre algo con la API
+                        } finally {
+                          setLoading(false);  // Finalizamos el estado de carga
+                        }
+                      }}
+                    />
+                  </div>
 
-            {/* Listado por mes */}
-            <section className="rounded-2xl border border-white/10 bg-neutral-800/30 p-3 sm:p-4">
-              {loading ? (
-                <p className="text-neutral-400 px-1">Cargando equipos...</p>
-              ) : !Array.isArray(equipos) || equipos.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-white/15 p-6 text-center bg-white/5">
-                  <p className="text-neutral-300">Aún no hay equipos cargados.</p>
+                  {/* Balance global */}
+                  <div className="rounded-xl border border-white/10 bg-neutral-900/40 p-3 flex items-center justify-between">
+                    <span className="text-sm text-neutral-300">Balance global</span>
+                    <span className="text-xl font-semibold text-emerald-400">
+                      {mostrarBalances ? "******" : totalBalanceGeneral.toLocaleString("es-AR")}
+                    </span>
+                  </div>
                 </div>
-              ) : (
-                Object.entries(
-                  equipos.reduce((grupos, eq) => {
-                    const fecha = eq.fecha_ingreso
-                      ? new Date(eq.fecha_ingreso + "T12:00:00")
-                      : null;
-                    const key = fecha
-                      ? `${fecha.toLocaleString("es-AR", { month: "long" })} ${fecha.getFullYear()}`
-                      : "Sin fecha";
-                    if (!grupos[key]) grupos[key] = [];
-                    grupos[key].push(eq);
-                    return grupos;
-                  }, {})
-                ).map(([mes, equiposMes]) => {
-                  const totalMes = equiposMes.reduce(
-                    (acc, eq) => acc + (balanceByEquipoId[eq.id]?.balance_final ?? 0),
-                    0
-                  );
+              </section>
 
-                  return (
-                    <div key={mes} className="mb-6">
-                      <div className="border-b border-white/10 pb-2 mb-3">
-                        <h4 className="text-lg font-semibold text-neutral-200 capitalize">
-                          {mes}
-                        </h4>
-                      </div>
 
-                      <div className="mb-3">
-                        <div className="rounded-xl border border-white/10 bg-neutral-900/40 p-3 flex items-center justify-between">
-                          <span className="text-sm text-neutral-300">Balance del mes</span>
-                          <span className="text-lg font-semibold text-emerald-400">
-                            {mostrarBalances ? "******" : totalMes.toLocaleString("es-AR")}
-                          </span>
+              {/* Listado por mes */}
+              <section className="rounded-2xl border border-white/10 bg-neutral-800/30 p-3 sm:p-4">
+                {loading ? (
+                  <p className="text-neutral-400 px-1">Cargando equipos...</p>
+                ) : !Array.isArray(equipos) || equipos.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-white/15 p-6 text-center bg-white/5">
+                    <p className="text-neutral-300">Aún no hay equipos cargados.</p>
+                  </div>
+                ) : (
+                  Object.entries(
+                    equipos.reduce((grupos, eq) => {
+                      const fecha = eq.fecha_ingreso
+                        ? new Date(eq.fecha_ingreso + "T12:00:00")
+                        : null;
+                      const key = fecha
+                        ? `${fecha.toLocaleString("es-AR", { month: "long" })} ${fecha.getFullYear()}`
+                        : "Sin fecha";
+                      if (!grupos[key]) grupos[key] = [];
+                      grupos[key].push(eq);
+                      return grupos;
+                    }, {})
+                  ).map(([mes, equiposMes]) => {
+                    const totalMes = equiposMes.reduce(
+                      (acc, eq) => acc + (balanceByEquipoId[eq.id]?.balance_final ?? 0),
+                      0
+                    );
+
+                    return (
+                      <div key={mes} className="mb-6">
+                        <div className="border-b border-white/10 pb-2 mb-3">
+                          <h4 className="text-lg font-semibold text-neutral-200 capitalize">
+                            {mes}
+                          </h4>
                         </div>
-                      </div>
 
-                      <ol className="space-y-4 list-decimal list-inside">
-                        {equiposMes.map((eq) => {
-                          const fechaFormateada = eq.fecha_ingreso
-                            ? new Date(eq.fecha_ingreso + "T12:00:00").toLocaleDateString(
+                        <div className="mb-3">
+                          <div className="rounded-xl border border-white/10 bg-neutral-900/40 p-3 flex items-center justify-between">
+                            <span className="text-sm text-neutral-300">Balance del mes</span>
+                            <span className="text-lg font-semibold text-emerald-400">
+                              {mostrarBalances ? "******" : totalMes.toLocaleString("es-AR")}
+                            </span>
+                          </div>
+                        </div>
+
+                        <ol className="space-y-4 list-decimal list-inside">
+                          {equiposMes.map((eq) => {
+                            const fechaFormateada = eq.fecha_ingreso
+                              ? new Date(eq.fecha_ingreso + "T12:00:00").toLocaleDateString(
                                 "es-AR",
                                 { year: "numeric", month: "2-digit", day: "2-digit" }
                               )
-                            : "Sin fecha";
+                              : "Sin fecha";
 
-                          const monto = balanceByEquipoId[eq.id]?.balance_final ?? 0;
+                            const monto = balanceByEquipoId[eq.id]?.balance_final ?? 0;
 
-                          return (
-                            <li
-                              key={eq.id}
-                              
-                              className="rounded-xl border border-white/10 bg-neutral-800/50 p-4 shadow-sm flex flex-col md:flex-row justify-between md:items-center gap-3 hover:bg-neutral-800/70 hover:border-white/20 transition"
-                            >
-                              {/* Info principal */}
-                              <div className="flex-1">
-                                <p className="font-semibold text-white">
-                                  {eq.tipo?.toUpperCase()} - {eq.marca} {eq.modelo}
-                                </p>
-                                <p className="text-sm text-neutral-300">{eq.problema}</p>
-                                <p className="text-sm text-neutral-300">
-                                  Estado: {getNombreEstado(eq.estado_id)}
-                                </p>
+                            return (
+                              <li
+                                key={eq.id}
 
-                                {eq.tipo?.toLowerCase() === "celular" && eq.patron && (
-                                  <p className="text-sm text-neutral-400">Patrón: {eq.patron}</p>
-                                )}
-                                {eq.tipo?.toLowerCase() !== "consola" && eq.password && (
-                                  <p className="text-sm text-neutral-400">Password: {eq.password}</p>
-                                )}
+                                className="rounded-xl border border-white/10 bg-neutral-800/50 p-4 shadow-sm flex flex-col md:flex-row justify-between md:items-center gap-3 hover:bg-neutral-800/70 hover:border-white/20 transition"
+                              >
+                                {/* Info principal */}
+                                <div className="flex-1">
+                                  <p className="font-semibold text-white">
+                                    {eq.tipo?.toUpperCase()} - {eq.marca} {eq.modelo}
+                                  </p>
+                                  <p className="text-sm text-neutral-300">{eq.problema}</p>
+                                  <p className="text-sm text-neutral-300">
+                                    Estado: {getNombreEstado(eq.estado_id)}
+                                  </p>
 
-                                <p className="text-sm text-neutral-400">
-                                  Cliente: {eq.cliente_nombre} {eq.cliente_apellido}
-                                </p>
-                                <p className="text-sm text-neutral-500">Ingreso: {fechaFormateada}</p>
-                              </div>
+                                  {eq.tipo?.toLowerCase() === "celular" && eq.patron && (
+                                    <p className="text-sm text-neutral-400">Patrón: {eq.patron}</p>
+                                  )}
+                                  {eq.tipo?.toLowerCase() !== "consola" && eq.password && (
+                                    <p className="text-sm text-neutral-400">Password: {eq.password}</p>
+                                  )}
 
-                              {/* Mini-card derecha */}
-                              <div className="flex flex-col items-end gap-2">
-                                <div className="rounded-lg border border-white/10 bg-neutral-900/40 px-3 py-2 flex items-center gap-2">
-                                  <span className="hidden sm:block text-xs text-neutral-300">
-                                    Balance
-                                  </span>
-                                  <span className="text-base md:text-lg font-semibold text-emerald-400">
-                                    {mostrarBalances ? "******" : monto.toLocaleString("es-AR")}
-                                  </span>
+                                  <p className="text-sm text-neutral-400">
+                                    Cliente: {eq.cliente_nombre} {eq.cliente_apellido}
+                                  </p>
+                                  <p className="text-sm text-neutral-500">Ingreso: {fechaFormateada}</p>
                                 </div>
 
-                                {/* Botones */}
-                                <div className="flex gap-2">
-                                  <Link
-                                    to={`/equipos/${eq.id}`}
-                                    className="bg-neutral-700 hover:bg-neutral-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
-                                  >
-                                    Presupuestos
-                                  </Link>
-                                  <button
-                                    onClick={() => handleModificar(eq)}
-                                    className="bg-indigo-600 hover:bg-indigo-700 px-3 py-1 rounded text-sm font-medium"
-                                  >
-                                    Modificar
-                                  </button>
-                                  <button
-                                    onClick={() => handleDelete(eq.id)}
-                                    className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm font-medium"
-                                  >
-                                    Eliminar
-                                  </button>
+                                {/* Mini-card derecha */}
+                                <div className="flex flex-col items-end gap-2">
+                                  <div className="rounded-lg border border-white/10 bg-neutral-900/40 px-3 py-2 flex items-center gap-2">
+                                    <span className="hidden sm:block text-xs text-neutral-300">
+                                      Balance
+                                    </span>
+                                    <span className="text-base md:text-lg font-semibold text-emerald-400">
+                                      {mostrarBalances ? "******" : monto.toLocaleString("es-AR")}
+                                    </span>
+                                  </div>
+
+                                  {/* Botones */}
+                                  <div className="flex gap-2">
+                                    <Link
+                                      to={`/equipos/${eq.id}`}
+                                      className="bg-neutral-700 hover:bg-neutral-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+                                    >
+                                      Presupuestos
+                                    </Link>
+                                    <button
+                                      onClick={() => handleModificar(eq)}
+                                      className="bg-indigo-600 hover:bg-indigo-700 px-3 py-1 rounded text-sm font-medium"
+                                    >
+                                      Modificar
+                                    </button>
+                                    <button
+                                      onClick={() => handleDelete(eq.id)}
+                                      className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm font-medium"
+                                    >
+                                      Eliminar
+                                    </button>
+                                  </div>
                                 </div>
-                              </div>
-                            </li>
-                          );
-                        })}
-                      </ol>
-                    </div>
-                  );
-                })
-              )}
-            </section>
-          </div>
-        </main>
-      </div>
+                              </li>
+                            );
+                          })}
+                        </ol>
+                      </div>
+                    );
+                  })
+                )}
+              </section>
+            </div>
+          </main>
+        </div>
 
-      {/* Modal */}
-      <EquipoModal
-        isOpen={isOpen}
-        onClose={handleClose}
-        onSubmit={handleSubmit}
-        equipoSeleccionado={equipoSeleccionado}
-      />
-
-      {/* Alertas */}
-      {alert.message && (
-        <AlertNotification
-          message={alert.message}
-          type={alert.type}
-          duration={4000}
-          onClose={() => setAlert({ message: "", type: "success" })}
+        {/* Modal */}
+        <EquipoModal
+          isOpen={isOpen}
+          onClose={handleClose}
+          onSubmit={handleSubmit}
+          equipoSeleccionado={equipoSeleccionado}
         />
-      )}
-     </div>
-  </div>
-);
+
+        {/* Alertas */}
+        {alert.message && (
+          <AlertNotification
+            message={alert.message}
+            type={alert.type}
+            duration={4000}
+            onClose={() => setAlert({ message: "", type: "success" })}
+          />
+        )}
+      </div>
+    </div>
+  );
 
 };
 
