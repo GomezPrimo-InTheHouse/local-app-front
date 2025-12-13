@@ -130,6 +130,6 @@ const BuscadorComponent = ({ onBuscar }) => {
 };
 
 export default BuscadorComponent;
-src/components/BuscadorComponent.jsx
+
 
 
