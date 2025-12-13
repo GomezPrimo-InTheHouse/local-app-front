@@ -279,7 +279,7 @@ const EquipoPage = () => {
             {/* Contenido del panel derecho */}
             <div className="px-3 sm:px-4 py-4 space-y-4">
               {/* Buscador + Balance global */}
-              {/* <section className="rounded-2xl border border-white/10 bg-neutral-800/40 p-3 sm:p-4">
+              <section className="rounded-2xl border border-white/10 bg-neutral-800/40 p-3 sm:p-4">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                 <div className="lg:col-span-2">
                   <BuscadorComponent
@@ -306,43 +306,8 @@ const EquipoPage = () => {
                   </span>
                 </div>
               </div>
-            </section> */}
-              {/* Buscador + Balance global */}
-              <section className="rounded-2xl border border-white/10 bg-neutral-800/40 p-3 sm:p-4">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                  <div className="lg:col-span-2">
-                    <BuscadorComponent
-                      onBuscar={async (clienteId) => {
-                        setLoading(true);  // Empezamos el estado de carga
-                        try {
-                          // Si no hay clienteId (por ejemplo, el usuario borró el texto)
-                          if (!clienteId) {
-                            // Obtener todos los equipos
-                            await fetchEquipos();
-                          } else {
-                            // Obtener equipos por cliente
-                            const data = await getEquiposByClienteId(clienteId);
-                            setEquipos(Array.isArray(data) ? data : []);
-                          }
-                        } catch (error) {
-                          console.error("Error al obtener equipos:", error);
-                          // Aquí podrías manejar un mensaje de error si ocurre algo con la API
-                        } finally {
-                          setLoading(false);  // Finalizamos el estado de carga
-                        }
-                      }}
-                    />
-                  </div>
-
-                  {/* Balance global */}
-                  <div className="rounded-xl border border-white/10 bg-neutral-900/40 p-3 flex items-center justify-between">
-                    <span className="text-sm text-neutral-300">Balance global</span>
-                    <span className="text-xl font-semibold text-emerald-400">
-                      {mostrarBalances ? "******" : totalBalanceGeneral.toLocaleString("es-AR")}
-                    </span>
-                  </div>
-                </div>
-              </section>
+            </section>
+              
 
 
               {/* Listado por mes */}
