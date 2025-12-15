@@ -259,10 +259,93 @@ import { useEffect, useMemo, useState } from "react";
 const VentasModalWebShop = ({ open, venta, onClose, onGuardar }) => {
   const [pagado, setPagado] = useState("");
 
-  // ✅ Si no está abierto, no renderiza nada
+  // ✅ Derivados seguros (aunque venta sea null)
+  const ventaId = venta?.id ?? venta?.venta_id ?? null;
+  const total = Number(venta?.total || 0);
+
+  const cliente = venta?.cliente || null;
+
+  const detalles = useMemo(() => {
+    if (Array.isArray(venta?.detalle_venta)) return venta.detalle_venta;
+    if (Array.isArray(venta?.detalles)) return venta.detalles;
+    return [];
+  }, [venta]);
+
+  const cupon = venta?.cupon ?? null;
+
+  // Helpers numéricos (igual tu modal local)
+  const sanitizeNumberString = (raw) => {
+    if (raw == null) return "";
+    return String(raw).replace(/[^0-9]/g, "");
+  };
+
+  const onChangePagado = (e) => {
+    const v = sanitizeNumberString(e.target.value);
+    setPagado(v === "" ? "" : v);
+  };
+
+  // ✅ Precargar monto abonado SOLO cuando el modal está abierto y cambia la venta
+  useEffect(() => {
+    if (!open) return;
+    const abonado = Number(venta?.monto_abonado ?? 0);
+    setPagado(String(Number.isFinite(abonado) ? Math.floor(abonado) : 0));
+  }, [open, ventaId]); // ventaId cambia al seleccionar otra venta
+
+  const pagadoNum = Number(pagado || 0);
+  const saldo = Math.max(0, total - pagadoNum);
+
+  const subtotalItems = useMemo(() => {
+    const backendSubtotal = Number(venta?.subtotal_items);
+    if (Number.isFinite(backendSubtotal) && backendSubtotal > 0) return backendSubtotal;
+    return detalles.reduce((acc, d) => acc + Number(d?.subtotal || 0), 0);
+  }, [venta, detalles]);
+
+  const descuentoReal = useMemo(() => {
+    const backendDesc = Number(venta?.descuento_real);
+    if (Number.isFinite(backendDesc) && backendDesc >= 0) return backendDesc;
+    return Math.max(0, subtotalItems - total);
+  }, [venta, subtotalItems, total]);
+
+  // ✅ ESC cierra SOLO si está abierto
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (ev) => {
+      if (ev.key === "Escape") onClose?.();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (!ventaId) {
+      alert("Venta inválida (sin id).");
+      return;
+    }
+    if (pagadoNum > total) {
+      alert("El monto pagado no puede exceder el total.");
+      return;
+    }
+    if (typeof onGuardar !== "function") {
+      alert("Falta onGuardar en VentasModalWebShop (pasalo desde la página).");
+      return;
+    }
+
+    const payload = {
+      id: ventaId,
+      monto_abonado: pagadoNum,
+      saldo,
+      total, // compatibilidad
+    };
+
+    onGuardar(payload);
+    onClose?.();
+  };
+
+  // ✅ Recién acá renderizamos condicionalmente
   if (!open) return null;
 
-  // ✅ Si está abierto pero no hay venta seleccionada, igual renderiza contenedor (para debug suave)
   if (!venta) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -273,9 +356,7 @@ const VentasModalWebShop = ({ open, venta, onClose, onGuardar }) => {
           aria-label="Cerrar"
         />
         <div className="relative w-full max-w-md bg-neutral-800 rounded-2xl p-6 border border-white/10 text-white">
-          <p className="text-sm text-gray-300">
-            No hay venta seleccionada para mostrar.
-          </p>
+          <p className="text-sm text-gray-300">No hay venta seleccionada.</p>
           <div className="flex justify-end mt-4">
             <button
               type="button"
@@ -289,91 +370,6 @@ const VentasModalWebShop = ({ open, venta, onClose, onGuardar }) => {
       </div>
     );
   }
-
-  const ventaId = venta?.id ?? venta?.venta_id ?? null;
-  const total = Number(venta?.total || 0);
-
-  const cliente = venta?.cliente || null;
-  const detalles = Array.isArray(venta?.detalle_venta)
-    ? venta.detalle_venta
-    : Array.isArray(venta?.detalles)
-    ? venta.detalles
-    : [];
-
-  const cupon = venta?.cupon ?? null;
-
-  // ===== helpers numéricos (igual tu modal local) =====
-  const sanitizeNumberString = (raw) => {
-    if (raw == null) return "";
-    return String(raw).replace(/[^0-9]/g, "");
-  };
-
-  const onChangePagado = (e) => {
-    const v = sanitizeNumberString(e.target.value);
-    setPagado(v === "" ? "" : v);
-  };
-
-  // ✅ Al abrir/cambiar venta: precargar monto abonado
-  useEffect(() => {
-    const abonado = Number(venta?.monto_abonado ?? 0);
-    setPagado(String(Number.isFinite(abonado) ? Math.floor(abonado) : 0));
-  }, [ventaId]); // importante: recalcula cuando cambia la venta
-
-  const pagadoNum = Number(pagado || 0);
-  const saldo = Math.max(0, total - pagadoNum);
-
-  // Informativo: subtotal y descuento (sin recalcular “la venta”, solo mostrar)
-  const subtotalItems = useMemo(() => {
-    const backendSubtotal = Number(venta?.subtotal_items);
-    if (Number.isFinite(backendSubtotal) && backendSubtotal > 0) return backendSubtotal;
-    return detalles.reduce((acc, d) => acc + Number(d?.subtotal || 0), 0);
-  }, [venta, detalles]);
-
-  const descuentoReal = useMemo(() => {
-    const backendDesc = Number(venta?.descuento_real);
-    if (Number.isFinite(backendDesc) && backendDesc >= 0) return backendDesc;
-    return Math.max(0, subtotalItems - total);
-  }, [venta, subtotalItems, total]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    if (!ventaId) {
-      alert("Venta inválida (sin id).");
-      return;
-    }
-
-    if (pagadoNum > total) {
-      alert("El monto pagado no puede exceder el total.");
-      return;
-    }
-
-    // ✅ Si no pasaste onGuardar desde el padre, avisamos (para que no parezca que “no hace nada”)
-    if (typeof onGuardar !== "function") {
-      alert("Falta onGuardar en VentasModalWebShop (pasalo desde la página).");
-      return;
-    }
-
-    // ✅ payload mínimo para updateVenta: SOLO pago/saldo
-    const payload = {
-      id: ventaId,
-      monto_abonado: pagadoNum,
-      saldo,
-      total, // solo por compatibilidad
-    };
-
-    onGuardar(payload);
-    onClose();
-  };
-
-  // ✅ cerrar con ESC
-  useEffect(() => {
-    const onKeyDown = (ev) => {
-      if (ev.key === "Escape") onClose?.();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -531,6 +527,7 @@ const VentasModalWebShop = ({ open, venta, onClose, onGuardar }) => {
 };
 
 export default VentasModalWebShop;
+
 
 
 
