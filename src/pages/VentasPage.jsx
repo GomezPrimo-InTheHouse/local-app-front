@@ -850,11 +850,10 @@ const VentasPage = () => {
             <button
               key={op.value}
               onClick={() => setFiltroCanal(op.value)}
-              className={`px-3 py-1 rounded-lg text-sm border transition ${
-                filtroCanal === op.value
+              className={`px-3 py-1 rounded-lg text-sm border transition ${filtroCanal === op.value
                   ? "bg-purple-600 border-purple-500 text-white"
                   : "bg-neutral-800 border-neutral-700 text-gray-300 hover:bg-neutral-700"
-              }`}
+                }`}
             >
               {op.label}
             </button>
@@ -906,11 +905,10 @@ const VentasPage = () => {
 
                             {/* ✅ Badge canal */}
                             <span
-                              className={`ml-2 text-xs px-2 py-1 rounded-full border ${
-                                venta.canal === "web_shop"
+                              className={`ml-2 text-xs px-2 py-1 rounded-full border ${venta.canal === "web_shop"
                                   ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/20"
                                   : "bg-white/5 text-gray-300 border-white/10"
-                              }`}
+                                }`}
                             >
                               {venta.canal === "web_shop" ? "WEB" : "LOCAL"}
                             </span>
@@ -961,11 +959,10 @@ const VentasPage = () => {
                           <p className="font-semibold text-gray-400">
                             Saldo:{" "}
                             <span
-                              className={`font-bold ${
-                                Number(venta.saldo) > 0
+                              className={`font-bold ${Number(venta.saldo) > 0
                                   ? "text-red-400"
                                   : "text-green-400"
-                              }`}
+                                }`}
                             >
                               ${formatPrice(venta.saldo)}
                             </span>
@@ -1006,6 +1003,7 @@ const VentasPage = () => {
       <VentasModalWebShop
         open={modalWebOpen}
         venta={selectedWebVenta}
+        onGuardar={handleGuardarVenta}   // ✅ necesario
         onClose={() => {
           setModalWebOpen(false);
           setSelectedWebVenta(null);
