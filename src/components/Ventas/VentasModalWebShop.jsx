@@ -256,23 +256,53 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-const VentasModalWebShop = ({ onClose, onGuardar, initialData }) => {
+const VentasModalWebShop = ({ open, venta, onClose, onGuardar }) => {
   const [pagado, setPagado] = useState("");
 
-  // No render si no hay data
-  if (!initialData) return null;
+  // ✅ Si no está abierto, no renderiza nada
+  if (!open) return null;
 
-  const ventaId = initialData?.id ?? initialData?.venta_id ?? null;
-  const total = Number(initialData?.total || 0);
-  const cliente = initialData?.cliente || null;
-  const detalles = Array.isArray(initialData?.detalle_venta)
-    ? initialData.detalle_venta
-    : Array.isArray(initialData?.detalles)
-    ? initialData.detalles
+  // ✅ Si está abierto pero no hay venta seleccionada, igual renderiza contenedor (para debug suave)
+  if (!venta) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <button
+          type="button"
+          className="absolute inset-0 bg-black/70"
+          onClick={onClose}
+          aria-label="Cerrar"
+        />
+        <div className="relative w-full max-w-md bg-neutral-800 rounded-2xl p-6 border border-white/10 text-white">
+          <p className="text-sm text-gray-300">
+            No hay venta seleccionada para mostrar.
+          </p>
+          <div className="flex justify-end mt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const ventaId = venta?.id ?? venta?.venta_id ?? null;
+  const total = Number(venta?.total || 0);
+
+  const cliente = venta?.cliente || null;
+  const detalles = Array.isArray(venta?.detalle_venta)
+    ? venta.detalle_venta
+    : Array.isArray(venta?.detalles)
+    ? venta.detalles
     : [];
-  const cupon = initialData?.cupon ?? null;
 
-  // Helpers numéricos (igual que tu modal local)
+  const cupon = venta?.cupon ?? null;
+
+  // ===== helpers numéricos (igual tu modal local) =====
   const sanitizeNumberString = (raw) => {
     if (raw == null) return "";
     return String(raw).replace(/[^0-9]/g, "");
@@ -283,31 +313,27 @@ const VentasModalWebShop = ({ onClose, onGuardar, initialData }) => {
     setPagado(v === "" ? "" : v);
   };
 
-  // Al abrir, precargar monto abonado existente
+  // ✅ Al abrir/cambiar venta: precargar monto abonado
   useEffect(() => {
-    const abonado = Number(initialData?.monto_abonado ?? 0);
+    const abonado = Number(venta?.monto_abonado ?? 0);
     setPagado(String(Number.isFinite(abonado) ? Math.floor(abonado) : 0));
-  }, [initialData]);
+  }, [ventaId]); // importante: recalcula cuando cambia la venta
 
   const pagadoNum = Number(pagado || 0);
   const saldo = Math.max(0, total - pagadoNum);
 
-  // Subtotal de items (para mostrar “antes”)
+  // Informativo: subtotal y descuento (sin recalcular “la venta”, solo mostrar)
   const subtotalItems = useMemo(() => {
-    // si el backend lo trae, lo usamos
-    const s = Number(initialData?.subtotal_items);
-    if (Number.isFinite(s) && s > 0) return s;
+    const backendSubtotal = Number(venta?.subtotal_items);
+    if (Number.isFinite(backendSubtotal) && backendSubtotal > 0) return backendSubtotal;
+    return detalles.reduce((acc, d) => acc + Number(d?.subtotal || 0), 0);
+  }, [venta, detalles]);
 
-    // fallback: sum(subtotal)
-    return (detalles || []).reduce((acc, d) => acc + Number(d?.subtotal || 0), 0);
-  }, [initialData, detalles]);
-
-  // Descuento real (solo informativo)
   const descuentoReal = useMemo(() => {
-    const d = Number(initialData?.descuento_real);
-    if (Number.isFinite(d) && d >= 0) return d;
+    const backendDesc = Number(venta?.descuento_real);
+    if (Number.isFinite(backendDesc) && backendDesc >= 0) return backendDesc;
     return Math.max(0, subtotalItems - total);
-  }, [initialData, subtotalItems, total]);
+  }, [venta, subtotalItems, total]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -322,194 +348,189 @@ const VentasModalWebShop = ({ onClose, onGuardar, initialData }) => {
       return;
     }
 
-    // ✅ payload mínimo: NO mandamos detalles ni cliente
-    const ventaPayload = {
+    // ✅ Si no pasaste onGuardar desde el padre, avisamos (para que no parezca que “no hace nada”)
+    if (typeof onGuardar !== "function") {
+      alert("Falta onGuardar en VentasModalWebShop (pasalo desde la página).");
+      return;
+    }
+
+    // ✅ payload mínimo para updateVenta: SOLO pago/saldo
+    const payload = {
       id: ventaId,
       monto_abonado: pagadoNum,
       saldo,
-      total, // lo mandamos igual por compatibilidad, no debería cambiar
+      total, // solo por compatibilidad
     };
 
-    onGuardar(ventaPayload);
+    onGuardar(payload);
     onClose();
   };
 
-  // ✅ Cerrar con ESC
+  // ✅ cerrar con ESC
   useEffect(() => {
     const onKeyDown = (ev) => {
-      if (ev.key === "Escape") onClose();
+      if (ev.key === "Escape") onClose?.();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
   return (
-    // ✅ IMPORTANTE: pointer-events-none en el contenedor y pointer-events-auto en el modal
-    <div className="fixed inset-0 z-50 pointer-events-none">
-      {/* Backdrop: clickeable */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* backdrop */}
       <button
         type="button"
+        className="absolute inset-0 bg-black/70"
         onClick={onClose}
-        className="absolute inset-0 bg-black/70 pointer-events-auto"
         aria-label="Cerrar"
       />
 
-      {/* Wrapper centrado */}
-      <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
-        {/* Modal: clickeable */}
-        <div
-          className="w-full max-w-lg bg-neutral-800 rounded-2xl p-6 shadow-lg text-white relative flex flex-col max-h-[90vh] pointer-events-auto"
-          onClick={(e) => e.stopPropagation()} // ✅ click dentro no cierra
-        >
-          <h2 className="text-xl font-semibold mb-1">🛒 Venta Web (Shop)</h2>
-          <p className="text-xs text-gray-400 mb-4">
-            Venta generada por ecommerce. Solo se puede actualizar el pago.
-          </p>
+      {/* modal */}
+      <div
+        className="relative w-full max-w-lg bg-neutral-800 rounded-2xl p-6 shadow-lg text-white flex flex-col max-h-[90vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-xl font-semibold mb-1">🛒 Venta Web (Shop)</h2>
+        <p className="text-xs text-gray-400 mb-4">
+          Venta generada por ecommerce. Solo se puede actualizar el pago.
+        </p>
 
-          <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
-            <div className="flex-1 overflow-y-auto space-y-4 pr-2 -mr-2">
-              {/* Cliente */}
-              <div className="bg-neutral-700 p-3 rounded">
-                <p className="text-sm text-gray-300">Cliente</p>
-                <p className="font-semibold text-gray-100 truncate">
-                  {cliente ? `${cliente.nombre} ${cliente.apellido}` : "Sin cliente"}
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  DNI: <span className="text-gray-200">{cliente?.dni ?? "—"}</span>
-                  {" · "}
-                  Email: <span className="text-gray-200">{cliente?.email ?? "—"}</span>
-                </p>
-              </div>
+        <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
+          <div className="flex-1 overflow-y-auto space-y-4 pr-2 -mr-2">
+            {/* Cliente */}
+            <div className="bg-neutral-700 p-3 rounded">
+              <p className="text-sm text-gray-300">Cliente</p>
+              <p className="font-semibold text-gray-100 truncate">
+                {cliente ? `${cliente.nombre} ${cliente.apellido}` : "Sin cliente"}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                DNI: <span className="text-gray-200">{cliente?.dni ?? "—"}</span>
+                {" · "}
+                Email: <span className="text-gray-200">{cliente?.email ?? "—"}</span>
+              </p>
+            </div>
 
-              {/* Cupón + Totales */}
-              <div className="bg-neutral-700 p-3 rounded space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-300">Cupón</p>
-                  <span className="text-xs uppercase tracking-wide text-emerald-300">
-                    {initialData?.canal === "web_shop" ? "WEB" : "—"}
+            {/* Cupón + Totales */}
+            <div className="bg-neutral-700 p-3 rounded space-y-2">
+              <p className="text-sm text-gray-300">Cupón</p>
+              {cupon ? (
+                <div className="text-sm text-gray-100">
+                  <span className="font-semibold">{cupon.codigo}</span>{" "}
+                  <span className="text-xs text-gray-300">
+                    {cupon.descuento_porcentaje != null
+                      ? `(${cupon.descuento_porcentaje}% OFF)`
+                      : cupon.descuento_monto != null
+                      ? `($${Number(cupon.descuento_monto).toLocaleString("es-AR")} OFF)`
+                      : ""}
                   </span>
+                  {cupon.descripcion ? (
+                    <div className="text-xs text-gray-400 truncate mt-1">
+                      {cupon.descripcion}
+                    </div>
+                  ) : null}
                 </div>
+              ) : (
+                <p className="text-sm text-gray-400">Sin cupón</p>
+              )}
 
-                {cupon ? (
-                  <div className="text-sm text-gray-100">
-                    <span className="font-semibold">{cupon.codigo}</span>{" "}
-                    <span className="text-xs text-gray-400">
-                      {cupon.descuento_porcentaje != null
-                        ? `(${cupon.descuento_porcentaje}% OFF)`
-                        : cupon.descuento_monto != null
-                        ? `($${Number(cupon.descuento_monto).toLocaleString("es-AR")} OFF)`
-                        : ""}
-                    </span>
-                    {cupon.descripcion ? (
-                      <div className="text-xs text-gray-400 truncate mt-1">
-                        {cupon.descripcion}
-                      </div>
-                    ) : null}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-400">Sin cupón</p>
-                )}
-
-                <div className="grid grid-cols-3 gap-2 text-xs">
-                  <div className="bg-neutral-800 rounded-lg p-2 border border-white/10">
-                    <div className="text-gray-400">Subtotal</div>
-                    <div className="text-gray-100 font-semibold">
-                      ${subtotalItems.toLocaleString("es-AR")}
-                    </div>
-                  </div>
-                  <div className="bg-neutral-800 rounded-lg p-2 border border-white/10">
-                    <div className="text-gray-400">Descuento</div>
-                    <div className="text-gray-100 font-semibold">
-                      ${descuentoReal.toLocaleString("es-AR")}
-                    </div>
-                  </div>
-                  <div className="bg-neutral-800 rounded-lg p-2 border border-white/10">
-                    <div className="text-gray-400">Total</div>
-                    <div className="text-gray-100 font-semibold">
-                      ${total.toLocaleString("es-AR")}
-                    </div>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="bg-neutral-800 rounded-lg p-2 border border-white/10">
+                  <div className="text-gray-400">Subtotal</div>
+                  <div className="text-gray-100 font-semibold">
+                    ${subtotalItems.toLocaleString("es-AR")}
                   </div>
                 </div>
-              </div>
-
-              {/* Productos */}
-              <div className="bg-neutral-700 p-3 rounded">
-                <p className="text-sm text-gray-300 mb-2">Productos (solo lectura)</p>
-
-                {detalles.length > 0 ? (
-                  <ul className="text-sm text-gray-200 space-y-1">
-                    {detalles.map((d, idx) => (
-                      <li key={d?.id ?? `prod-${idx}`} className="truncate">
-                        {d?.producto?.nombre ?? `Producto #${d.producto_id}`} —{" "}
-                        {d.cantidad} × ${Number(d.precio_unitario).toLocaleString("es-AR")} ={" "}
-                        <span className="font-semibold">
-                          ${Number(d.subtotal).toLocaleString("es-AR")}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-gray-400">Sin productos</p>
-                )}
-              </div>
-
-              {/* Pago editable */}
-              <div>
-                <label className="block text-sm text-gray-300 mb-1">Monto Pagado</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="\d*"
-                  value={pagado}
-                  onChange={onChangePagado}
-                  className="w-full bg-neutral-700 p-2 rounded text-white"
-                />
-              </div>
-
-              {/* Resumen */}
-              <div className="flex justify-between items-center text-sm text-gray-200 mt-2">
-                <div>
-                  <div>Total:</div>
-                  <div className="text-xl font-bold">
+                <div className="bg-neutral-800 rounded-lg p-2 border border-white/10">
+                  <div className="text-gray-400">Descuento</div>
+                  <div className="text-gray-100 font-semibold">
+                    ${descuentoReal.toLocaleString("es-AR")}
+                  </div>
+                </div>
+                <div className="bg-neutral-800 rounded-lg p-2 border border-white/10">
+                  <div className="text-gray-400">Total</div>
+                  <div className="text-gray-100 font-semibold">
                     ${total.toLocaleString("es-AR")}
                   </div>
                 </div>
-                <div>
-                  <div>Saldo:</div>
-                  <div
-                    className={`text-lg font-semibold ${
-                      saldo > 0 ? "text-red-400" : "text-green-400"
-                    }`}
-                  >
-                    ${saldo.toLocaleString("es-AR")}
-                  </div>
-                </div>
               </div>
             </div>
 
-            {/* Botones */}
-            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-neutral-700">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded"
-              >
-                Guardar pago
-              </button>
+            {/* Productos (solo lectura) */}
+            <div className="bg-neutral-700 p-3 rounded">
+              <p className="text-sm text-gray-300 mb-2">Productos (solo lectura)</p>
+
+              {detalles.length > 0 ? (
+                <ul className="text-sm text-gray-200 space-y-1">
+                  {detalles.map((d, idx) => (
+                    <li key={d?.id ?? `d-${idx}`} className="truncate">
+                      {d?.producto?.nombre ?? `Producto #${d.producto_id}`} —{" "}
+                      {d.cantidad} × ${Number(d.precio_unitario).toLocaleString("es-AR")} ={" "}
+                      <span className="font-semibold">
+                        ${Number(d.subtotal).toLocaleString("es-AR")}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-400">Sin productos</p>
+              )}
             </div>
-          </form>
-        </div>
+
+            {/* Pago editable */}
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">Monto Pagado</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="\d*"
+                value={pagado}
+                onChange={onChangePagado}
+                className="w-full bg-neutral-700 p-2 rounded text-white"
+              />
+            </div>
+
+            {/* Resumen */}
+            <div className="flex justify-between items-center text-sm text-gray-200 mt-2">
+              <div>
+                <div>Total:</div>
+                <div className="text-xl font-bold">${total.toLocaleString("es-AR")}</div>
+              </div>
+              <div>
+                <div>Saldo:</div>
+                <div
+                  className={`text-lg font-semibold ${
+                    saldo > 0 ? "text-red-400" : "text-green-400"
+                  }`}
+                >
+                  ${saldo.toLocaleString("es-AR")}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Botones */}
+          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-neutral-700">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded"
+            >
+              Guardar pago
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
 };
 
 export default VentasModalWebShop;
+
 
 
