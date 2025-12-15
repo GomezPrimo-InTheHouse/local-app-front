@@ -1001,14 +1001,15 @@ const VentasPage = () => {
 
       {/* ✅ Modal web_shop (solo lectura) */}
       <VentasModalWebShop
-        open={modalWebOpen}
-        venta={selectedWebVenta}
-        onGuardar={handleGuardarVenta}   // ✅ necesario
-        onClose={() => {
-          setModalWebOpen(false);
-          setSelectedWebVenta(null);
-        }}
-      />
+  open={modalWebOpen}
+  venta={selectedWebVenta}
+  onGuardar={handleGuardarVenta}
+  onClose={() => {
+    setModalWebOpen(false);
+    setSelectedWebVenta(null);
+  }}
+/>
+
     </div>
   );
 };
