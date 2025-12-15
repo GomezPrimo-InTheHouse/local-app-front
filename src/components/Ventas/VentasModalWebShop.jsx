@@ -254,251 +254,165 @@
 //   );
 // }
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 const VentasModalWebShop = ({ onClose, onGuardar, initialData }) => {
   const [pagado, setPagado] = useState("");
 
-  const isEdicion = Boolean(initialData?.id ?? initialData?.venta_id);
+  if (!initialData) return null;
 
-  const detalles = useMemo(() => {
-    return initialData?.detalle_venta || initialData?.detalles || [];
-  }, [initialData]);
+  const ventaId = initialData.id ?? initialData.venta_id;
+  const total = Number(initialData.total || 0);
+  const cliente = initialData.cliente;
+  const detalles = initialData.detalle_venta || [];
+  const cupon = initialData.cupon || null;
 
-  // ✅ total final (ya viene aplicado con descuento en web)
-  const total = useMemo(() => Number(initialData?.total || 0), [initialData]);
-
-  // ✅ subtotal items (si viene del backend, genial; si no, lo calculamos)
-  const subtotalItems = useMemo(() => {
-    const backendSubtotal = Number(initialData?.subtotal_items);
-    if (Number.isFinite(backendSubtotal) && backendSubtotal > 0) return backendSubtotal;
-
-    return (detalles || []).reduce((acc, d) => acc + Number(d?.subtotal || 0), 0);
-  }, [initialData, detalles]);
-
-  // ✅ descuento real (si viene del backend, genial; si no, lo inferimos)
-  const descuentoReal = useMemo(() => {
-    const backendDesc = Number(initialData?.descuento_real);
-    if (Number.isFinite(backendDesc) && backendDesc >= 0) return backendDesc;
-
-    return Math.max(0, subtotalItems - total);
-  }, [initialData, subtotalItems, total]);
-
-  const cliente = initialData?.cliente || null;
-  const cupon = initialData?.cupon || null;
-
-  // ===== Helpers numéricos (idéntico al local) =====
-  const sanitizeNumberString = (raw) => {
-    if (raw == null) return "";
-    return String(raw).replace(/[^0-9]/g, "");
-  };
+  // ===== helpers =====
+  const sanitizeNumberString = (raw) =>
+    raw == null ? "" : String(raw).replace(/[^0-9]/g, "");
 
   const onChangePagado = (e) => {
     const v = sanitizeNumberString(e.target.value);
     setPagado(v === "" ? "" : v);
   };
 
-  // Cargar monto abonado actual
+  // cargar monto abonado existente
   useEffect(() => {
-    const abonado = Number(initialData?.monto_abonado ?? 0);
-    setPagado(String(Number.isFinite(abonado) ? Math.floor(abonado) : 0));
+    const abonado = Number(initialData.monto_abonado ?? 0);
+    setPagado(String(Math.floor(abonado)));
   }, [initialData]);
 
   const pagadoNum = Number(pagado || 0);
   const saldo = Math.max(0, total - pagadoNum);
 
+  // ===== submit =====
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!isEdicion) {
-      alert("Esta venta web ya existe; solo se permite actualizar el pago.");
+    if (!ventaId) {
+      alert("Venta inválida");
       return;
     }
 
-    if (pagado !== "" && pagadoNum > total) {
-      alert("El monto pagado no puede exceder el total.");
+    if (pagadoNum > total) {
+      alert("El monto pagado no puede ser mayor al total");
       return;
     }
 
-    // ✅ payload mínimo para actualizar con tu mismo endpoint updateVenta
     const ventaPayload = {
-      id: initialData?.id ?? initialData?.venta_id ?? undefined,
+      id: ventaId,
       monto_abonado: pagadoNum,
-      total, // lo mandamos igual para compatibilidad (no debería cambiar)
       saldo,
-      // canal: "web_shop" // opcional, si tu backend lo valida
-      // NO mandamos detalles: no se pueden editar en web_shop
+      total, // se envía para compatibilidad, NO se modifica
     };
 
     onGuardar(ventaPayload);
-    handleClose();
-  };
-
-  const handleClose = () => {
-    setPagado("");
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-lg bg-neutral-800 rounded-2xl p-6 shadow-lg text-white relative flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-lg bg-neutral-800 rounded-2xl p-6 shadow-lg text-white">
         <h2 className="text-xl font-semibold mb-1">🛒 Venta Web (Shop)</h2>
         <p className="text-xs text-gray-400 mb-4">
-          Solo lectura para productos/cupón. Podés actualizar el pago del cliente.
+          Venta generada por ecommerce. Solo se puede actualizar el pago.
         </p>
 
-        <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
-          <div className="flex-1 overflow-y-auto space-y-4 pr-2 -mr-2">
-            {/* Cliente */}
-            <div className="bg-neutral-700/40 border border-white/10 rounded-xl p-3">
-              <p className="text-sm text-gray-300 mb-1">Cliente</p>
-              <p className="text-sm text-gray-100 font-semibold truncate">
-                {cliente ? `${cliente.nombre} ${cliente.apellido}` : "Sin cliente"}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Cliente */}
+          <div className="bg-neutral-700 p-3 rounded">
+            <p className="text-sm text-gray-300">Cliente</p>
+            <p className="font-semibold">
+              {cliente?.nombre} {cliente?.apellido}
+            </p>
+            <p className="text-xs text-gray-400">
+              DNI: {cliente?.dni ?? "—"} · Email: {cliente?.email ?? "—"}
+            </p>
+          </div>
+
+          {/* Productos */}
+          <div className="bg-neutral-700 p-3 rounded">
+            <p className="text-sm text-gray-300 mb-2">Productos</p>
+            <ul className="text-sm text-gray-200 space-y-1">
+              {detalles.map((d) => (
+                <li key={d.id}>
+                  {d.producto?.nombre ?? "Producto"} — {d.cantidad} × $
+                  {Number(d.precio_unitario).toLocaleString("es-AR")} ={" "}
+                  <strong>
+                    ${Number(d.subtotal).toLocaleString("es-AR")}
+                  </strong>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Cupón */}
+          <div className="bg-neutral-700 p-3 rounded">
+            <p className="text-sm text-gray-300 mb-1">Cupón</p>
+            {cupon ? (
+              <p className="text-sm">
+                {cupon.codigo}{" "}
+                <span className="text-gray-400">
+                  (
+                  {cupon.descuento_porcentaje != null
+                    ? `${cupon.descuento_porcentaje}%`
+                    : `$${cupon.descuento_monto}`}
+                  )
+                </span>
               </p>
-              <p className="text-xs text-gray-400 mt-1">
-                DNI: <span className="text-gray-200">{cliente?.dni ?? "—"}</span>
-                {" · "}Email: <span className="text-gray-200">{cliente?.email ?? "—"}</span>
+            ) : (
+              <p className="text-sm text-gray-400">Sin cupón</p>
+            )}
+          </div>
+
+          {/* Pago */}
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">
+              Monto pagado
+            </label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={pagado}
+              onChange={onChangePagado}
+              className="w-full bg-neutral-700 p-2 rounded text-white"
+            />
+          </div>
+
+          {/* Resumen */}
+          <div className="flex justify-between text-sm">
+            <div>
+              <p>Total</p>
+              <p className="text-lg font-bold">
+                ${total.toLocaleString("es-AR")}
               </p>
             </div>
-
-            {/* Cupón + Descuento */}
-            <div className="bg-neutral-700/40 border border-white/10 rounded-xl p-3">
-              <p className="text-sm text-gray-300 mb-2">Descuento</p>
-
-              {cupon ? (
-                <div className="text-xs text-gray-300 space-y-1">
-                  <div>
-                    Cupón:{" "}
-                    <span className="text-gray-100 font-semibold">{cupon.codigo}</span>
-                  </div>
-                  {cupon.descripcion && (
-                    <div className="text-gray-400 truncate">{cupon.descripcion}</div>
-                  )}
-                  <div className="flex flex-wrap gap-2">
-                    {cupon.descuento_porcentaje != null && (
-                      <span className="px-2 py-1 rounded bg-white/5 border border-white/10">
-                        {cupon.descuento_porcentaje}% OFF
-                      </span>
-                    )}
-                    {cupon.descuento_monto != null && (
-                      <span className="px-2 py-1 rounded bg-white/5 border border-white/10">
-                        ${Number(cupon.descuento_monto).toLocaleString("es-AR")} OFF
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <p className="text-xs text-gray-400">No se aplicó cupón.</p>
-              )}
-
-              <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-                <div className="bg-neutral-800 rounded-lg p-2 border border-white/10">
-                  <div className="text-gray-400">Subtotal</div>
-                  <div className="text-gray-100 font-semibold">
-                    ${subtotalItems.toLocaleString("es-AR")}
-                  </div>
-                </div>
-                <div className="bg-neutral-800 rounded-lg p-2 border border-white/10">
-                  <div className="text-gray-400">Descuento</div>
-                  <div className="text-gray-100 font-semibold">
-                    ${descuentoReal.toLocaleString("es-AR")}
-                  </div>
-                </div>
-                <div className="bg-neutral-800 rounded-lg p-2 border border-white/10">
-                  <div className="text-gray-400">Total</div>
-                  <div className="text-gray-100 font-semibold">
-                    ${total.toLocaleString("es-AR")}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Detalle productos (solo lectura) */}
             <div>
-              <label className="block text-sm text-gray-300 mb-2">
-                Productos (solo lectura)
-              </label>
-
-              <div className="space-y-2">
-                {(detalles || []).length > 0 ? (
-                  detalles.map((d, idx) => (
-                    <div
-                      key={d?.id ?? `d-${idx}`}
-                      className="bg-neutral-700 p-3 rounded-lg flex items-center justify-between gap-3"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-100 truncate">
-                          {d?.producto?.nombre || `Producto #${d.producto_id}`}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {d.cantidad} unid. x ${Number(d.precio_unitario).toLocaleString("es-AR")}
-                          {" · "}Subtotal:{" "}
-                          <span className="text-gray-200 font-semibold">
-                            ${Number(d.subtotal).toLocaleString("es-AR")}
-                          </span>
-                        </p>
-                      </div>
-
-                      <span className="text-xs px-2 py-1 rounded bg-white/5 border border-white/10 text-gray-300">
-                        ID {d.producto_id}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-sm text-gray-400">Sin productos.</div>
-                )}
-              </div>
-            </div>
-
-            {/* Pago editable */}
-            <div>
-              <label className="block text-sm text-gray-300 mb-1">Monto Pagado</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                pattern="\d*"
-                value={pagado}
-                onChange={onChangePagado}
-                className="w-full bg-neutral-700 p-2 rounded text-white"
-              />
-            </div>
-
-            {/* Resumen */}
-            <div className="flex justify-between items-center text-sm text-gray-200 mt-2">
-              <div>
-                <div>Total:</div>
-                <div className="text-xl font-bold">
-                  ${total.toLocaleString("es-AR")}
-                </div>
-              </div>
-              <div>
-                <div>Saldo:</div>
-                <div
-                  className={`text-lg font-semibold ${
-                    saldo > 0 ? "text-red-400" : "text-green-400"
-                  }`}
-                >
-                  ${saldo.toLocaleString("es-AR")}
-                </div>
-              </div>
+              <p>Saldo</p>
+              <p
+                className={`text-lg font-bold ${
+                  saldo > 0 ? "text-red-400" : "text-green-400"
+                }`}
+              >
+                ${saldo.toLocaleString("es-AR")}
+              </p>
             </div>
           </div>
 
-          {/* Botones */}
-          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-neutral-700">
+          {/* Acciones */}
+          <div className="flex justify-end gap-3 pt-4 border-t border-neutral-700">
             <button
               type="button"
-              onClick={handleClose}
+              onClick={onClose}
               className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded"
             >
               Cancelar
             </button>
-
             <button
               type="submit"
               className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded"
             >
-              Guardar Pago
+              Guardar pago
             </button>
           </div>
         </form>
@@ -508,3 +422,4 @@ const VentasModalWebShop = ({ onClose, onGuardar, initialData }) => {
 };
 
 export default VentasModalWebShop;
+
