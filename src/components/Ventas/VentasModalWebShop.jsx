@@ -259,11 +259,7 @@ import { useEffect, useMemo, useState } from "react";
 const VentasModalWebShop = ({ open, venta, onClose, onGuardar }) => {
   const [pagado, setPagado] = useState("");
 
-  // ✅ Derivados seguros (aunque venta sea null)
   const ventaId = venta?.id ?? venta?.venta_id ?? null;
-  const total = Number(venta?.total || 0);
-
-  const cliente = venta?.cliente || null;
 
   const detalles = useMemo(() => {
     if (Array.isArray(venta?.detalle_venta)) return venta.detalle_venta;
@@ -271,9 +267,14 @@ const VentasModalWebShop = ({ open, venta, onClose, onGuardar }) => {
     return [];
   }, [venta]);
 
-  const cupon = venta?.cupon ?? null;
+  const total = useMemo(() => {
+    // total final (ya viene con descuento aplicado en web_shop)
+    return Number(venta?.total || 0);
+  }, [venta]);
 
-  // Helpers numéricos (igual tu modal local)
+  const clienteId = venta?.cliente?.id ?? venta?.cliente_id ?? null;
+
+  // Helpers numéricos
   const sanitizeNumberString = (raw) => {
     if (raw == null) return "";
     return String(raw).replace(/[^0-9]/g, "");
@@ -284,37 +285,19 @@ const VentasModalWebShop = ({ open, venta, onClose, onGuardar }) => {
     setPagado(v === "" ? "" : v);
   };
 
-  // ✅ Precargar monto abonado SOLO cuando el modal está abierto y cambia la venta
+  // Precargar monto abonado cuando se abre/cambia venta
   useEffect(() => {
     if (!open) return;
     const abonado = Number(venta?.monto_abonado ?? 0);
     setPagado(String(Number.isFinite(abonado) ? Math.floor(abonado) : 0));
-  }, [open, ventaId]); // ventaId cambia al seleccionar otra venta
+  }, [open, ventaId, venta]);
 
   const pagadoNum = Number(pagado || 0);
   const saldo = Math.max(0, total - pagadoNum);
 
-  const subtotalItems = useMemo(() => {
-    const backendSubtotal = Number(venta?.subtotal_items);
-    if (Number.isFinite(backendSubtotal) && backendSubtotal > 0) return backendSubtotal;
-    return detalles.reduce((acc, d) => acc + Number(d?.subtotal || 0), 0);
-  }, [venta, detalles]);
-
-  const descuentoReal = useMemo(() => {
-    const backendDesc = Number(venta?.descuento_real);
-    if (Number.isFinite(backendDesc) && backendDesc >= 0) return backendDesc;
-    return Math.max(0, subtotalItems - total);
-  }, [venta, subtotalItems, total]);
-
-  // ✅ ESC cierra SOLO si está abierto
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (ev) => {
-      if (ev.key === "Escape") onClose?.();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, onClose]);
+  // ✅ reglas de hooks: render condicional al final
+  if (!open) return null;
+  if (!venta) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -323,53 +306,56 @@ const VentasModalWebShop = ({ open, venta, onClose, onGuardar }) => {
       alert("Venta inválida (sin id).");
       return;
     }
+    if (!clienteId) {
+      alert("Venta inválida (sin cliente_id).");
+      return;
+    }
     if (pagadoNum > total) {
       alert("El monto pagado no puede exceder el total.");
       return;
     }
     if (typeof onGuardar !== "function") {
-      alert("Falta onGuardar en VentasModalWebShop (pasalo desde la página).");
+      alert("Falta onGuardar en VentasModalWebShop.");
       return;
     }
 
+    // ✅ Detalles: los mandamos TAL CUAL los tiene la venta (solo lectura)
+    // Normalizamos a lo que espera el backend
+    const detallesPayload = (detalles || []).map((d) => {
+      const cantidad = Number(d?.cantidad || 0);
+      const precio_unitario = Number(d?.precio_unitario || 0);
+
+      const subtotal =
+        d?.subtotal != null
+          ? Number(d.subtotal)
+          : Number((cantidad * precio_unitario).toFixed(2));
+
+      return {
+        id: d?.id ?? null,
+        producto_id: Number(d?.producto_id ?? d?.producto?.id),
+        cantidad,
+        precio_unitario: precio_unitario.toFixed(2),
+        subtotal: subtotal.toFixed(2),
+      };
+    });
+
     const payload = {
-      id: ventaId,
-      monto_abonado: pagadoNum,
-      saldo,
-      total, // compatibilidad
+      venta: {
+        id: ventaId,
+        cliente_id: clienteId,
+        monto_abonado: String(pagadoNum),        // como en tu ejemplo
+        total: Number(total).toFixed(2),        // "23000.00"
+        saldo: Number(saldo).toFixed(2),        // "0.00"
+      },
+      detalles: detallesPayload,
     };
 
     onGuardar(payload);
     onClose?.();
   };
 
-  // ✅ Recién acá renderizamos condicionalmente
-  if (!open) return null;
-
-  if (!venta) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <button
-          type="button"
-          className="absolute inset-0 bg-black/70"
-          onClick={onClose}
-          aria-label="Cerrar"
-        />
-        <div className="relative w-full max-w-md bg-neutral-800 rounded-2xl p-6 border border-white/10 text-white">
-          <p className="text-sm text-gray-300">No hay venta seleccionada.</p>
-          <div className="flex justify-end mt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded"
-            >
-              Cerrar
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const cliente = venta?.cliente || null;
+  const cupon = venta?.cupon ?? null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -388,7 +374,7 @@ const VentasModalWebShop = ({ open, venta, onClose, onGuardar }) => {
       >
         <h2 className="text-xl font-semibold mb-1">🛒 Venta Web (Shop)</h2>
         <p className="text-xs text-gray-400 mb-4">
-          Venta generada por ecommerce. Solo se puede actualizar el pago.
+          Venta de ecommerce. Productos/cupón solo lectura. Solo se actualiza el pago.
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
@@ -406,55 +392,28 @@ const VentasModalWebShop = ({ open, venta, onClose, onGuardar }) => {
               </p>
             </div>
 
-            {/* Cupón + Totales */}
-            <div className="bg-neutral-700 p-3 rounded space-y-2">
-              <p className="text-sm text-gray-300">Cupón</p>
+            {/* Cupón */}
+            <div className="bg-neutral-700 p-3 rounded">
+              <p className="text-sm text-gray-300 mb-1">Cupón</p>
               {cupon ? (
-                <div className="text-sm text-gray-100">
+                <p className="text-sm text-gray-100">
                   <span className="font-semibold">{cupon.codigo}</span>{" "}
-                  <span className="text-xs text-gray-300">
+                  <span className="text-xs text-gray-400">
                     {cupon.descuento_porcentaje != null
                       ? `(${cupon.descuento_porcentaje}% OFF)`
                       : cupon.descuento_monto != null
                       ? `($${Number(cupon.descuento_monto).toLocaleString("es-AR")} OFF)`
                       : ""}
                   </span>
-                  {cupon.descripcion ? (
-                    <div className="text-xs text-gray-400 truncate mt-1">
-                      {cupon.descripcion}
-                    </div>
-                  ) : null}
-                </div>
+                </p>
               ) : (
                 <p className="text-sm text-gray-400">Sin cupón</p>
               )}
-
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                <div className="bg-neutral-800 rounded-lg p-2 border border-white/10">
-                  <div className="text-gray-400">Subtotal</div>
-                  <div className="text-gray-100 font-semibold">
-                    ${subtotalItems.toLocaleString("es-AR")}
-                  </div>
-                </div>
-                <div className="bg-neutral-800 rounded-lg p-2 border border-white/10">
-                  <div className="text-gray-400">Descuento</div>
-                  <div className="text-gray-100 font-semibold">
-                    ${descuentoReal.toLocaleString("es-AR")}
-                  </div>
-                </div>
-                <div className="bg-neutral-800 rounded-lg p-2 border border-white/10">
-                  <div className="text-gray-400">Total</div>
-                  <div className="text-gray-100 font-semibold">
-                    ${total.toLocaleString("es-AR")}
-                  </div>
-                </div>
-              </div>
             </div>
 
-            {/* Productos (solo lectura) */}
+            {/* Productos */}
             <div className="bg-neutral-700 p-3 rounded">
               <p className="text-sm text-gray-300 mb-2">Productos (solo lectura)</p>
-
               {detalles.length > 0 ? (
                 <ul className="text-sm text-gray-200 space-y-1">
                   {detalles.map((d, idx) => (
@@ -527,6 +486,7 @@ const VentasModalWebShop = ({ open, venta, onClose, onGuardar }) => {
 };
 
 export default VentasModalWebShop;
+
 
 
 
