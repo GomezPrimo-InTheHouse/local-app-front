@@ -575,38 +575,7 @@ const VentasPage = () => {
   const getVentaId = (venta) => venta?.id ?? venta?.venta_id ?? null;
   const getClienteId = (venta) =>
     venta?.cliente?.id ?? venta?.cliente_id ?? venta?.cliente ?? null;
-
-  const fetchData = async (canalValor = filtroCanal) => {
-    setLoading(true);
-    try {
-      const ventasResponse = await getVentas(canalValor);
-      const productosResponse = await getProductos();
-
-      const ventasData =
-        ventasResponse?.data ?? ventasResponse ?? ventasResponse?.ventas ?? [];
-      const productosData =
-        productosResponse?.data ??
-        productosResponse ??
-        productosResponse?.productos ??
-        [];
-
-      setVentas(Array.isArray(ventasData) ? ventasData : []);
-      setProductos(Array.isArray(productosData) ? productosData : []);
-    } catch (error) {
-      console.error("Error al obtener datos:", error);
-      setVentas([]);
-      setProductos([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtroCanal]);
-
-  // const handleGuardarVenta = async (ventaPayload) => {
+// const handleGuardarVenta = async (ventaPayload) => {
   //   try {
   //     if (editingVenta) {
   //       const ventaId = getVentaId(editingVenta);
@@ -658,29 +627,77 @@ const VentasPage = () => {
 
   // ✅ AHORA: decide qué modal abrir según canal
   
+  const fetchData = async (canalValor = filtroCanal) => {
+    setLoading(true);
+    try {
+      const ventasResponse = await getVentas(canalValor);
+      const productosResponse = await getProductos();
+
+      const ventasData =
+        ventasResponse?.data ?? ventasResponse ?? ventasResponse?.ventas ?? [];
+      const productosData =
+        productosResponse?.data ??
+        productosResponse ??
+        productosResponse?.productos ??
+        [];
+
+      setVentas(Array.isArray(ventasData) ? ventasData : []);
+      setProductos(Array.isArray(productosData) ? productosData : []);
+    } catch (error) {
+      console.error("Error al obtener datos:", error);
+      setVentas([]);
+      setProductos([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtroCanal]);
+
+  
   const handleGuardarVenta = async (ventaPayload) => {
-  // Detecta payload del modal web: { venta: {...}, detalles: [...] }
   const isWebPayload =
     !!ventaPayload &&
     typeof ventaPayload === "object" &&
     !!ventaPayload.venta &&
     Array.isArray(ventaPayload.detalles);
 
-  // ID para update
   const ventaIdFromPayload = isWebPayload
     ? (ventaPayload?.venta?.id ?? ventaPayload?.venta?.venta_id ?? null)
     : (ventaPayload?.id ?? ventaPayload?.venta_id ?? null);
 
   try {
-    // ✅ UPDATE: si estoy editando local, o si viene payload web (que SIEMPRE es update)
+    let resp;
+
     if (editingVenta || isWebPayload) {
       const ventaId = editingVenta ? getVentaId(editingVenta) : ventaIdFromPayload;
+      if (!ventaId) throw { error: "No se pudo determinar el ID de la venta para actualizar." };
 
-      if (!ventaId) {
-        throw { error: "No se pudo determinar el ID de la venta para actualizar." };
+      // ✅ IMPORTANTE: capturamos respuesta y la devolvemos
+      resp = await updateVenta(ventaId, ventaPayload);
+
+      // ✅ si es web_shop, actualizamos selectedWebVenta en memoria para reflejar en UI inmediato
+      if (isWebPayload) {
+        const updatedVenta = resp?.data?.venta ?? resp?.venta ?? resp?.data?.data?.venta;
+
+        if (updatedVenta) {
+          setSelectedWebVenta((prev) => ({
+            ...(prev ?? {}),
+            ...updatedVenta,
+          }));
+        } else {
+          // fallback optimista mínimo
+          setSelectedWebVenta((prev) => ({
+            ...(prev ?? {}),
+            monto_abonado: ventaPayload?.venta?.monto_abonado,
+            saldo: ventaPayload?.venta?.saldo,
+            total: ventaPayload?.venta?.total,
+          }));
+        }
       }
-
-      await updateVenta(ventaId, ventaPayload);
 
       Swal.fire({
         title: "¡Actualizada!",
@@ -689,30 +706,30 @@ const VentasPage = () => {
           : "La venta ha sido actualizada correctamente.",
         icon: "success",
         customClass: {
-          popup:
-            "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
+          popup: "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
           title: "text-xl font-bold text-emerald-400",
           htmlContainer: "text-gray-300",
         },
       });
     } else {
-      // ✅ CREATE: solo para venta local nueva
-      await createVenta(ventaPayload);
+      resp = await createVenta(ventaPayload);
 
       Swal.fire({
         title: "¡Creada!",
         text: "La venta ha sido creada correctamente.",
         icon: "success",
         customClass: {
-          popup:
-            "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
+          popup: "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
           title: "text-xl font-bold text-emerald-400",
           htmlContainer: "text-gray-300",
         },
       });
     }
 
+    // ✅ seguí refrescando lista, pero ya reflejaste en el modal
     await fetchData();
+
+    return resp; // 🔥 clave: ahora el modal puede await y actualizarse también
   } catch (error) {
     console.error("Error al guardar la venta:", error);
 
@@ -727,23 +744,23 @@ const VentasPage = () => {
       text: backendMsg,
       icon: "error",
       customClass: {
-        popup:
-          "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
+        popup: "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
         title: "text-xl font-bold text-red-400",
         htmlContainer: "text-gray-300",
       },
     });
+
+    throw error; // ✅ para que el modal pueda manejarlo si hace await
   } finally {
-    // ✅ Cerrar modal local
+    // ✅ Cerrar modal local SIEMPRE
     setModalOpen(false);
     setEditingVenta(null);
 
-    // ✅ Cerrar modal web (si existe en tu page)
-    // Ajustá nombres si los tuyos difieren
-    if (typeof setModalWebOpen === "function") setModalWebOpen(false);
-    if (typeof setSelectedWebVenta === "function") setSelectedWebVenta(null);
+    // ❌ NO cierres el modal web acá.
+    // El modal web se cierra desde su onClose o si querés, desde el modal cuando termine ok.
   }
 };
+
 
 
   const handleEditVenta = (venta) => {
