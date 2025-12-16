@@ -1174,7 +1174,7 @@ import SidebarEquipos from "../components/Equipo/SidebarEquipos.jsx";
 import EquipoModal from "../components/Equipo/EquipoModal.jsx";
 import BuscadorComponent from "../components/General/BuscadorComponent.jsx";
 import AlertNotification from "../components/Alerta/AlertNotification.jsx";
-import HistorialPagosModal from "../components/Cliente/HistorialPagosModal.jsx"; // NUEVO MODAL DE PAGOS
+import HistorialPagosModal from "../components/Pagos/HistorialPagosModal.jsx";
 
 // Iconos (Mantenidos)
 const IconMoney = () => (
