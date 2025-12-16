@@ -1157,20 +1157,20 @@ const VentasPage = () => {
               key = `${mesLabel} ${yearNum}`;
 
               // Usar un objeto anidado para almacenar todos los datos
-              if (!grupos[sortKey]) grupos[sortKey] = { 
-                ventas: [], 
-                balance: 0, 
+              if (!grupos[sortKey]) grupos[sortKey] = {
+                ventas: [],
+                balance: 0,
                 totalVentas: 0, // Nuevo
                 totalCosto: 0,  // Nuevo
                 label: key, // Nueva etiqueta
               };
-              
+
               grupos[sortKey].ventas.push(venta);
               // Acumular todos los valores
-              grupos[sortKey].balance += balanceVenta; 
+              grupos[sortKey].balance += balanceVenta;
               grupos[sortKey].totalVentas += totalVenta;
               grupos[sortKey].totalCosto += costoVenta;
-              
+
               return grupos;
             }
           }
@@ -1185,7 +1185,7 @@ const VentasPage = () => {
         grupos[key].totalVentas += totalVenta;
         grupos[key].totalCosto += costoVenta;
       }
-      
+
       return grupos;
     }, {});
 
@@ -1195,12 +1195,12 @@ const VentasPage = () => {
       if (keyB === "Sin fecha") return -1;
       return keyB.localeCompare(keyA);
     });
-  }, [ventasFiltradas, productos]); 
-  
+  }, [ventasFiltradas, productos]);
+
   // Mantenemos la variable 'ventasAgrupadasPorMes' con el contenido anterior para no romper la UI de abajo
   // La reasignamos usando la nueva variable 'balanceMensual' (aunque se llamaba así en el código original)
   const ventasAgrupadasPorMes = balanceMensual;
-  
+
 
 
   return (
@@ -1274,11 +1274,10 @@ const VentasPage = () => {
               <button
                 key={op.value}
                 onClick={() => setFiltroCanal(op.value)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition duration-150 border focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-950 ${
-                  filtroCanal === op.value
+                className={`px-4 py-2 rounded-full text-sm font-medium transition duration-150 border focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-950 ${filtroCanal === op.value
                     ? "bg-purple-600 border-purple-500 text-white shadow-md shadow-purple-900/30 focus:ring-purple-400"
                     : "bg-neutral-800 border-neutral-700 text-gray-300 hover:bg-neutral-700 focus:ring-neutral-600"
-                }`}
+                  }`}
               >
                 {op.label}
               </button>
@@ -1342,9 +1341,8 @@ const VentasPage = () => {
                         -${formatPrice(data.totalCosto)}
                       </td>
                       <td
-                        className={`px-6 py-4 whitespace-nowrap text-sm font-semibold text-right ${
-                          data.balance >= 0 ? "text-emerald-400" : "text-red-400"
-                        }`}
+                        className={`px-6 py-4 whitespace-nowrap text-sm font-semibold text-right ${data.balance >= 0 ? "text-emerald-400" : "text-red-400"
+                          }`}
                       >
                         ${formatPrice(data.balance)}
                       </td>
@@ -1402,9 +1400,8 @@ const VentasPage = () => {
                           Balance Mensual
                         </p>
                         <span
-                          className={`text-2xl font-extrabold tracking-tight ${
-                            balanceMes >= 0 ? "text-emerald-400" : "text-red-400"
-                          }`}
+                          className={`text-2xl font-extrabold tracking-tight ${balanceMes >= 0 ? "text-emerald-400" : "text-red-400"
+                            }`}
                         >
                           ${formatPrice(balanceMes)}
                         </span>
@@ -1439,6 +1436,9 @@ const VentasPage = () => {
                                     {clienteNombre}{" "}
                                     {venta.cliente?.apellido || ""}
                                   </span>
+                                  <span className="text-xs text-gray-500 font-mono">
+                                    · #{venta.id}
+                                  </span>
                                 </p>
 
                                 {/* Total y Canal */}
@@ -1448,11 +1448,10 @@ const VentasPage = () => {
                                   </span>
                                   {/* ✅ Badge canal */}
                                   <span
-                                    className={`ml-1 text-xs px-2 py-1 rounded-full font-semibold ${
-                                      venta.canal === "web_shop"
+                                    className={`ml-1 text-xs px-2 py-1 rounded-full font-semibold ${venta.canal === "web_shop"
                                         ? "bg-emerald-600/20 text-emerald-400"
                                         : "bg-gray-600/20 text-gray-300"
-                                    }`}
+                                      }`}
                                   >
                                     {canalLabel}
                                   </span>
@@ -1461,11 +1460,10 @@ const VentasPage = () => {
 
                               {/* ✅ Badge de Estado de Saldo (Feedback Visual) */}
                               <div
-                                className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
-                                  saldoPendiente
+                                className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${saldoPendiente
                                     ? "bg-red-600/20 text-red-400 border border-red-600/50"
                                     : "bg-green-600/20 text-green-400 border border-green-600/50"
-                                }`}
+                                  }`}
                               >
                                 {saldoPendiente ? "PENDIENTE" : "SALDADA"}
                               </div>
@@ -1485,11 +1483,10 @@ const VentasPage = () => {
 
                               <p className="text-gray-500">Saldo:</p>
                               <p
-                                className={`text-right font-bold ${
-                                  saldoPendiente
+                                className={`text-right font-bold ${saldoPendiente
                                     ? "text-red-400"
                                     : "text-green-400"
-                                }`}
+                                  }`}
                               >
                                 ${formatPrice(venta.saldo)}
                               </p>
@@ -1499,11 +1496,10 @@ const VentasPage = () => {
                             <div className="flex justify-end gap-3 pt-4 border-t border-neutral-800">
                               <button
                                 onClick={() => handleEditVenta(venta)}
-                                className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-semibold transition duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-900 ${
-                                  saldoPendiente || venta.canal === "web_shop"
+                                className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-semibold transition duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-900 ${saldoPendiente || venta.canal === "web_shop"
                                     ? "bg-purple-600 hover:bg-purple-500 text-white focus:ring-purple-400"
                                     : "bg-neutral-800 hover:bg-neutral-700 text-gray-300 focus:ring-neutral-600 border border-neutral-700"
-                                }`}
+                                  }`}
                               >
                                 <IconEdit />
                                 {venta.canal === "web_shop"
