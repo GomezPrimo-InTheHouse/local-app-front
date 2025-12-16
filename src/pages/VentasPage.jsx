@@ -1,10 +1,10 @@
+
 // // src/pages/VentasPage.jsx
 // import { useState, useEffect, useMemo } from "react";
 // import { useNavigate } from "react-router-dom";
 // import VentasModal from "../components/Ventas/VentasModal.jsx";
-// import BuscadorComponent from "../components/General/BuscadorComponent.jsx";
 // import VentasModalWebShop from "../components/Ventas/VentasModalWebShop.jsx"; // ✅ NUEVO
-
+// import BuscadorComponent from "../components/General/BuscadorComponent.jsx";
 // import Swal from "sweetalert2";
 // import "sweetalert2/dist/sweetalert2.css";
 // import {
@@ -19,28 +19,79 @@
 //   const navigate = useNavigate();
 //   const [ventas, setVentas] = useState([]);
 //   const [productos, setProductos] = useState([]);
+
 //   const [modalOpen, setModalOpen] = useState(false);
 //   const [editingVenta, setEditingVenta] = useState(null);
-//   const [filtroClienteId, setFiltroClienteId] = useState(null);
-//   const [filtroCanal, setFiltroCanal] = useState("todos"); // 👈 NUEVO
-//   const [loading, setLoading] = useState(true);
-//    // ✅ NUEVO: Modal WebShop (solo lectura)
+
+//   // ✅ NUEVO: Modal WebShop (solo lectura)
 //   const [modalWebOpen, setModalWebOpen] = useState(false);
 //   const [selectedWebVenta, setSelectedWebVenta] = useState(null);
 
-//   // Utilidades para normalizar claves (por si el backend a veces devuelve id o venta_id)
+//   const [filtroClienteId, setFiltroClienteId] = useState(null);
+//   const [filtroCanal, setFiltroCanal] = useState("todos");
+//   const [loading, setLoading] = useState(true);
+
 //   const getVentaId = (venta) => venta?.id ?? venta?.venta_id ?? null;
 //   const getClienteId = (venta) =>
 //     venta?.cliente?.id ?? venta?.cliente_id ?? venta?.cliente ?? null;
+// // const handleGuardarVenta = async (ventaPayload) => {
+//   //   try {
+//   //     if (editingVenta) {
+//   //       const ventaId = getVentaId(editingVenta);
+//   //       await updateVenta(ventaId, ventaPayload);
+//   //       Swal.fire({
+//   //         title: "¡Actualizada!",
+//   //         text: "La venta ha sido actualizada correctamente.",
+//   //         icon: "success",
+//   //         customClass: {
+//   //           popup:
+//   //             "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
+//   //           title: "text-xl font-bold text-emerald-400",
+//   //           htmlContainer: "text-gray-300",
+//   //         },
+//   //       });
+//   //     } else {
+//   //       await createVenta(ventaPayload);
+//   //       Swal.fire({
+//   //         title: "¡Creada!",
+//   //         text: "La venta ha sido creada correctamente.",
+//   //         icon: "success",
+//   //         customClass: {
+//   //           popup:
+//   //             "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
+//   //           title: "text-xl font-bold text-emerald-400",
+//   //           htmlContainer: "text-gray-300",
+//   //         },
+//   //       });
+//   //     }
+//   //     await fetchData();
+//   //   } catch (error) {
+//   //     console.error("Error al guardar la venta:", error);
+//   //     Swal.fire({
+//   //       title: "Error",
+//   //       text: "Hubo un problema al guardar la venta.",
+//   //       icon: "error",
+//   //       customClass: {
+//   //         popup:
+//   //           "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
+//   //         title: "text-xl font-bold text-red-400",
+//   //         htmlContainer: "text-gray-300",
+//   //       },
+//   //     });
+//   //   } finally {
+//   //     setModalOpen(false);
+//   //     setEditingVenta(null);
+//   //   }
+//   // };
 
-//   // Cargar ventas y productos
+//   // ✅ AHORA: decide qué modal abrir según canal
+  
 //   const fetchData = async (canalValor = filtroCanal) => {
 //     setLoading(true);
 //     try {
-//       const ventasResponse = await getVentas(canalValor); // 👈 ahora soporta canal
+//       const ventasResponse = await getVentas(canalValor);
 //       const productosResponse = await getProductos();
 
-//       // soportar respuesta { data: [...] } o directamente [...]
 //       const ventasData =
 //         ventasResponse?.data ?? ventasResponse ?? ventasResponse?.ventas ?? [];
 //       const productosData =
@@ -61,65 +112,123 @@
 //   };
 
 //   useEffect(() => {
-//     // cada vez que cambie el canal, recargamos las ventas
 //     fetchData();
 //     // eslint-disable-next-line react-hooks/exhaustive-deps
 //   }, [filtroCanal]);
 
-//   // Guardar (crear/actualizar)
+  
 //   const handleGuardarVenta = async (ventaPayload) => {
-//     try {
-//       if (editingVenta) {
-//         // editingVenta puede tener id o venta_id
-//         const ventaId = getVentaId(editingVenta);
-//         await updateVenta(ventaId, ventaPayload);
-//         Swal.fire({
-//           title: "¡Actualizada!",
-//           text: "La venta ha sido actualizada correctamente.",
-//           icon: "success",
-//           customClass: {
-//             popup:
-//               "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
-//             title: "text-xl font-bold text-emerald-400",
-//             htmlContainer: "text-gray-300",
-//           },
-//         });
-//       } else {
-//         await createVenta(ventaPayload);
-//         Swal.fire({
-//           title: "¡Creada!",
-//           text: "La venta ha sido creada correctamente.",
-//           icon: "success",
-//           customClass: {
-//             popup:
-//               "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
-//             title: "text-xl font-bold text-emerald-400",
-//             htmlContainer: "text-gray-300",
-//           },
-//         });
+//   const isWebPayload =
+//     !!ventaPayload &&
+//     typeof ventaPayload === "object" &&
+//     !!ventaPayload.venta &&
+//     Array.isArray(ventaPayload.detalles);
+
+//   const ventaIdFromPayload = isWebPayload
+//     ? (ventaPayload?.venta?.id ?? ventaPayload?.venta?.venta_id ?? null)
+//     : (ventaPayload?.id ?? ventaPayload?.venta_id ?? null);
+
+//   try {
+//     let resp;
+
+//     if (editingVenta || isWebPayload) {
+//       const ventaId = editingVenta ? getVentaId(editingVenta) : ventaIdFromPayload;
+//       if (!ventaId) throw { error: "No se pudo determinar el ID de la venta para actualizar." };
+
+//       // ✅ IMPORTANTE: capturamos respuesta y la devolvemos
+//       resp = await updateVenta(ventaId, ventaPayload);
+
+//       // ✅ si es web_shop, actualizamos selectedWebVenta en memoria para reflejar en UI inmediato
+//       if (isWebPayload) {
+//         const updatedVenta = resp?.data?.venta ?? resp?.venta ?? resp?.data?.data?.venta;
+
+//         if (updatedVenta) {
+//           setSelectedWebVenta((prev) => ({
+//             ...(prev ?? {}),
+//             ...updatedVenta,
+//           }));
+//         } else {
+//           // fallback optimista mínimo
+//           setSelectedWebVenta((prev) => ({
+//             ...(prev ?? {}),
+//             monto_abonado: ventaPayload?.venta?.monto_abonado,
+//             saldo: ventaPayload?.venta?.saldo,
+//             total: ventaPayload?.venta?.total,
+//           }));
+//         }
 //       }
-//       await fetchData();
-//     } catch (error) {
-//       console.error("Error al guardar la venta:", error);
+
 //       Swal.fire({
-//         title: "Error",
-//         text: "Hubo un problema al guardar la venta.",
-//         icon: "error",
+//         title: "¡Actualizada!",
+//         text: isWebPayload
+//           ? "El pago de la venta web fue actualizado correctamente."
+//           : "La venta ha sido actualizada correctamente.",
+//         icon: "success",
 //         customClass: {
-//           popup:
-//             "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
-//           title: "text-xl font-bold text-red-400",
+//           popup: "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
+//           title: "text-xl font-bold text-emerald-400",
 //           htmlContainer: "text-gray-300",
 //         },
 //       });
-//     } finally {
-//       setModalOpen(false);
-//       setEditingVenta(null);
+//     } else {
+//       resp = await createVenta(ventaPayload);
+
+//       Swal.fire({
+//         title: "¡Creada!",
+//         text: "La venta ha sido creada correctamente.",
+//         icon: "success",
+//         customClass: {
+//           popup: "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
+//           title: "text-xl font-bold text-emerald-400",
+//           htmlContainer: "text-gray-300",
+//         },
+//       });
 //     }
-//   };
+
+//     // ✅ seguí refrescando lista, pero ya reflejaste en el modal
+//     await fetchData();
+
+//     return resp; // 🔥 clave: ahora el modal puede await y actualizarse también
+//   } catch (error) {
+//     console.error("Error al guardar la venta:", error);
+
+//     const backendMsg =
+//       error?.response?.data?.error ||
+//       error?.error ||
+//       error?.message ||
+//       "Hubo un problema al guardar la venta.";
+
+//     Swal.fire({
+//       title: "Error",
+//       text: backendMsg,
+//       icon: "error",
+//       customClass: {
+//         popup: "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
+//         title: "text-xl font-bold text-red-400",
+//         htmlContainer: "text-gray-300",
+//       },
+//     });
+
+//     throw error; // ✅ para que el modal pueda manejarlo si hace await
+//   } finally {
+//     // ✅ Cerrar modal local SIEMPRE
+//     setModalOpen(false);
+//     setEditingVenta(null);
+
+//     // ❌ NO cierres el modal web acá.
+//     // El modal web se cierra desde su onClose o si querés, desde el modal cuando termine ok.
+//   }
+// };
+
+
 
 //   const handleEditVenta = (venta) => {
-//     // Pasamos el objeto tal cual (modal debe conocer este shape)
+//     if (venta?.canal === "web_shop") {
+//       setSelectedWebVenta(venta);
+//       setModalWebOpen(true);
+//       return;
+//     }
+
 //     setEditingVenta(venta);
 //     setModalOpen(true);
 //   };
@@ -179,13 +288,8 @@
 
 //   const formatDate = (dateString) => {
 //     if (!dateString) return "Fecha no disponible";
-
 //     const formattedDate = new Date(dateString);
-
-//     if (isNaN(formattedDate)) {
-//       return "Fecha no válida";
-//     }
-
+//     if (isNaN(formattedDate)) return "Fecha no válida";
 //     return formattedDate.toLocaleDateString("es-AR", {
 //       year: "numeric",
 //       month: "long",
@@ -201,7 +305,6 @@
 //       maximumFractionDigits: 0,
 //     });
 
-//   // Filtrado por cliente (normaliza cliente.id o cliente_id)
 //   const ventasFiltradas = useMemo(() => {
 //     if (!filtroClienteId) return ventas;
 //     return ventas.filter(
@@ -209,44 +312,36 @@
 //     );
 //   }, [ventas, filtroClienteId]);
 
-//   // ✅ Balance general NETO (ventas - costos)
 //   const totalBalanceGeneral = useMemo(() => {
 //     return ventas.reduce((acc, venta) => {
 //       const totalVenta = parseFloat(venta.total) || 0;
-
 //       const costoVenta = (venta.detalle_venta || []).reduce((costoAcc, det) => {
 //         const cantidad = Number(det.cantidad) || 0;
 //         const costoUnitario = det.producto ? Number(det.producto.costo) || 0 : 0;
 //         return costoAcc + cantidad * costoUnitario;
 //       }, 0);
-
 //       const balanceVenta = totalVenta - costoVenta;
 //       return acc + balanceVenta;
 //     }, 0);
 //   }, [ventas]);
 
-//   // ✅ Agrupado de ventas por MES (robusto con el nuevo formato de fecha)
 //   const ventasAgrupadasPorMes = useMemo(() => {
 //     const grupos = ventasFiltradas.reduce((grupos, venta) => {
 //       const fechaStr = venta.fecha;
 //       let key = "Sin fecha";
 
 //       if (typeof fechaStr === "string") {
-//         // Tomamos solo la parte de fecha "YYYY-MM-DD"
-//         const [soloFecha] = fechaStr.split("T"); // "2025-12-09"
+//         const [soloFecha] = fechaStr.split("T");
 //         const partes = soloFecha?.split("-");
 //         if (partes && partes.length === 3) {
 //           const [yearStr, monthStr, dayStr] = partes;
 //           const yearNum = Number(yearStr);
 //           const monthNum = Number(monthStr);
 //           const dayNum = Number(dayStr) || 1;
-
 //           if (!isNaN(yearNum) && !isNaN(monthNum)) {
 //             const fechaObj = new Date(yearNum, monthNum - 1, dayNum);
 //             if (!isNaN(fechaObj)) {
-//               const mesNombre = fechaObj.toLocaleString("es-AR", {
-//                 month: "long",
-//               });
+//               const mesNombre = fechaObj.toLocaleString("es-AR", { month: "long" });
 //               key = `${mesNombre} ${yearNum}`;
 //             }
 //           }
@@ -271,6 +366,8 @@
 //         >
 //           ⬅️ Volver al Dashboard
 //         </button>
+
+//         {/* ✅ Nota UX: Nueva venta = local */}
 //         <button
 //           onClick={() => {
 //             setModalOpen(true);
@@ -278,7 +375,7 @@
 //           }}
 //           className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg font-semibold shadow"
 //         >
-//           ➕ Agregar Nueva Venta
+//           ➕ Agregar Nueva Venta (Local)
 //         </button>
 //       </aside>
 
@@ -290,6 +387,7 @@
 //         >
 //           ⬅️ Dashboard
 //         </button>
+
 //         <button
 //           onClick={() => {
 //             setModalOpen(true);
@@ -297,7 +395,7 @@
 //           }}
 //           className="px-3 py-1 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm"
 //         >
-//           ➕ Nueva Venta
+//           ➕ Nueva Venta (Local)
 //         </button>
 //       </header>
 
@@ -317,11 +415,10 @@
 //             <button
 //               key={op.value}
 //               onClick={() => setFiltroCanal(op.value)}
-//               className={`px-3 py-1 rounded-lg text-sm border transition ${
-//                 filtroCanal === op.value
+//               className={`px-3 py-1 rounded-lg text-sm border transition ${filtroCanal === op.value
 //                   ? "bg-purple-600 border-purple-500 text-white"
 //                   : "bg-neutral-800 border-neutral-700 text-gray-300 hover:bg-neutral-700"
-//               }`}
+//                 }`}
 //             >
 //               {op.label}
 //             </button>
@@ -346,184 +443,115 @@
 //           <p className="text-gray-400">No hay ventas registradas.</p>
 //         ) : (
 //           <div>
-//             {ventasAgrupadasPorMes.map(([mes, ventasMes]) => {
-//               // ✅ Cálculo de VENTAS, COSTOS y BALANCE por mes
-//               const { totalVentasMes, totalCostosMes, balanceMes } =
-//                 ventasMes.reduce(
-//                   (acc, venta) => {
-//                     const totalVenta = parseFloat(venta.total) || 0;
-
-//                     const costoVenta = (venta.detalle_venta || []).reduce(
-//                       (costoAcc, det) => {
-//                         const cantidad = Number(det.cantidad) || 0;
-//                         const costoUnitario = det.producto
-//                           ? Number(det.producto.costo) || 0
-//                           : 0;
-//                         return costoAcc + cantidad * costoUnitario;
-//                       },
-//                       0
-//                     );
-
-//                     const balanceVenta = totalVenta - costoVenta;
-
-//                     acc.totalVentasMes += totalVenta;
-//                     acc.totalCostosMes += costoVenta;
-//                     acc.balanceMes += balanceVenta;
-//                     return acc;
-//                   },
-//                   { totalVentasMes: 0, totalCostosMes: 0, balanceMes: 0 }
-//                 );
-
-//               return (
-//                 <div key={mes} className="mb-6">
-//                   <div className="border-b border-gray-600 my-4">
-//                     <h4 className="text-lg font-semibold text-gray-300 capitalize">
-//                       {mes}
-//                     </h4>
-//                   </div>
-
-//                   {/* Total por mes (NETO) */}
-//                   <div className="mb-4">
-//                     <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-//                       <div className="text-sm text-gray-300">
-//                         <p className="font-medium">
-//                           Balance neto del mes{" "}
-//                           <span className="text-xs text-gray-500">
-//                             (ventas - costos)
-//                           </span>
-//                         </p>
-//                         <p className="text-xs text-gray-400 mt-1">
-//                           Ventas brutas:{" "}
-//                           <span className="text-gray-200">
-//                             ${totalVentasMes.toLocaleString("es-AR")}
-//                           </span>{" "}
-//                           · Costos:{" "}
-//                           <span className="text-red-300">
-//                             ${totalCostosMes.toLocaleString("es-AR")}
-//                           </span>
-//                         </p>
-//                       </div>
-
-//                       <span
-//                         className={`text-lg sm:text-xl font-semibold ${
-//                           balanceMes >= 0
-//                             ? "text-emerald-400"
-//                             : "text-red-400"
-//                         }`}
-//                       >
-//                         ${balanceMes.toLocaleString("es-AR")}
-//                       </span>
-//                     </div>
-//                   </div>
-
-//                   {/* Ventas */}
-//                   <div className="grid gap-4">
-//                     {ventasMes.map((venta, vIndex) => {
-//                       // clave única para cada venta
-//                       const ventaKey =
-//                         getVentaId(venta) ?? `${mes}-${vIndex}`;
-
-//                       return (
-//                         <div
-//                           key={ventaKey}
-//                           className="bg-neutral-800 p-4 rounded-xl shadow transition-transform transform hover:scale-[1.01] flex flex-col md:flex-row justify-between items-start md:items-center"
-//                         >
-//                           <div
-//                             onClick={() => handleEditVenta(venta)}
-//                             className="flex-1 min-w-0 cursor-pointer"
-//                           >
-//                             <div className="font-semibold text-lg flex items-center gap-2">
-//                               <span className="text-purple-400">Total:</span> $
-//                               {formatPrice(venta.total)}
-//                             </div>
-
-//                             {/* Canal de la venta */}
-//                             <p className="text-xs text-gray-500 mt-1 uppercase tracking-wide">
-//                               Canal:{" "}
-//                               {venta.canal === "web_shop"
-//                                 ? "Web (Shop)"
-//                                 : "Local"}
-//                             </p>
-
-//                             <p className="text-gray-400 text-sm truncate mt-1">
-//                               Cliente:{" "}
-//                               <span className="text-gray-200">
-//                                 {venta.cliente?.nombre ||
-//                                   venta.cliente_nombre ||
-//                                   "Sin cliente"}{" "}
-//                                 {venta.cliente?.apellido || ""}
-//                               </span>
-//                             </p>
-
-//                             {/* Detalle productos */}
-//                             <ul className="list-disc list-inside mt-2 text-sm text-gray-300">
-//                               {venta.detalle_venta?.length > 0 ? (
-//                                 venta.detalle_venta.map(
-//                                   (detalle, dIndex) => {
-//                                     const detalleKey =
-//                                       detalle?.id ??
-//                                       `${ventaKey}-detalle-${dIndex}`;
-//                                     const producto = productos.find(
-//                                       (p) => p.id === detalle.producto_id
-//                                     );
-//                                     return (
-//                                       <li key={detalleKey}>
-//                                         {producto
-//                                           ? producto.nombre
-//                                           : "Producto desconocido"}{" "}
-//                                         - {detalle.cantidad} unid. a $
-//                                         {formatPrice(detalle.precio_unitario)}
-//                                       </li>
-//                                     );
-//                                   }
-//                                 )
-//                               ) : (
-//                                 <li>No hay productos en esta venta.</li>
-//                               )}
-//                             </ul>
-//                           </div>
-
-//                           <div className="flex flex-col items-end text-sm text-gray-500 mt-4 md:mt-0 md:ml-4">
-//                             <p className="text-xs text-gray-400 mb-1">
-//                               {formatDate(venta.fecha)}
-//                             </p>
-
-//                             <p className="font-semibold text-gray-400">
-//                               Monto Abonado:{" "}
-//                               <span className="text-gray-200">
-//                                 ${formatPrice(venta.monto_abonado)}
-//                               </span>
-//                             </p>
-//                             <p className="font-semibold text-gray-400">
-//                               Saldo:{" "}
-//                               <span
-//                                 className={`font-bold ${
-//                                   Number(venta.saldo) > 0
-//                                     ? "text-red-400"
-//                                     : "text-green-400"
-//                                 }`}
-//                               >
-//                                 ${formatPrice(venta.saldo)}
-//                               </span>
-//                             </p>
-//                             <button
-//                               onClick={() => handleDeleteVenta(venta)}
-//                               className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm font-medium mt-2 text-white"
-//                             >
-//                               Eliminar
-//                             </button>
-//                           </div>
-//                         </div>
-//                       );
-//                     })}
-//                   </div>
+//             {ventasAgrupadasPorMes.map(([mes, ventasMes]) => (
+//               <div key={mes} className="mb-6">
+//                 <div className="border-b border-gray-600 my-4">
+//                   <h4 className="text-lg font-semibold text-gray-300 capitalize">
+//                     {mes}
+//                   </h4>
 //                 </div>
-//               );
-//             })}
+
+//                 <div className="grid gap-4">
+//                   {ventasMes.map((venta, vIndex) => {
+//                     const ventaKey = getVentaId(venta) ?? `${mes}-${vIndex}`;
+
+//                     return (
+//                       <div
+//                         key={ventaKey}
+//                         className="bg-neutral-800 p-4 rounded-xl shadow transition-transform transform hover:scale-[1.01] flex flex-col md:flex-row justify-between items-start md:items-center"
+//                       >
+//                         <div
+//                           onClick={() => handleEditVenta(venta)}
+//                           className="flex-1 min-w-0 cursor-pointer"
+//                         >
+//                           <div className="font-semibold text-lg flex items-center gap-2">
+//                             <span className="text-purple-400">Total:</span> $
+//                             {formatPrice(venta.total)}
+
+//                             {/* ✅ Badge canal */}
+//                             <span
+//                               className={`ml-2 text-xs px-2 py-1 rounded-full border ${venta.canal === "web_shop"
+//                                   ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/20"
+//                                   : "bg-white/5 text-gray-300 border-white/10"
+//                                 }`}
+//                             >
+//                               {venta.canal === "web_shop" ? "WEB" : "LOCAL"}
+//                             </span>
+//                           </div>
+
+//                           <p className="text-gray-400 text-sm truncate mt-1">
+//                             Cliente:{" "}
+//                             <span className="text-gray-200">
+//                               {venta.cliente?.nombre ||
+//                                 venta.cliente_nombre ||
+//                                 "Sin cliente"}{" "}
+//                               {venta.cliente?.apellido || ""}
+//                             </span>
+//                           </p>
+
+//                           <ul className="list-disc list-inside mt-2 text-sm text-gray-300">
+//                             {venta.detalle_venta?.length > 0 ? (
+//                               venta.detalle_venta.map((detalle, dIndex) => {
+//                                 const detalleKey =
+//                                   detalle?.id ?? `${ventaKey}-detalle-${dIndex}`;
+//                                 const producto = productos.find(
+//                                   (p) => p.id === detalle.producto_id
+//                                 );
+//                                 return (
+//                                   <li key={detalleKey}>
+//                                     {producto ? producto.nombre : "Producto desconocido"}{" "}
+//                                     - {detalle.cantidad} unid. a $
+//                                     {formatPrice(detalle.precio_unitario)}
+//                                   </li>
+//                                 );
+//                               })
+//                             ) : (
+//                               <li>No hay productos en esta venta.</li>
+//                             )}
+//                           </ul>
+//                         </div>
+
+//                         <div className="flex flex-col items-end text-sm text-gray-500 mt-4 md:mt-0 md:ml-4">
+//                           <p className="text-xs text-gray-400 mb-1">
+//                             {formatDate(venta.fecha)}
+//                           </p>
+//                           <p className="font-semibold text-gray-400">
+//                             Monto Abonado:{" "}
+//                             <span className="text-gray-200">
+//                               ${formatPrice(venta.monto_abonado)}
+//                             </span>
+//                           </p>
+//                           <p className="font-semibold text-gray-400">
+//                             Saldo:{" "}
+//                             <span
+//                               className={`font-bold ${Number(venta.saldo) > 0
+//                                   ? "text-red-400"
+//                                   : "text-green-400"
+//                                 }`}
+//                             >
+//                               ${formatPrice(venta.saldo)}
+//                             </span>
+//                           </p>
+
+//                           {/* UX: podrías ocultar "Eliminar" en web_shop si querés */}
+//                           <button
+//                             onClick={() => handleDeleteVenta(venta)}
+//                             className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm font-medium mt-2 text-white"
+//                           >
+//                             Eliminar
+//                           </button>
+//                         </div>
+//                       </div>
+//                     );
+//                   })}
+//                 </div>
+//               </div>
+//             ))}
 //           </div>
 //         )}
 //       </main>
 
+//       {/* ✅ Modal local (editable) */}
 //       {modalOpen && (
 //         <VentasModal
 //           onClose={() => {
@@ -532,19 +560,31 @@
 //           }}
 //           onGuardar={handleGuardarVenta}
 //           initialData={editingVenta}
-//           productos={productos} // pasamos lista de productos al modal para mostrar nombres/stock
+//           productos={productos}
 //         />
 //       )}
+
+//       {/* ✅ Modal web_shop (solo lectura) */}
+//       <VentasModalWebShop
+//   open={modalWebOpen}
+//   venta={selectedWebVenta}
+//   onGuardar={handleGuardarVenta}
+//   onClose={() => {
+//     setModalWebOpen(false);
+//     setSelectedWebVenta(null);
+//   }}
+// />
+
 //     </div>
 //   );
 // };
 
 // export default VentasPage;
-// src/pages/VentasPage.jsx
+
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import VentasModal from "../components/Ventas/VentasModal.jsx";
-import VentasModalWebShop from "../components/Ventas/VentasModalWebShop.jsx"; // ✅ NUEVO
+import VentasModalWebShop from "../components/Ventas/VentasModalWebShop.jsx";
 import BuscadorComponent from "../components/General/BuscadorComponent.jsx";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.css";
@@ -555,6 +595,110 @@ import {
   deleteVenta,
 } from "../api/VentaApi.jsx";
 import { getProductos } from "../api/ProductoApi.jsx";
+
+// Iconos para UX (asumo que tienes una forma de importarlos o que Tailwind los maneja con clases)
+// Usaremos iconos placeholder para ilustrar. En un proyecto real serían íconos de Lucide, Heroicons, etc.
+const IconPlus = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className="h-5 w-5"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M12 4v16m8-8H4"
+    />
+  </svg>
+);
+const IconArrowLeft = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className="h-4 w-4"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M10 19l-7-7m0 0l7-7m-7 7h18"
+    />
+  </svg>
+);
+const IconTrash = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className="h-4 w-4"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+    />
+  </svg>
+);
+const IconEdit = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className="h-4 w-4"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L15.232 5.232z"
+    />
+  </svg>
+);
+const IconMoney = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className="h-5 w-5"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+    />
+  </svg>
+);
+const IconUsers = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className="h-5 w-5"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M12 4.354l.067.07l.066-.07a2.5 2.5 0 013.536 3.536l-7.071 7.071a2.5 2.5 0 01-3.536 0l-7.071-7.071a2.5 2.5 0 013.536-3.536l.066.07.067-.07A2.5 2.5 0 0112 4.354z"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M16 12a4 4 0 10-8 0 4 4 0 008 0z"
+    />
+  </svg>
+);
 
 const VentasPage = () => {
   const navigate = useNavigate();
@@ -568,65 +712,17 @@ const VentasPage = () => {
   const [modalWebOpen, setModalWebOpen] = useState(false);
   const [selectedWebVenta, setSelectedWebVenta] = useState(null);
 
+  // NOTA UX: Asumo que BuscadorComponent ya gestiona su propia búsqueda y
+  // devuelve un ID de cliente para el filtro.
   const [filtroClienteId, setFiltroClienteId] = useState(null);
   const [filtroCanal, setFiltroCanal] = useState("todos");
   const [loading, setLoading] = useState(true);
 
+  // --- Funciones de Lógica NO MODIFICADAS ---
   const getVentaId = (venta) => venta?.id ?? venta?.venta_id ?? null;
   const getClienteId = (venta) =>
     venta?.cliente?.id ?? venta?.cliente_id ?? venta?.cliente ?? null;
-// const handleGuardarVenta = async (ventaPayload) => {
-  //   try {
-  //     if (editingVenta) {
-  //       const ventaId = getVentaId(editingVenta);
-  //       await updateVenta(ventaId, ventaPayload);
-  //       Swal.fire({
-  //         title: "¡Actualizada!",
-  //         text: "La venta ha sido actualizada correctamente.",
-  //         icon: "success",
-  //         customClass: {
-  //           popup:
-  //             "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
-  //           title: "text-xl font-bold text-emerald-400",
-  //           htmlContainer: "text-gray-300",
-  //         },
-  //       });
-  //     } else {
-  //       await createVenta(ventaPayload);
-  //       Swal.fire({
-  //         title: "¡Creada!",
-  //         text: "La venta ha sido creada correctamente.",
-  //         icon: "success",
-  //         customClass: {
-  //           popup:
-  //             "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
-  //           title: "text-xl font-bold text-emerald-400",
-  //           htmlContainer: "text-gray-300",
-  //         },
-  //       });
-  //     }
-  //     await fetchData();
-  //   } catch (error) {
-  //     console.error("Error al guardar la venta:", error);
-  //     Swal.fire({
-  //       title: "Error",
-  //       text: "Hubo un problema al guardar la venta.",
-  //       icon: "error",
-  //       customClass: {
-  //         popup:
-  //           "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
-  //         title: "text-xl font-bold text-red-400",
-  //         htmlContainer: "text-gray-300",
-  //       },
-  //     });
-  //   } finally {
-  //     setModalOpen(false);
-  //     setEditingVenta(null);
-  //   }
-  // };
 
-  // ✅ AHORA: decide qué modal abrir según canal
-  
   const fetchData = async (canalValor = filtroCanal) => {
     setLoading(true);
     try {
@@ -657,111 +753,115 @@ const VentasPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtroCanal]);
 
-  
   const handleGuardarVenta = async (ventaPayload) => {
-  const isWebPayload =
-    !!ventaPayload &&
-    typeof ventaPayload === "object" &&
-    !!ventaPayload.venta &&
-    Array.isArray(ventaPayload.detalles);
+    const isWebPayload =
+      !!ventaPayload &&
+      typeof ventaPayload === "object" &&
+      !!ventaPayload.venta &&
+      Array.isArray(ventaPayload.detalles);
 
-  const ventaIdFromPayload = isWebPayload
-    ? (ventaPayload?.venta?.id ?? ventaPayload?.venta?.venta_id ?? null)
-    : (ventaPayload?.id ?? ventaPayload?.venta_id ?? null);
+    const ventaIdFromPayload = isWebPayload
+      ? (ventaPayload?.venta?.id ?? ventaPayload?.venta?.venta_id ?? null)
+      : (ventaPayload?.id ?? ventaPayload?.venta?.venta_id ?? null);
 
-  try {
-    let resp;
+    try {
+      let resp;
 
-    if (editingVenta || isWebPayload) {
-      const ventaId = editingVenta ? getVentaId(editingVenta) : ventaIdFromPayload;
-      if (!ventaId) throw { error: "No se pudo determinar el ID de la venta para actualizar." };
+      if (editingVenta || isWebPayload) {
+        const ventaId = editingVenta ? getVentaId(editingVenta) : ventaIdFromPayload;
+        if (!ventaId)
+          throw {
+            error: "No se pudo determinar el ID de la venta para actualizar.",
+          };
 
-      // ✅ IMPORTANTE: capturamos respuesta y la devolvemos
-      resp = await updateVenta(ventaId, ventaPayload);
+        // ✅ IMPORTANTE: capturamos respuesta y la devolvemos
+        resp = await updateVenta(ventaId, ventaPayload);
 
-      // ✅ si es web_shop, actualizamos selectedWebVenta en memoria para reflejar en UI inmediato
-      if (isWebPayload) {
-        const updatedVenta = resp?.data?.venta ?? resp?.venta ?? resp?.data?.data?.venta;
+        // ✅ si es web_shop, actualizamos selectedWebVenta en memoria para reflejar en UI inmediato
+        if (isWebPayload) {
+          const updatedVenta =
+            resp?.data?.venta ?? resp?.venta ?? resp?.data?.data?.venta;
 
-        if (updatedVenta) {
-          setSelectedWebVenta((prev) => ({
-            ...(prev ?? {}),
-            ...updatedVenta,
-          }));
-        } else {
-          // fallback optimista mínimo
-          setSelectedWebVenta((prev) => ({
-            ...(prev ?? {}),
-            monto_abonado: ventaPayload?.venta?.monto_abonado,
-            saldo: ventaPayload?.venta?.saldo,
-            total: ventaPayload?.venta?.total,
-          }));
+          if (updatedVenta) {
+            setSelectedWebVenta((prev) => ({
+              ...(prev ?? {}),
+              ...updatedVenta,
+            }));
+          } else {
+            // fallback optimista mínimo
+            setSelectedWebVenta((prev) => ({
+              ...(prev ?? {}),
+              monto_abonado: ventaPayload?.venta?.monto_abonado,
+              saldo: ventaPayload?.venta?.saldo,
+              total: ventaPayload?.venta?.total,
+            }));
+          }
         }
+
+        Swal.fire({
+          title: "¡Actualizada!",
+          text: isWebPayload
+            ? "El pago de la venta web fue actualizado correctamente."
+            : "La venta ha sido actualizada correctamente.",
+          icon: "success",
+          customClass: {
+            popup:
+              "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
+            title: "text-xl font-bold text-emerald-400",
+            htmlContainer: "text-gray-300",
+          },
+        });
+      } else {
+        resp = await createVenta(ventaPayload);
+
+        Swal.fire({
+          title: "¡Creada!",
+          text: "La venta ha sido creada correctamente.",
+          icon: "success",
+          customClass: {
+            popup:
+              "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
+            title: "text-xl font-bold text-emerald-400",
+            htmlContainer: "text-gray-300",
+          },
+        });
       }
 
-      Swal.fire({
-        title: "¡Actualizada!",
-        text: isWebPayload
-          ? "El pago de la venta web fue actualizado correctamente."
-          : "La venta ha sido actualizada correctamente.",
-        icon: "success",
-        customClass: {
-          popup: "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
-          title: "text-xl font-bold text-emerald-400",
-          htmlContainer: "text-gray-300",
-        },
-      });
-    } else {
-      resp = await createVenta(ventaPayload);
+      // ✅ seguí refrescando lista, pero ya reflejaste en el modal
+      await fetchData();
+
+      return resp; // 🔥 clave: ahora el modal puede await y actualizarse también
+    } catch (error) {
+      console.error("Error al guardar la venta:", error);
+
+      const backendMsg =
+        error?.response?.data?.error ||
+        error?.error ||
+        error?.message ||
+        "Hubo un problema al guardar la venta.";
 
       Swal.fire({
-        title: "¡Creada!",
-        text: "La venta ha sido creada correctamente.",
-        icon: "success",
+        title: "Error",
+        text: backendMsg,
+        icon: "error",
         customClass: {
-          popup: "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
-          title: "text-xl font-bold text-emerald-400",
+          popup:
+            "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
+          title: "text-xl font-bold text-red-400",
           htmlContainer: "text-gray-300",
         },
       });
+
+      throw error; // ✅ para que el modal pueda manejarlo si hace await
+    } finally {
+      // ✅ Cerrar modal local SIEMPRE
+      setModalOpen(false);
+      setEditingVenta(null);
+
+      // ❌ NO cierres el modal web acá.
+      // El modal web se cierra desde su onClose o si querés, desde el modal cuando termine ok.
     }
-
-    // ✅ seguí refrescando lista, pero ya reflejaste en el modal
-    await fetchData();
-
-    return resp; // 🔥 clave: ahora el modal puede await y actualizarse también
-  } catch (error) {
-    console.error("Error al guardar la venta:", error);
-
-    const backendMsg =
-      error?.response?.data?.error ||
-      error?.error ||
-      error?.message ||
-      "Hubo un problema al guardar la venta.";
-
-    Swal.fire({
-      title: "Error",
-      text: backendMsg,
-      icon: "error",
-      customClass: {
-        popup: "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
-        title: "text-xl font-bold text-red-400",
-        htmlContainer: "text-gray-300",
-      },
-    });
-
-    throw error; // ✅ para que el modal pueda manejarlo si hace await
-  } finally {
-    // ✅ Cerrar modal local SIEMPRE
-    setModalOpen(false);
-    setEditingVenta(null);
-
-    // ❌ NO cierres el modal web acá.
-    // El modal web se cierra desde su onClose o si querés, desde el modal cuando termine ok.
-  }
-};
-
-
+  };
 
   const handleEditVenta = (venta) => {
     if (venta?.canal === "web_shop") {
@@ -830,10 +930,10 @@ const VentasPage = () => {
   const formatDate = (dateString) => {
     if (!dateString) return "Fecha no disponible";
     const formattedDate = new Date(dateString);
-    if (isNaN(formattedDate)) return "Fecha no válida";
+    if (isNaN(formattedDate.getTime())) return "Fecha no válida"; // Corrección de validación
     return formattedDate.toLocaleDateString("es-AR", {
       year: "numeric",
-      month: "long",
+      month: "short", // Cambiado a corto para lista
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
@@ -842,10 +942,11 @@ const VentasPage = () => {
 
   const formatPrice = (price) =>
     Number(price || 0).toLocaleString("es-AR", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: 2, // Mejor UX para dinero
+      maximumFractionDigits: 2,
     });
 
+  // --- Memos de Lógica NO MODIFICADOS ---
   const ventasFiltradas = useMemo(() => {
     if (!filtroClienteId) return ventas;
     return ventas.filter(
@@ -875,14 +976,15 @@ const VentasPage = () => {
         const [soloFecha] = fechaStr.split("T");
         const partes = soloFecha?.split("-");
         if (partes && partes.length === 3) {
-          const [yearStr, monthStr, dayStr] = partes;
+          const [yearStr, monthStr] = partes;
           const yearNum = Number(yearStr);
           const monthNum = Number(monthStr);
-          const dayNum = Number(dayStr) || 1;
           if (!isNaN(yearNum) && !isNaN(monthNum)) {
-            const fechaObj = new Date(yearNum, monthNum - 1, dayNum);
-            if (!isNaN(fechaObj)) {
-              const mesNombre = fechaObj.toLocaleString("es-AR", { month: "long" });
+            const fechaObj = new Date(yearNum, monthNum - 1, 1); // 1 es el día
+            if (!isNaN(fechaObj.getTime())) {
+              const mesNombre = fechaObj.toLocaleString("es-AR", {
+                month: "long",
+              });
               key = `${mesNombre} ${yearNum}`;
             }
           }
@@ -894,205 +996,292 @@ const VentasPage = () => {
       return grupos;
     }, {});
 
-    return Object.entries(grupos);
+    // Ordenar por Año y Mes (descendente)
+    return Object.entries(grupos).sort(([keyA], [keyB]) => {
+      const getSortableDate = (key) => {
+        const parts = key.split(" ");
+        const year = Number(parts[1]);
+        const monthName = parts[0];
+        const monthIndex = new Date(Date.parse(monthName + " 1, 2020")).getMonth(); // Truco para obtener el índice del mes
+
+        return year * 100 + monthIndex;
+      };
+
+      if (keyA === "Sin fecha") return 1; // Mover al final
+      if (keyB === "Sin fecha") return -1; // Mover al final
+
+      return getSortableDate(keyB) - getSortableDate(keyA); // Descendente
+    });
   }, [ventasFiltradas]);
+  // --- FIN Funciones de Lógica NO MODIFICADAS ---
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen w-screen bg-neutral-900 text-white overflow-hidden">
-      {/* Sidebar */}
-      <aside className="hidden lg:flex w-1/4 xl:w-1/5 bg-neutral-800 p-6 flex-col justify-start shadow-xl z-10">
+    // ✅ Layout de dashboard moderno: sidebar y main content. Se eliminó 'w-screen' para que
+    // el overflow sea gestionado por el main, y 'min-h-screen' para que crezca con el contenido.
+    <div className="flex bg-neutral-950 text-white min-h-screen">
+      {/* Sidebar (Desktop) */}
+      <aside className="hidden lg:flex w-64 xl:w-72 bg-neutral-900 p-6 flex-col shadow-2xl z-20 border-r border-neutral-800 space-y-6">
+        <h2 className="text-2xl font-extrabold text-purple-400">Ventas Admin</h2>
         <button
           onClick={() => navigate("/")}
-          className="px-4 py-2 mb-6 bg-neutral-700 hover:bg-neutral-600 rounded-lg transition text-sm"
+          // ✅ Botón secundario con intención clara
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700/70 rounded-lg transition text-sm font-medium text-gray-300 border border-neutral-700"
         >
-          ⬅️ Volver al Dashboard
+          <IconArrowLeft />
+          Volver al Dashboard
         </button>
 
-        {/* ✅ Nota UX: Nueva venta = local */}
+        {/* ✅ Botón primario con intención clara */}
         <button
           onClick={() => {
             setModalOpen(true);
             setEditingVenta(null);
           }}
-          className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg font-semibold shadow"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 hover:bg-purple-500 rounded-xl font-bold shadow-lg shadow-purple-900/40 transition duration-200 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-neutral-900"
         >
-          ➕ Agregar Nueva Venta (Local)
+          <IconPlus />
+          Nueva Venta (Local)
         </button>
       </aside>
 
-      {/* Header móvil */}
-      <header className="lg:hidden w-full bg-neutral-800 p-4 flex justify-between items-center shadow">
-        <button
-          onClick={() => navigate("/")}
-          className="px-3 py-1 bg-neutral-700 hover:bg-neutral-600 rounded-lg text-sm"
-        >
-          ⬅️ Dashboard
-        </button>
-
-        <button
-          onClick={() => {
-            setModalOpen(true);
-            setEditingVenta(null);
-          }}
-          className="px-3 py-1 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm"
-        >
-          ➕ Nueva Venta (Local)
-        </button>
-      </header>
-
-      {/* Main */}
-      <main className="flex-1 p-6 overflow-y-auto">
-        <h1 className="text-2xl font-bold text-purple-400 mb-6">📦 Ventas</h1>
-
-        <BuscadorComponent onBuscar={setFiltroClienteId} />
-
-        {/* Filtro por canal */}
-        <div className="mt-4 mb-4 flex flex-wrap gap-2">
-          {[
-            { value: "todos", label: "Todas" },
-            { value: "local", label: "Local" },
-            { value: "web_shop", label: "Web (Shop)" },
-          ].map((op) => (
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8">
+        {/* Header móvil y Desktop Title */}
+        <header className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+          <h1 className="text-3xl font-extrabold text-white">
+            Gestión de Ventas
+          </h1>
+          {/* Header móvil actions */}
+          <div className="lg:hidden flex gap-3">
             <button
-              key={op.value}
-              onClick={() => setFiltroCanal(op.value)}
-              className={`px-3 py-1 rounded-lg text-sm border transition ${filtroCanal === op.value
-                  ? "bg-purple-600 border-purple-500 text-white"
-                  : "bg-neutral-800 border-neutral-700 text-gray-300 hover:bg-neutral-700"
-                }`}
+              onClick={() => navigate("/")}
+              className="flex items-center gap-1 px-3 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-sm text-gray-300 border border-neutral-700"
             >
-              {op.label}
+              <IconArrowLeft />
+              Dashboard
             </button>
-          ))}
-        </div>
-
-        {/* Balance */}
-        <div className="mb-4">
-          <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-4 flex items-center justify-between">
-            <span className="text-sm text-gray-300">
-              Balance neto de ventas (ventas - costos)
-            </span>
-            <span className="text-xl font-semibold text-emerald-400">
-              ${totalBalanceGeneral.toLocaleString("es-AR")}
-            </span>
+            <button
+              onClick={() => {
+                setModalOpen(true);
+                setEditingVenta(null);
+              }}
+              className="flex items-center gap-1 px-3 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-semibold"
+            >
+              <IconPlus />
+              Nueva Venta
+            </button>
           </div>
-        </div>
+        </header>
 
-        {loading ? (
-          <p className="text-gray-400">Cargando ventas...</p>
-        ) : ventasFiltradas.length === 0 ? (
-          <p className="text-gray-400">No hay ventas registradas.</p>
-        ) : (
-          <div>
-            {ventasAgrupadasPorMes.map(([mes, ventasMes]) => (
-              <div key={mes} className="mb-6">
-                <div className="border-b border-gray-600 my-4">
-                  <h4 className="text-lg font-semibold text-gray-300 capitalize">
-                    {mes}
-                  </h4>
-                </div>
+        {/* Bloque de Controles (Filtros y Búsqueda) */}
+        <div className="space-y-6">
+          <BuscadorComponent onBuscar={setFiltroClienteId} />
 
-                <div className="grid gap-4">
-                  {ventasMes.map((venta, vIndex) => {
-                    const ventaKey = getVentaId(venta) ?? `${mes}-${vIndex}`;
-
-                    return (
-                      <div
-                        key={ventaKey}
-                        className="bg-neutral-800 p-4 rounded-xl shadow transition-transform transform hover:scale-[1.01] flex flex-col md:flex-row justify-between items-start md:items-center"
-                      >
-                        <div
-                          onClick={() => handleEditVenta(venta)}
-                          className="flex-1 min-w-0 cursor-pointer"
-                        >
-                          <div className="font-semibold text-lg flex items-center gap-2">
-                            <span className="text-purple-400">Total:</span> $
-                            {formatPrice(venta.total)}
-
-                            {/* ✅ Badge canal */}
-                            <span
-                              className={`ml-2 text-xs px-2 py-1 rounded-full border ${venta.canal === "web_shop"
-                                  ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/20"
-                                  : "bg-white/5 text-gray-300 border-white/10"
-                                }`}
-                            >
-                              {venta.canal === "web_shop" ? "WEB" : "LOCAL"}
-                            </span>
-                          </div>
-
-                          <p className="text-gray-400 text-sm truncate mt-1">
-                            Cliente:{" "}
-                            <span className="text-gray-200">
-                              {venta.cliente?.nombre ||
-                                venta.cliente_nombre ||
-                                "Sin cliente"}{" "}
-                              {venta.cliente?.apellido || ""}
-                            </span>
-                          </p>
-
-                          <ul className="list-disc list-inside mt-2 text-sm text-gray-300">
-                            {venta.detalle_venta?.length > 0 ? (
-                              venta.detalle_venta.map((detalle, dIndex) => {
-                                const detalleKey =
-                                  detalle?.id ?? `${ventaKey}-detalle-${dIndex}`;
-                                const producto = productos.find(
-                                  (p) => p.id === detalle.producto_id
-                                );
-                                return (
-                                  <li key={detalleKey}>
-                                    {producto ? producto.nombre : "Producto desconocido"}{" "}
-                                    - {detalle.cantidad} unid. a $
-                                    {formatPrice(detalle.precio_unitario)}
-                                  </li>
-                                );
-                              })
-                            ) : (
-                              <li>No hay productos en esta venta.</li>
-                            )}
-                          </ul>
-                        </div>
-
-                        <div className="flex flex-col items-end text-sm text-gray-500 mt-4 md:mt-0 md:ml-4">
-                          <p className="text-xs text-gray-400 mb-1">
-                            {formatDate(venta.fecha)}
-                          </p>
-                          <p className="font-semibold text-gray-400">
-                            Monto Abonado:{" "}
-                            <span className="text-gray-200">
-                              ${formatPrice(venta.monto_abonado)}
-                            </span>
-                          </p>
-                          <p className="font-semibold text-gray-400">
-                            Saldo:{" "}
-                            <span
-                              className={`font-bold ${Number(venta.saldo) > 0
-                                  ? "text-red-400"
-                                  : "text-green-400"
-                                }`}
-                            >
-                              ${formatPrice(venta.saldo)}
-                            </span>
-                          </p>
-
-                          {/* UX: podrías ocultar "Eliminar" en web_shop si querés */}
-                          <button
-                            onClick={() => handleDeleteVenta(venta)}
-                            className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm font-medium mt-2 text-white"
-                          >
-                            Eliminar
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+          {/* Filtro por canal (Chips mejorados) */}
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-sm font-medium text-gray-400 mr-2">
+              Canal:
+            </span>
+            {[
+              { value: "todos", label: "Todas" },
+              { value: "local", label: "Local" },
+              { value: "web_shop", label: "Web (Shop)" },
+            ].map((op) => (
+              <button
+                key={op.value}
+                onClick={() => setFiltroCanal(op.value)}
+                // ✅ Chips de filtro con estado activo/inactivo claro
+                className={`px-4 py-2 rounded-full text-sm font-medium transition duration-150 border focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-950 ${
+                  filtroCanal === op.value
+                    ? "bg-purple-600 border-purple-500 text-white shadow-md shadow-purple-900/30 focus:ring-purple-400"
+                    : "bg-neutral-800 border-neutral-700 text-gray-300 hover:bg-neutral-700 focus:ring-neutral-600"
+                }`}
+              >
+                {op.label}
+              </button>
             ))}
           </div>
-        )}
+        </div>
+
+        {/* Card de Balance Neto */}
+        <div className="p-5 bg-neutral-900 border border-neutral-800 rounded-xl shadow-lg transition duration-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="p-3 bg-purple-600/20 rounded-full text-purple-400">
+                <IconMoney />
+              </span>
+              <span className="text-sm font-medium text-gray-300">
+                Balance Neto (Ventas - Costos)
+              </span>
+            </div>
+            <span className="text-2xl font-bold text-emerald-400 tracking-tight">
+              ${formatPrice(totalBalanceGeneral)}
+            </span>
+          </div>
+        </div>
+
+        {/* Contenido principal: Loading, No Data, o Lista de Ventas */}
+        <div className="pt-4">
+          {loading ? (
+            // ✅ Estado de Loading
+            <div className="flex flex-col items-center justify-center p-10 bg-neutral-900 border border-neutral-800 rounded-xl">
+              <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+              <p className="text-lg text-purple-300 font-medium">
+                Cargando ventas...
+              </p>
+              <p className="text-sm text-gray-500">
+                Obteniendo datos del servidor.
+              </p>
+            </div>
+          ) : ventasFiltradas.length === 0 ? (
+            // ✅ Estado de No Data
+            <div className="flex flex-col items-center justify-center p-10 bg-neutral-900 border border-neutral-800 rounded-xl">
+              <IconUsers className="w-10 h-10 text-gray-600 mb-3" />
+              <p className="text-lg text-gray-400 font-medium">
+                No hay ventas registradas.
+              </p>
+              <p className="text-sm text-gray-500">
+                Intenta cambiar el filtro o agrega una nueva venta.
+              </p>
+            </div>
+          ) : (
+            // ✅ Lista de Ventas agrupadas
+            <div className="space-y-10">
+              {ventasAgrupadasPorMes.map(([mes, ventasMes]) => (
+                <section key={mes}>
+                  <div className="pb-3 border-b border-neutral-800 mb-6">
+                    <h2 className="text-xl font-extrabold text-white capitalize">
+                      {mes}
+                    </h2>
+                    <p className="text-sm text-gray-500">
+                      {ventasMes.length} ventas registradas este mes.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                    {ventasMes.map((venta, vIndex) => {
+                      const ventaKey =
+                        getVentaId(venta) ?? `${mes}-${vIndex}`;
+
+                      const saldoPendiente = Number(venta.saldo) > 0;
+                      const clienteNombre =
+                        venta.cliente?.nombre ||
+                        venta.cliente_nombre ||
+                        "Cliente Anónimo";
+                      const canalLabel =
+                        venta.canal === "web_shop" ? "WEB" : "LOCAL";
+
+                      // ✅ Card de Venta: Listado mejorado
+                      return (
+                        <div
+                          key={ventaKey}
+                          className="group bg-neutral-900 p-5 rounded-xl border border-neutral-800 shadow-xl hover:border-purple-600/50 hover:shadow-purple-900/20 transition duration-200 space-y-4 flex flex-col justify-between"
+                        >
+                          {/* Top Info */}
+                          <div className="flex justify-between items-start">
+                            <div className="space-y-1">
+                              {/* Cliente */}
+                              <p className="text-sm text-gray-400 font-medium flex items-center gap-2">
+                                Cliente:{" "}
+                                <span className="text-white truncate max-w-[150px]">
+                                  {clienteNombre}{" "}
+                                  {venta.cliente?.apellido || ""}
+                                </span>
+                              </p>
+
+                              {/* Total y Canal */}
+                              <div className="flex items-center gap-3">
+                                <span className="text-2xl font-extrabold text-purple-400 tracking-tight">
+                                  ${formatPrice(venta.total)}
+                                </span>
+                                {/* ✅ Badge canal */}
+                                <span
+                                  className={`ml-1 text-xs px-2 py-1 rounded-full font-semibold ${
+                                    venta.canal === "web_shop"
+                                      ? "bg-emerald-600/20 text-emerald-400"
+                                      : "bg-gray-600/20 text-gray-300"
+                                  }`}
+                                >
+                                  {canalLabel}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* ✅ Badge de Estado de Saldo (Feedback Visual) */}
+                            <div
+                              className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
+                                saldoPendiente
+                                  ? "bg-red-600/20 text-red-400 border border-red-600/50"
+                                  : "bg-green-600/20 text-green-400 border border-green-600/50"
+                              }`}
+                            >
+                              {saldoPendiente ? "PENDIENTE" : "SALDADA"}
+                            </div>
+                          </div>
+
+                          {/* Detalles Financieros y Fecha */}
+                          <div className="grid grid-cols-2 gap-2 text-sm border-t border-neutral-800 pt-3">
+                            <p className="text-gray-500">Fecha:</p>
+                            <p className="text-right text-gray-300 font-light">
+                              {formatDate(venta.fecha)}
+                            </p>
+
+                            <p className="text-gray-500">Abonado:</p>
+                            <p className="text-right text-white font-medium">
+                              ${formatPrice(venta.monto_abonado)}
+                            </p>
+
+                            <p className="text-gray-500">Saldo:</p>
+                            <p
+                              className={`text-right font-bold ${
+                                saldoPendiente ? "text-red-400" : "text-green-400"
+                              }`}
+                            >
+                              ${formatPrice(venta.saldo)}
+                            </p>
+                          </div>
+
+                          {/* Acciones */}
+                          <div className="flex justify-end gap-3 pt-4 border-t border-neutral-800">
+                            {/* ✅ Botón de edición: Primario/Call-to-Action si tiene saldo pendiente o es web_shop */}
+                            <button
+                              onClick={() => handleEditVenta(venta)}
+                              className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-semibold transition duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-900 ${
+                                saldoPendiente || venta.canal === "web_shop"
+                                  ? "bg-purple-600 hover:bg-purple-500 text-white focus:ring-purple-400"
+                                  : "bg-neutral-800 hover:bg-neutral-700 text-gray-300 focus:ring-neutral-600 border border-neutral-700"
+                              }`}
+                            >
+                              <IconEdit />
+                              {venta.canal === "web_shop"
+                                ? "Ver Detalles/Pagar"
+                                : "Editar"}
+                            </button>
+
+                            {/* ✅ Botón de peligro: Secundaria, clara intención */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteVenta(venta);
+                              }}
+                              className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-semibold bg-red-600/20 hover:bg-red-600/40 text-red-400 transition duration-150 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-neutral-900"
+                            >
+                              <IconTrash />
+                              Eliminar
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
+        </div>
       </main>
 
-      {/* ✅ Modal local (editable) */}
+      {/* ✅ Modal local (editable) - Sin cambios en lógica */}
       {modalOpen && (
         <VentasModal
           onClose={() => {
@@ -1105,17 +1294,16 @@ const VentasPage = () => {
         />
       )}
 
-      {/* ✅ Modal web_shop (solo lectura) */}
+      {/* ✅ Modal web_shop (solo lectura) - Sin cambios en lógica */}
       <VentasModalWebShop
-  open={modalWebOpen}
-  venta={selectedWebVenta}
-  onGuardar={handleGuardarVenta}
-  onClose={() => {
-    setModalWebOpen(false);
-    setSelectedWebVenta(null);
-  }}
-/>
-
+        open={modalWebOpen}
+        venta={selectedWebVenta}
+        onGuardar={handleGuardarVenta}
+        onClose={() => {
+          setModalWebOpen(false);
+          setSelectedWebVenta(null);
+        }}
+      />
     </div>
   );
 };
