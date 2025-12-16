@@ -129,7 +129,7 @@ const VentasModalWebShop = ({ open, venta, onClose, onGuardar }) => {
             setNuevoPago("");
 
             // ✅ opcional: cerrar si querés cerrar sí o sí después de guardar
-            // onClose?.();
+            onClose?.();
 
             return resp;
         } catch (err) {
@@ -157,6 +157,21 @@ const VentasModalWebShop = ({ open, venta, onClose, onGuardar }) => {
                 className="relative w-full max-w-lg bg-neutral-800 rounded-2xl p-6 shadow-lg text-white flex flex-col max-h-[90vh]"
                 onClick={(e) => e.stopPropagation()}
             >
+                <button
+                    type="button"
+                    onClick={onClose}
+                    disabled={saving}
+                    aria-label="Cerrar"
+                    className="absolute top-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-full
+             bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white
+             transition focus:outline-none focus:ring-2 focus:ring-emerald-500/60
+             disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
+                    </svg>
+                </button>
+
                 <h2 className="text-xl font-semibold mb-1">🛒 Venta Web (Shop)</h2>
                 <p className="text-xs text-gray-400 mb-4">
                     Productos/cupón solo lectura. Acá se registra un nuevo pago.
