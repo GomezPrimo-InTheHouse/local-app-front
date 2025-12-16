@@ -606,57 +606,146 @@ const VentasPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtroCanal]);
 
+  // const handleGuardarVenta = async (ventaPayload) => {
+  //   try {
+  //     if (editingVenta) {
+  //       const ventaId = getVentaId(editingVenta);
+  //       await updateVenta(ventaId, ventaPayload);
+  //       Swal.fire({
+  //         title: "¡Actualizada!",
+  //         text: "La venta ha sido actualizada correctamente.",
+  //         icon: "success",
+  //         customClass: {
+  //           popup:
+  //             "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
+  //           title: "text-xl font-bold text-emerald-400",
+  //           htmlContainer: "text-gray-300",
+  //         },
+  //       });
+  //     } else {
+  //       await createVenta(ventaPayload);
+  //       Swal.fire({
+  //         title: "¡Creada!",
+  //         text: "La venta ha sido creada correctamente.",
+  //         icon: "success",
+  //         customClass: {
+  //           popup:
+  //             "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
+  //           title: "text-xl font-bold text-emerald-400",
+  //           htmlContainer: "text-gray-300",
+  //         },
+  //       });
+  //     }
+  //     await fetchData();
+  //   } catch (error) {
+  //     console.error("Error al guardar la venta:", error);
+  //     Swal.fire({
+  //       title: "Error",
+  //       text: "Hubo un problema al guardar la venta.",
+  //       icon: "error",
+  //       customClass: {
+  //         popup:
+  //           "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
+  //         title: "text-xl font-bold text-red-400",
+  //         htmlContainer: "text-gray-300",
+  //       },
+  //     });
+  //   } finally {
+  //     setModalOpen(false);
+  //     setEditingVenta(null);
+  //   }
+  // };
+
+  // ✅ AHORA: decide qué modal abrir según canal
+  
   const handleGuardarVenta = async (ventaPayload) => {
-    try {
-      if (editingVenta) {
-        const ventaId = getVentaId(editingVenta);
-        await updateVenta(ventaId, ventaPayload);
-        Swal.fire({
-          title: "¡Actualizada!",
-          text: "La venta ha sido actualizada correctamente.",
-          icon: "success",
-          customClass: {
-            popup:
-              "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
-            title: "text-xl font-bold text-emerald-400",
-            htmlContainer: "text-gray-300",
-          },
-        });
-      } else {
-        await createVenta(ventaPayload);
-        Swal.fire({
-          title: "¡Creada!",
-          text: "La venta ha sido creada correctamente.",
-          icon: "success",
-          customClass: {
-            popup:
-              "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
-            title: "text-xl font-bold text-emerald-400",
-            htmlContainer: "text-gray-300",
-          },
-        });
+  // Detecta payload del modal web: { venta: {...}, detalles: [...] }
+  const isWebPayload =
+    !!ventaPayload &&
+    typeof ventaPayload === "object" &&
+    !!ventaPayload.venta &&
+    Array.isArray(ventaPayload.detalles);
+
+  // ID para update
+  const ventaIdFromPayload = isWebPayload
+    ? (ventaPayload?.venta?.id ?? ventaPayload?.venta?.venta_id ?? null)
+    : (ventaPayload?.id ?? ventaPayload?.venta_id ?? null);
+
+  try {
+    // ✅ UPDATE: si estoy editando local, o si viene payload web (que SIEMPRE es update)
+    if (editingVenta || isWebPayload) {
+      const ventaId = editingVenta ? getVentaId(editingVenta) : ventaIdFromPayload;
+
+      if (!ventaId) {
+        throw { error: "No se pudo determinar el ID de la venta para actualizar." };
       }
-      await fetchData();
-    } catch (error) {
-      console.error("Error al guardar la venta:", error);
+
+      await updateVenta(ventaId, ventaPayload);
+
       Swal.fire({
-        title: "Error",
-        text: "Hubo un problema al guardar la venta.",
-        icon: "error",
+        title: "¡Actualizada!",
+        text: isWebPayload
+          ? "El pago de la venta web fue actualizado correctamente."
+          : "La venta ha sido actualizada correctamente.",
+        icon: "success",
         customClass: {
           popup:
             "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
-          title: "text-xl font-bold text-red-400",
+          title: "text-xl font-bold text-emerald-400",
           htmlContainer: "text-gray-300",
         },
       });
-    } finally {
-      setModalOpen(false);
-      setEditingVenta(null);
-    }
-  };
+    } else {
+      // ✅ CREATE: solo para venta local nueva
+      await createVenta(ventaPayload);
 
-  // ✅ AHORA: decide qué modal abrir según canal
+      Swal.fire({
+        title: "¡Creada!",
+        text: "La venta ha sido creada correctamente.",
+        icon: "success",
+        customClass: {
+          popup:
+            "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
+          title: "text-xl font-bold text-emerald-400",
+          htmlContainer: "text-gray-300",
+        },
+      });
+    }
+
+    await fetchData();
+  } catch (error) {
+    console.error("Error al guardar la venta:", error);
+
+    const backendMsg =
+      error?.response?.data?.error ||
+      error?.error ||
+      error?.message ||
+      "Hubo un problema al guardar la venta.";
+
+    Swal.fire({
+      title: "Error",
+      text: backendMsg,
+      icon: "error",
+      customClass: {
+        popup:
+          "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
+        title: "text-xl font-bold text-red-400",
+        htmlContainer: "text-gray-300",
+      },
+    });
+  } finally {
+    // ✅ Cerrar modal local
+    setModalOpen(false);
+    setEditingVenta(null);
+
+    // ✅ Cerrar modal web (si existe en tu page)
+    // Ajustá nombres si los tuyos difieren
+    if (typeof setModalWebOpen === "function") setModalWebOpen(false);
+    if (typeof setSelectedWebVenta === "function") setSelectedWebVenta(null);
+  }
+};
+
+
   const handleEditVenta = (venta) => {
     if (venta?.canal === "web_shop") {
       setSelectedWebVenta(venta);
