@@ -424,53 +424,82 @@ const HistorialPagosModal = ({ isOpen, onClose, clienteId, clienteNombre }) => {
         setPagoMonto(formatNumberWithDots(number)); 
     };
 
-    // --- Manejar nuevo pago CONSOLIDADO ---
+// --- Manejar nuevo pago CONSOLIDADO con DISTRIBUCIÓN POR INGRESO ---
     const handleNuevoPago = async (e) => {
         e.preventDefault();
-        const form = e.target;
         
+        const form = e.target;
         // Obtener el valor numérico real sin puntos
         const montoNumerico = parseNumber(pagoMonto); 
         const observaciones = form.observaciones.value;
         const metodo_pago = form.metodo_pago.value;
-
+        
         if (montoNumerico === 0) {
-            Swal.fire('Error', 'El monto debe ser mayor o menor a cero para registrar un pago/abono.', 'warning');
+            Swal.fire('Error', 'El monto debe ser mayor o menor a cero.', 'warning');
             return;
         }
 
-        // Verificar que si es un pago positivo, no exceda el saldo pendiente consolidado
+        // Validación de no exceder saldo pendiente consolidado
         if (montoNumerico > 0 && montoNumerico > totalAdeudado && totalAdeudado > 0) {
             Swal.fire('Error', `El pago no puede exceder el saldo pendiente consolidado ($${formatPrice(totalAdeudado)}).`, 'warning');
             return;
         }
+
+        // 🛑 Importante: Bloquear el botón durante la ejecución de múltiples llamadas
+        setIsSubmitting(true);
         
-        // Si el pago es un monto negativo (ajuste/reverso), se debe permitir.
+        let montoRestante = montoNumerico;
+        const pagosRealizados = [];
+        let success = true;
 
         try {
-            // Nota: createPagoAbono debe ser capaz de procesar un pago sin un equipo/presupuesto específico 
-            // y aplicarlo a los saldos pendientes del cliente. Si tu API lo requiere,
-            // debes modificar la llamada para pasar el clienteId y un flag de consolidado.
-            // Aquí enviamos el clienteId y el monto, asumiendo que el backend maneja la distribución.
-            
-            const nuevoPago = {
-                cliente_id: clienteId, // Clave para pago consolidado
-                monto: montoNumerico,
-                observaciones,
-                metodo_pago,
-            };
-            
-            await createPagoAbono(nuevoPago); 
-            await fetchHistorial(); // Refrescar data
+            // Recorrer los presupuestos/ingresos pendientes (ordenados por antigüedad)
+            for (const p of presupuestosPendientes) {
+                
+                if (montoRestante <= 0) break; // Detener si el pago total fue cubierto
 
-            // Limpiar formulario
-            setPagoMonto('');
+                // Calcular el monto parcial a aplicar al saldo pendiente de este ingreso
+                const montoAPagar = Math.min(montoRestante, p.saldo_pendiente);
+
+                if (montoAPagar > 0) { 
+                    // 🔑 PAYLOAD CORREGIDO: Enviamos ingreso_id
+                    const pagoData = {
+                        ingreso_id: p.ingreso_id, // ¡Ahora enviamos el ID correcto!
+                        monto: montoAPagar, 
+                        observaciones,
+                        metodo_pago,
+                    };
+
+                    await createPagoAbono(pagoData); // Llamada a la API
+                    
+                    montoRestante -= montoAPagar;
+                    pagosRealizados.push(pagoData);
+                }
+            }
             
+            // Lógica para montos negativos (ajuste/reverso): se aplica el monto total negativo al primer ingreso pendiente
+            if (montoNumerico < 0 && presupuestosPendientes.length > 0) {
+                const primerIngreso = presupuestosPendientes[0];
+                const pagoData = {
+                    ingreso_id: primerIngreso.ingreso_id,
+                    monto: montoNumerico, 
+                    observaciones,
+                    metodo_pago,
+                };
+                await createPagoAbono(pagoData);
+                pagosRealizados.push(pagoData);
+            } else if (montoNumerico < 0 && presupuestosPendientes.length === 0) {
+                 Swal.fire('Error', 'No hay saldos pendientes para aplicar un ajuste/reverso. Debe seleccionar un equipo manualmente si requiere un ajuste específico.', 'error');
+                 setIsSubmitting(false);
+                 return;
+            }
+
+            // Manejo de éxito
             const message = montoNumerico > 0 
-                ? `✅ Abono de $${formatPrice(montoNumerico)} registrado correctamente.` 
-                : `✅ Ajuste/Reverso de $${formatPrice(montoNumerico)} registrado correctamente.`;
+                ? `✅ Abono de $${formatPrice(montoNumerico)} registrado en ${pagosRealizados.length} ingresos.` 
+                : `✅ Ajuste/Reverso de $${formatPrice(montoNumerico)} registrado.`;
             
-             Swal.fire({
+            Swal.fire({
                 title: 'Éxito',
                 text: message,
                 icon: 'success',
@@ -482,6 +511,8 @@ const HistorialPagosModal = ({ isOpen, onClose, clienteId, clienteNombre }) => {
             });
 
         } catch (error) {
+            // Manejo de error
+            success = false;
             console.error("Error al registrar pago consolidado:", error);
             Swal.fire({
                 title: 'Error',
@@ -491,6 +522,13 @@ const HistorialPagosModal = ({ isOpen, onClose, clienteId, clienteNombre }) => {
                     popup: "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
                 },
             });
+        } finally {
+            if (success) {
+                setPagoMonto('');
+                form.observaciones.value = '';
+                await fetchHistorial(); // Refrescar data solo si hubo éxito
+            }
+            setIsSubmitting(false);
         }
     };
     // ----------------------------------------------------
