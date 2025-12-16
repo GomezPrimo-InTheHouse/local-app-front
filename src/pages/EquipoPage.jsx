@@ -1484,360 +1484,360 @@ const EquipoPage = () => {
 
 
         {/* Grid: sidebar fijo (280–360px) + contenido */}
-        <div className="grid grid-cols-1 md:grid-cols-[30%_70%] gap-0 md:gap-6 w-full">
+<div className="grid grid-cols-1 md:grid-cols-[30%_70%] gap-0 md:gap-6 w-full">
 
-          {/* ------- LADO IZQUIERDO (SIDEBAR) ------- */}
-          <aside
-            className="
-            md:sticky md:top-4
-            md:h-[calc(100vh-2rem)]
-            overflow-y-auto
-            px-3 sm:px-4 py-4
-            border-b md:border-b-0 md:border-r border-white/10
-            [scrollbar-width:thin]
-            [&::-webkit-scrollbar]:w-2
-            [&::-webkit-scrollbar-thumb]:bg-white/10
-            bg-transparent
-          "
+  {/* ------- LADO IZQUIERDO (SIDEBAR) ------- */}
+  <aside
+    className="
+    md:sticky md:top-4
+    md:h-[calc(100vh-2rem)]
+    overflow-y-auto
+    px-3 sm:px-4 py-4
+    border-b md:border-b-0 md:border-r border-white/10
+    [scrollbar-width:thin]
+    [&::-webkit-scrollbar]:w-2
+    [&::-webkit-scrollbar-thumb]:bg-white/10
+    bg-transparent
+  "
+  >
+    <div className="space-y-4">
+      {/* Botón principal */}
+      <button
+        onClick={handleAgregar}
+        className="w-full h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-base font-semibold tracking-wide transition-all duration-200 shadow-xl shadow-emerald-900/50"
+      >
+        ➕ Agregar Equipo
+      </button>
+
+      {/* Tarjeta de filtros/lista del sidebar con RESETS tipográficos y de layout */}
+      <div
+        className="
+        rounded-2xl border border-white/10 bg-neutral-800/70 p-4 sm:p-5 shadow-sm
+
+        /* 🔧 Resets para que SidebarEquipos no rompa el layout */
+        text-sm leading-6
+        [&_*]:!max-w-none [&_*]:mx-0 [&_*]:text-left
+        [&_h1]:text-base [&_h2]:text-base [&_h3]:text-sm
+        [&_p]:text-sm [&_small]:text-xs
+
+        /* Flex/Grid internos contenidos */
+        [&_.flex]:items-stretch [&_.flex]:justify-start
+        [&_.grid]:grid-cols-1 [&_.grid]:gap-2
+
+        /* Botones/links descendientes coherentes */
+        [&_button]:w-full [&_button]:h-11 [&_button]:rounded-lg [&_button]:px-3 [&_button]:text-sm
+        [&_button]:inline-flex [&_button]:items-center [&_button]:justify-start
+        [&_a]:w-full [&_a]:h-11 [&_a]:rounded-lg [&_a]:px-3 [&_a]:text-sm
+        [&_a]:inline-flex [&_a]:items-center [&_a]:justify-start
+
+        /* Listas internas con separación */
+        [&_li]:mb-2 [&_li:last-child]:mb-0
+      "
+      >
+        <SidebarEquipos
+          filtro={filtro}
+          handleFiltro={handleFiltro}
+          handleAgregar={handleAgregar}
+        />
+      </div>
+
+      {/* Info/ayuda del panel */}
+      <div className="rounded-2xl border border-white/10 bg-neutral-800/40 p-4 sm:p-5">
+        <p className="text-xs text-neutral-300/80 leading-5">
+          Agrupamos por <b>mes de ingreso</b> y mostramos el <b>balance mensual</b>.
+        </p>
+      </div>
+    </div>
+  </aside>
+
+  {/* ------- LADO DERECHO (MAIN) ------- */}
+  <main className="md:h-[100svh] md:overflow-y-auto">
+    {/* Header sticky del panel derecho */}
+    <div className="sticky top-0 z-10 px-3 sm:px-4 py-3 backdrop-blur bg-neutral-900/85 border-b border-white/10">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-base sm:text-lg font-semibold">Lista de Equipos</h3>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setMostrarBalances((v) => !v)}
+            className="px-3 py-1.5 rounded-lg bg-neutral-800/70 hover:bg-neutral-800 border border-white/10 text-[12px] sm:text-sm"
+            title={mostrarBalances ? "Ocultar montos" : "Mostrar montos"}
           >
-            <div className="space-y-4">
-              {/* Botón principal */}
-              <button
-                onClick={handleAgregar}
-                className="w-full h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-base font-semibold tracking-wide transition-all duration-200 shadow-xl shadow-emerald-900/50"
-              >
-                ➕ Agregar Equipo
-              </button>
+            {mostrarBalances ? "Ocultar montos" : "Mostrar montos"}
+          </button>
+        </div>
+      </div>
+    </div>
 
-              {/* Tarjeta de filtros/lista del sidebar con RESETS tipográficos y de layout */}
-              <div
-                className="
-                rounded-2xl border border-white/10 bg-neutral-800/70 p-4 sm:p-5 shadow-sm
+    {/* Contenido del panel derecho */}
+    <div className="px-3 sm:px-4 py-4 space-y-6">
+      {/* Buscador + Balance global */}
+      <section className="rounded-2xl border border-white/10 bg-neutral-800/40 p-3 sm:p-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          <div className="lg:col-span-2">
+            <BuscadorComponent
+              onBuscar={async (clienteId) => {
+                setLoading(true);
+                try {
+                  if (!clienteId) {
+                    await fetchEquipos();
+                  } else {
+                    const data = await getEquiposByClienteId(clienteId); 
+                    setEquipos(Array.isArray(data) ? data : []);
+                  }
+                } finally {
+                  setLoading(false);
+                }
+              }}
+            />
+          </div>
 
-                /* 🔧 Resets para que SidebarEquipos no rompa el layout */
-                text-sm leading-6
-                [&_*]:!max-w-none [&_*]:mx-0 [&_*]:text-left
-                [&_h1]:text-base [&_h2]:text-base [&_h3]:text-sm
-                [&_p]:text-sm [&_small]:text-xs
+          {/* Card de Balance global */}
+          <div className="rounded-xl border border-white/10 bg-neutral-900/40 p-3 flex items-center justify-between">
+            <span className="text-sm text-neutral-300 flex items-center gap-2">
+              <IconMoney className="w-4 h-4 text-purple-400" />
+              Balance Neto GLOBAL
+            </span>
+            <span
+              className={`text-xl font-semibold tracking-tight ${totalBalanceGeneral >= 0 ? "text-emerald-400" : "text-red-400"}`}
+            >
+              {mostrarBalances ? "******" : `$${formatPrice(totalBalanceGeneral)}`}
+            </span>
+          </div>
+        </div>
+      </section>
 
-                /* Flex/Grid internos contenidos */
-                [&_.flex]:items-stretch [&_.flex]:justify-start
-                [&_.grid]:grid-cols-1 [&_.grid]:gap-2
+      {/* VISTA RÁPIDA DE BALANCE MENSUAL (Tabla) */}
+      {equiposAgrupadosPorMes.length > 0 && (
+        <section className="pt-2">
+          <h2 className="text-xl font-semibold text-white mb-3 flex items-center gap-2">
+            <IconTrendingUp className="h-5 w-5 text-emerald-400" />
+            Balance de Ingresos por Mes
+          </h2>
 
-                /* Botones/links descendientes coherentes */
-                [&_button]:w-full [&_button]:h-11 [&_button]:rounded-lg [&_button]:px-3 [&_button]:text-sm
-                [&_button]:inline-flex [&_button]:items-center [&_button]:justify-start
-                [&_a]:w-full [&_a]:h-11 [&_a]:rounded-lg [&_a]:px-3 [&_a]:text-sm
-                [&_a]:inline-flex [&_a]:items-center [&_a]:justify-start
-
-                /* Listas internas con separación */
-                [&_li]:mb-2 [&_li:last-child]:mb-0
-              "
-              >
-                <SidebarEquipos
-                  filtro={filtro}
-                  handleFiltro={handleFiltro}
-                  handleAgregar={handleAgregar}
-                />
-              </div>
-
-              {/* Info/ayuda del panel */}
-              <div className="rounded-2xl border border-white/10 bg-neutral-800/40 p-4 sm:p-5">
-                <p className="text-xs text-neutral-300/80 leading-5">
-                  Agrupamos por <b>mes de ingreso</b> y mostramos el <b>balance mensual</b>.
-                </p>
-              </div>
-            </div>
-          </aside>
-
-          {/* ------- LADO DERECHO (MAIN) ------- */}
-          <main className="md:h-[100svh] md:overflow-y-auto">
-            {/* Header sticky del panel derecho */}
-            <div className="sticky top-0 z-10 px-3 sm:px-4 py-3 backdrop-blur bg-neutral-900/85 border-b border-white/10">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="text-base sm:text-lg font-semibold">Lista de Equipos</h3>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setMostrarBalances((v) => !v)}
-                    className="px-3 py-1.5 rounded-lg bg-neutral-800/70 hover:bg-neutral-800 border border-white/10 text-[12px] sm:text-sm"
-                    title={mostrarBalances ? "Ocultar montos" : "Mostrar montos"}
-                  >
-                    {mostrarBalances ? "Ocultar montos" : "Mostrar montos"}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Contenido del panel derecho */}
-            <div className="px-3 sm:px-4 py-4 space-y-6">
-              {/* Buscador + Balance global */}
-              <section className="rounded-2xl border border-white/10 bg-neutral-800/40 p-3 sm:p-4">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                  <div className="lg:col-span-2">
-                    <BuscadorComponent
-                      onBuscar={async (clienteId) => {
-                        setLoading(true);
-                        try {
-                          if (!clienteId) {
-                            await fetchEquipos();
-                          } else {
-                            const data = await getEquiposByClienteId(clienteId); 
-                            setEquipos(Array.isArray(data) ? data : []);
-                          }
-                        } finally {
-                          setLoading(false);
-                        }
-                      }}
-                    />
-                  </div>
-
-                  {/* Card de Balance global */}
-                  <div className="rounded-xl border border-white/10 bg-neutral-900/40 p-3 flex items-center justify-between">
-                    <span className="text-sm text-neutral-300 flex items-center gap-2">
-                      <IconMoney className="w-4 h-4 text-purple-400" />
-                      Balance Neto GLOBAL
-                    </span>
-                    <span
-                      className={`text-xl font-semibold tracking-tight ${totalBalanceGeneral >= 0 ? "text-emerald-400" : "text-red-400"}`}
+          <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-x-auto shadow-lg">
+            <table className="min-w-full divide-y divide-neutral-800">
+              <thead className="bg-neutral-800/80">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Mes
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Venta Total
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Costo Total
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Balance Neto
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-800">
+                {equiposAgrupadosPorMes.map(([key, data]) => (
+                  <tr key={key} className="hover:bg-neutral-800/50 transition duration-150">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white capitalize">
+                      {data.label}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-green-300">
+                      {mostrarBalances ? "****" : `$${formatPrice(data.totalVenta)}`}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-red-300">
+                      {mostrarBalances ? "****" : `-$${formatPrice(data.totalCosto)}`}
+                    </td>
+                    <td
+                      className={`px-6 py-4 whitespace-nowrap text-sm font-semibold text-right ${
+                        data.totalBalance >= 0 ? "text-emerald-400" : "text-red-400"
+                      }`}
                     >
-                      {mostrarBalances ? "******" : `$${formatPrice(totalBalanceGeneral)}`}
-                    </span>
-                  </div>
+                      {mostrarBalances ? "****" : `$${formatPrice(data.totalBalance)}`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+
+      {/* LISTADO DE EQUIPOS (Diseño de Cards en Grid) */}
+      <section className="py-4">
+        {loading ? (
+          <p className="text-neutral-400 px-1">Cargando equipos...</p>
+        ) : equiposAgrupadosPorMes.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-white/15 p-6 text-center bg-white/5">
+            <p className="text-neutral-300">Aún no hay equipos cargados.</p>
+          </div>
+        ) : (
+          equiposAgrupadosPorMes.map(([, data]) => {
+            const { label: mes, equipos: equiposMes } = data;
+
+            return (
+              <div key={mes} className="mb-8">
+                {/* Encabezado de grupo (Mes) */}
+                <div className="border-b border-white/10 pb-2 mb-6">
+                  <h4 className="text-2xl font-extrabold text-white capitalize">
+                    {mes}
+                  </h4>
+                  <p className="text-sm text-gray-500">{equiposMes.length} equipos ingresados.</p>
                 </div>
-              </section>
 
-              {/* VISTA RÁPIDA DE BALANCE MENSUAL (Tabla) */}
-              {equiposAgrupadosPorMes.length > 0 && (
-                <section className="pt-2">
-                  <h2 className="text-xl font-semibold text-white mb-3 flex items-center gap-2">
-                    <IconTrendingUp className="h-5 w-5 text-emerald-400" />
-                    Balance de Ingresos por Mes
-                  </h2>
+                {/* Contenedor de Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {equiposMes.map((eq) => {
+                    const balance = balanceByEquipoId[eq.id];
+                    const costoTotal = balance?.costo_total ?? 0;
+                    const ventaTotal = balance?.total_total ?? 0;
+                    const balanceNeto = balance?.balance_final ?? 0;
+                    
+                    const estadoNombre = getNombreEstado(eq.estado_id);
+                    
+                    const clienteDireccion = eq.cliente_direccion || "Dirección N/D";
+                    const clienteTelefono = eq.cliente_celular || "Teléfono N/D";
+                    const clienteNombreCompleto = `${eq.cliente_nombre || 'Anónimo'} ${eq.cliente_apellido || ''}`;
 
-                  <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-x-auto shadow-lg">
-                    <table className="min-w-full divide-y divide-neutral-800">
-                      <thead className="bg-neutral-800/80">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                            Mes
-                          </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
-                            Venta Total
-                          </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
-                            Costo Total
-                          </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
-                            Balance Neto
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-neutral-800">
-                        {equiposAgrupadosPorMes.map(([key, data]) => (
-                          <tr key={key} className="hover:bg-neutral-800/50 transition duration-150">
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white capitalize">
-                              {data.label}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-green-300">
-                              {mostrarBalances ? "****" : `$${formatPrice(data.totalVenta)}`}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-red-300">
-                              {mostrarBalances ? "****" : `-$${formatPrice(data.totalCosto)}`}
-                            </td>
-                            <td
-                              className={`px-6 py-4 whitespace-nowrap text-sm font-semibold text-right ${
-                                data.totalBalance >= 0 ? "text-emerald-400" : "text-red-400"
-                              }`}
-                            >
-                              {mostrarBalances ? "****" : `$${formatPrice(data.totalBalance)}`}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-              )}
-
-
-              {/* LISTADO DE EQUIPOS (Diseño de Cards en Grid) */}
-              <section className="py-4">
-                {loading ? (
-                  <p className="text-neutral-400 px-1">Cargando equipos...</p>
-                ) : equiposAgrupadosPorMes.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-white/15 p-6 text-center bg-white/5">
-                    <p className="text-neutral-300">Aún no hay equipos cargados.</p>
-                  </div>
-                ) : (
-                  equiposAgrupadosPorMes.map(([, data]) => {
-                    const { label: mes, equipos: equiposMes } = data;
 
                     return (
-                      <div key={mes} className="mb-8">
-                        {/* Encabezado de grupo (Mes) */}
-                        <div className="border-b border-white/10 pb-2 mb-6">
-                          <h4 className="text-2xl font-extrabold text-white capitalize">
-                            {mes}
-                          </h4>
-                          <p className="text-sm text-gray-500">{equiposMes.length} equipos ingresados.</p>
+                      <div
+                        key={eq.id}
+                        className="bg-neutral-900 p-5 rounded-xl border border-neutral-800 shadow-xl hover:border-purple-600/50 hover:shadow-purple-900/20 transition duration-200 space-y-4 flex flex-col justify-between"
+                      >
+                        
+                        {/* 1. HEADER (Equipo & Estado) */}
+                        <div className="flex justify-between items-start pb-2 border-b border-neutral-800/50">
+                          <div>
+                            <p className="text-lg font-extrabold text-purple-400 flex items-center gap-2">
+                              <IconLaptop className="w-5 h-5" />
+                              {eq.marca} {eq.modelo}
+                            </p>
+                            <p className="text-xs font-light text-neutral-400 uppercase">{eq.tipo} | ID: {eq.id}</p>
+                          </div>
+                          <span className={`px-3 py-1 text-xs font-bold rounded-full whitespace-nowrap ${
+                            estadoNombre.includes('Finalizado') ? 'bg-emerald-600/20 text-emerald-400' : 
+                            estadoNombre.includes('Pendiente') ? 'bg-yellow-600/20 text-yellow-400' : 
+                            'bg-neutral-700/20 text-neutral-300'
+                          }`}>
+                            {estadoNombre}
+                          </span>
                         </div>
 
-                        {/* Contenedor de Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                          {equiposMes.map((eq) => {
-                            const balance = balanceByEquipoId[eq.id];
-                            const costoTotal = balance?.costo_total ?? 0;
-                            const ventaTotal = balance?.total_total ?? 0;
-                            const balanceNeto = balance?.balance_final ?? 0;
-                            
-                            const estadoNombre = getNombreEstado(eq.estado_id);
-                            
-                            const clienteDireccion = eq.cliente_direccion || "Dirección N/D";
-                            const clienteTelefono = eq.cliente_celular || "Teléfono N/D";
-                            const clienteNombreCompleto = `${eq.cliente_nombre || 'Anónimo'} ${eq.cliente_apellido || ''}`;
+                        {/* 2. DETALLES DEL EQUIPO */}
+                        <div className="space-y-2">
+                          {/* Problema */}
+                          <div className="flex items-start gap-2 text-sm">
+                            <span className="text-red-400/80 mt-0.5 flex-shrink-0">
+                              <IconAlertTriangle />
+                            </span>
+                            <div className="grid">
+                                <span className="text-neutral-300 font-semibold leading-none">
+                                    Problema:
+                                </span>
+                                <span 
+                                    className="font-light text-neutral-400 text-xs leading-tight line-clamp-3"
+                                    title={eq.problema}
+                                >
+                                    {eq.problema}
+                                </span>
+                            </div>
+                          </div>
+
+                          {/* Fecha y Contraseña/Patrón */}
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-neutral-400 text-xs pt-1 border-t border-neutral-800/50">
+                            <p className="flex items-center gap-2">
+                              <IconClock className="w-3.5 h-3.5 text-neutral-500" /> 
+                              Ingreso: <span className="font-medium text-white">{formatDateShort(eq.fecha_ingreso)}</span>
+                            </p>
+                            <p className="flex items-center gap-2">
+                              <IconKey className="w-3.5 h-3.5 text-neutral-500" />
+                              {eq.password ? 'Pass:' : 'Patrón:'} <span className="font-medium text-white">{eq.password || eq.patron || "N/A"}</span>
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* 3. CLIENTE */}
+                        <div className="pt-2 border-t border-neutral-800/50 space-y-1 text-sm">
+                          <p className="text-neutral-300 font-medium flex items-center gap-2">
+                              <IconUser className="w-4 h-4 text-white/70" />
+                              {clienteNombreCompleto}
+                          </p>
+                          <p className="text-xs text-neutral-500 pl-6 flex items-center gap-2">
+                              <IconMapPin />
+                              {clienteDireccion}
+                          </p>
+                           <p className="text-xs text-neutral-500 pl-6 flex items-center gap-2">
+                              <IconPhone />
+                              {clienteTelefono}
+                          </p>
+                        </div>
 
 
-                            return (
-                              <div
-                                key={eq.id}
-                                className="bg-neutral-900 p-5 rounded-xl border border-neutral-800 shadow-xl hover:border-purple-600/50 hover:shadow-purple-900/20 transition duration-200 space-y-4 flex flex-col justify-between"
-                              >
-                                
-                                {/* 1. HEADER (Equipo & Estado) */}
-                                <div className="flex justify-between items-start pb-2 border-b border-neutral-800/50">
-                                  <div>
-                                    <p className="text-lg font-extrabold text-purple-400 flex items-center gap-2">
-                                      <IconLaptop className="w-5 h-5" />
-                                      {eq.marca} {eq.modelo}
-                                    </p>
-                                    <p className="text-xs font-light text-neutral-400 uppercase">{eq.tipo} | ID: {eq.id}</p>
-                                  </div>
-                                  <span className={`px-3 py-1 text-xs font-bold rounded-full whitespace-nowrap ${
-                                    estadoNombre.includes('Finalizado') ? 'bg-emerald-600/20 text-emerald-400' : 
-                                    estadoNombre.includes('Pendiente') ? 'bg-yellow-600/20 text-yellow-400' : 
-                                    'bg-neutral-700/20 text-neutral-300'
-                                  }`}>
-                                    {estadoNombre}
-                                  </span>
-                                </div>
-
-                                {/* 2. DETALLES DEL EQUIPO */}
-                                <div className="space-y-2">
-                                  {/* Problema */}
-                                  <div className="flex items-start gap-2 text-sm">
-                                    <span className="text-red-400/80 mt-0.5 flex-shrink-0">
-                                      <IconAlertTriangle />
-                                    </span>
-                                    <div className="grid">
-                                        <span className="text-neutral-300 font-semibold leading-none">
-                                            Problema:
-                                        </span>
-                                        <span 
-                                            className="font-light text-neutral-400 text-xs leading-tight line-clamp-3"
-                                            title={eq.problema}
-                                        >
-                                            {eq.problema}
-                                        </span>
-                                    </div>
-                                  </div>
-
-                                  {/* Fecha y Contraseña/Patrón */}
-                                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-neutral-400 text-xs pt-1 border-t border-neutral-800/50">
-                                    <p className="flex items-center gap-2">
-                                      <IconClock className="w-3.5 h-3.5 text-neutral-500" /> 
-                                      Ingreso: <span className="font-medium text-white">{formatDateShort(eq.fecha_ingreso)}</span>
-                                    </p>
-                                    <p className="flex items-center gap-2">
-                                      <IconKey className="w-3.5 h-3.5 text-neutral-500" />
-                                      {eq.password ? 'Pass:' : 'Patrón:'} <span className="font-medium text-white">{eq.password || eq.patron || "N/A"}</span>
-                                    </p>
-                                  </div>
-                                </div>
-
-                                {/* 3. CLIENTE */}
-                                <div className="pt-2 border-t border-neutral-800/50 space-y-1 text-sm">
-                                  <p className="text-neutral-300 font-medium flex items-center gap-2">
-                                      <IconUser className="w-4 h-4 text-white/70" />
-                                      {clienteNombreCompleto}
-                                  </p>
-                                  <p className="text-xs text-neutral-500 pl-6 flex items-center gap-2">
-                                      <IconMapPin />
-                                      {clienteDireccion}
-                                  </p>
-                                   <p className="text-xs text-neutral-500 pl-6 flex items-center gap-2">
-                                      <IconPhone />
-                                      {clienteTelefono}
-                                  </p>
-                                </div>
+                        {/* 4. BALANCES */}
+                        <div className="pt-3 border-t border-neutral-800 space-y-1">
+                            <div className="flex justify-between text-xs text-neutral-400">
+                                <span>Total (a cobrar):</span>
+                                <span className="font-semibold text-green-300">
+                                    {mostrarBalances ? "****" : `$${formatPrice(ventaTotal)}`}
+                                </span>
+                            </div>
+                            <div className="flex justify-between text-xs text-neutral-400">
+                                <span>Costo Estimado:</span>
+                                <span className="font-semibold text-red-300">
+                                    {mostrarBalances ? "****" : `-$${formatPrice(costoTotal)}`}
+                                </span>
+                            </div>
+                            <div className="flex justify-between text-sm font-semibold">
+                                <span className="text-neutral-300">Balance Neto:</span>
+                                <span className={balanceNeto >= 0 ? "text-emerald-400" : "text-red-400"}>
+                                    {mostrarBalances ? "****" : `$${formatPrice(balanceNeto)}`}
+                                </span>
+                            </div>
+                        </div>
 
 
-                                {/* 4. BALANCES */}
-                                <div className="pt-3 border-t border-neutral-800 space-y-1">
-                                    <div className="flex justify-between text-xs text-neutral-400">
-                                        <span>Total (a cobrar):</span>
-                                        <span className="font-semibold text-green-300">
-                                            {mostrarBalances ? "****" : `$${formatPrice(ventaTotal)}`}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between text-xs text-neutral-400">
-                                        <span>Costo Estimado:</span>
-                                        <span className="font-semibold text-red-300">
-                                            {mostrarBalances ? "****" : `-$${formatPrice(costoTotal)}`}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between text-sm font-semibold">
-                                        <span className="text-neutral-300">Balance Neto:</span>
-                                        <span className={balanceNeto >= 0 ? "text-emerald-400" : "text-red-400"}>
-                                            {mostrarBalances ? "****" : `$${formatPrice(balanceNeto)}`}
-                                        </span>
-                                    </div>
-                                </div>
+                        {/* 5. ACCIONES (Corregido: padding más pequeño) */}
+                        <div className="flex justify-end gap-2 pt-4 border-t border-neutral-800">
+                          {/* BOTÓN DE HISTORIAL CLIENTE */}
+                          {eq.cliente_id && (
+                            <button
+                              onClick={() => handleAbrirHistorial(eq.cliente_id, clienteNombreCompleto)}
+                              className="bg-purple-600/50 hover:bg-purple-700/70 text-purple-300 px-2 py-1 rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                              title="Ver historial de equipos y pagos del cliente"
+                            >
+                              <IconHistory className="w-3.5 h-3.5"/> Historial
+                            </button>
+                          )}
 
-
-                                {/* 5. ACCIONES */}
-                                <div className="flex justify-end gap-2 pt-4 border-t border-neutral-800">
-                                  {/* BOTÓN DE HISTORIAL CLIENTE (NUEVO) */}
-                                  {eq.cliente_id && (
-                                    <button
-                                      onClick={() => handleAbrirHistorial(eq.cliente_id, clienteNombreCompleto)}
-                                      className="bg-purple-600/50 hover:bg-purple-700/70 text-purple-300 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
-                                      title="Ver historial de equipos y pagos del cliente"
-                                    >
-                                      <IconHistory className="w-4 h-4"/> Historial
-                                    </button>
-                                  )}
-
-                                  <Link
-                                    to={`/equipos/${eq.id}`}
-                                    className="bg-neutral-700 hover:bg-neutral-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                                  >
-                                    Presupuestos
-                                  </Link>
-                                  <button
-                                    onClick={() => handleModificar(eq)}
-                                    className="bg-indigo-600 hover:bg-indigo-700 px-2.5 py-1.5 rounded-lg text-xs font-medium"
-                                  >
-                                    Modificar
-                                  </button>
-                                  <button
-                                    onClick={() => handleDelete(eq.id)}
-                                    className="bg-red-600 hover:bg-red-700 px-2.5 py-1.5 rounded-lg text-xs font-medium"
-                                  >
-                                    Eliminar
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })}
+                          <Link
+                            to={`/equipos/${eq.id}`}
+                            className="bg-neutral-700 hover:bg-neutral-600 text-white px-2 py-1 rounded-lg text-xs font-medium transition-colors"
+                          >
+                            Presupuestos
+                          </Link>
+                          <button
+                            onClick={() => handleModificar(eq)}
+                            className="bg-indigo-600 hover:bg-indigo-700 px-2 py-1 rounded-lg text-xs font-medium"
+                          >
+                            Modificar
+                          </button>
+                          <button
+                            onClick={() => handleDelete(eq.id)}
+                            className="bg-red-600 hover:bg-red-700 px-2 py-1 rounded-lg text-xs font-medium"
+                          >
+                            Eliminar
+                          </button>
                         </div>
                       </div>
                     );
-                  })
-                )}
-              </section>
-            </div>
-          </main>
-        </div>
+                  })}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </section>
+    </div>
+  </main>
+</div>
 
         {/* Modal de Creación/Modificación de Equipo */}
         <EquipoModal
