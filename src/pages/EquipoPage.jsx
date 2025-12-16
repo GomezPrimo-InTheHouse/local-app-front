@@ -467,11 +467,12 @@
 
 // src/pages/EquipoPage.jsx
 // src/pages/EquipoPage.jsx
+// src/pages/EquipoPage.jsx
 import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 
-// Iconos
+// Iconos (se mantienen)
 const IconMoney = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -524,16 +525,13 @@ import {
 } from "../api/EquiposApi.jsx";
 import { getBalancesPresupuestos } from "../api/PresupuestoApi.jsx";
 import { getEstados } from "../api/EstadoApi.jsx";
-import { getClienteById } from "../api/ClienteApi.jsx";
+// import { getClienteById } from "../api/ClienteApi.jsx"; // YA NO ES NECESARIO
 
 //componentes
 import SidebarEquipos from "../components/Equipo/SidebarEquipos.jsx";
 import EquipoModal from "../components/Equipo/EquipoModal.jsx";
 import BuscadorComponent from "../components/General/BuscadorComponent.jsx";
 import AlertNotification from "../components/Alerta/AlertNotification.jsx";
-// import SidebarCard from "../components/Ui/SidebarCard.jsx"; // No usado directamente, se deja en comentarios por limpieza
-// import { createIngreso } from "../api/IngresoApi";
-// import { enviarMensaje } from "../api/TwilioApi.jsx";
 
 
 const EquipoPage = () => {
@@ -567,30 +565,13 @@ const EquipoPage = () => {
     });
   };
 
-  // ---------- Data Fetch ----------
+  // ---------- Data Fetch (SIMPLIFICADO PARA CARGA RÁPIDA) ----------
   const fetchEquipos = async () => {
     setLoading(true);
     try {
-      const data = await getEquipos();
-      
-      const equiposConClienteDetalles = await Promise.all(data.map(async (equipo) => {
-        if (equipo.cliente_id) {
-          try {
-            const clienteRes = await getClienteById(equipo.cliente_id);
-            const cliente = clienteRes?.data || clienteRes; 
-            return { 
-              ...equipo, 
-              cliente_detalles: cliente 
-            };
-          } catch (error) {
-            console.error(`Error al obtener cliente ${equipo.cliente_id}:`, error);
-            return { ...equipo, cliente_detalles: null };
-          }
-        }
-        return { ...equipo, cliente_detalles: null };
-      }));
-
-      setEquipos(Array.isArray(equiposConClienteDetalles) ? equiposConClienteDetalles : []);
+      // ✅ SIMPLIFICACIÓN: getEquipos ahora devuelve los datos del cliente aplanados
+      const data = await getEquipos(); 
+      setEquipos(Array.isArray(data) ? data : []);
       
     } catch (err) {
       console.error("Error al obtener equipos:", err);
@@ -599,6 +580,7 @@ const EquipoPage = () => {
       setLoading(false);
     }
   };
+  // ------------------------------------------------------------------
 
   useEffect(() => {
     const fetchBalances = async () => {
@@ -737,9 +719,7 @@ const EquipoPage = () => {
     }
   };
 
-  // ------------------------------------------------------------------
-  // ✅ LÓGICA DE AGRUPACIÓN Y BALANCE MENSUAL MEJORADA
-  // ------------------------------------------------------------------
+  // LÓGICA DE AGRUPACIÓN Y BALANCE MENSUAL MEJORADA
   const equiposAgrupadosPorMes = useMemo(() => {
     // 1. Agrupar equipos y calcular métricas por mes
     const grupos = equipos.reduce((acc, eq) => {
@@ -790,10 +770,6 @@ const EquipoPage = () => {
         return keyB.localeCompare(keyA); 
     });
   }, [equipos, balanceByEquipoId]);
-
-  // ------------------------------------------------------------------
-  // FIN LÓGICA
-  // ------------------------------------------------------------------
 
 
   return (
@@ -899,7 +875,8 @@ const EquipoPage = () => {
                           if (!clienteId) {
                             await fetchEquipos();
                           } else {
-                            const data = await getEquiposByClienteId(clienteId);
+                            // Asumo que getEquiposByClienteId también retorna los datos del cliente aplanados
+                            const data = await getEquiposByClienteId(clienteId); 
                             setEquipos(Array.isArray(data) ? data : []);
                           }
                         } finally {
@@ -1005,14 +982,14 @@ const EquipoPage = () => {
                           {equiposMes.map((eq) => {
                             const balance = balanceByEquipoId[eq.id];
                             const costoTotal = balance?.costo_total ?? 0;
-                            const ventaTotal = balance?.total_total ?? 0; // Total de Venta
-                            const balanceNeto = balance?.balance_final ?? 0; // Balance Neto
+                            const ventaTotal = balance?.total_total ?? 0;
+                            const balanceNeto = balance?.balance_final ?? 0;
                             
                             const estadoNombre = getNombreEstado(eq.estado_id);
                             
-                            const cliente = eq.cliente_detalles;
-                            const clienteDireccion = cliente?.direccion || "Dirección N/D";
-                            const clienteTelefono = cliente?.celular || cliente?.celular_contacto || "Teléfono N/D";
+                            // ✅ USANDO PROPIEDADES APLANADAS DEL BACKEND
+                            const clienteDireccion = eq.cliente_direccion || "Dirección N/D";
+                            const clienteTelefono = eq.cliente_celular || "Teléfono N/D";
                             const clienteNombreCompleto = `${eq.cliente_nombre || 'Anónimo'} ${eq.cliente_apellido || ''}`;
 
 
@@ -1041,22 +1018,37 @@ const EquipoPage = () => {
                                 </div>
 
                                 {/* 2. DETALLES DEL EQUIPO */}
-                                <div className="space-y-2 text-sm">
-                                  <p className="text-neutral-300 font-semibold flex items-start gap-2">
-                                    <span className="text-red-400/80">
+  
+                                <div className="space-y-2">
+                                  {/* Problema: Texto más pequeño y con límite de líneas */}
+                                  <div className="flex items-start gap-2 text-sm">
+                                    <span className="text-red-400/80 mt-0.5 flex-shrink-0">
                                       <IconAlertTriangle />
                                     </span>
-                                    Problema: <span className="font-light">{eq.problema}</span>
-                                  </p>
+                                    {/* Usamos una grid de una columna para manejar el título y el contenido */}
+                                    <div className="grid">
+                                        <span className="text-neutral-300 font-semibold leading-none">
+                                            Problema:
+                                        </span>
+                                        <span 
+                                            // Reducimos el texto del problema a `text-xs` y limitamos a 2 o 3 líneas
+                                            className="font-light text-neutral-400 text-xs leading-tight line-clamp-3"
+                                            title={eq.problema} // Añadimos el título para que el usuario pueda ver el texto completo al pasar el ratón
+                                        >
+                                            {eq.problema}
+                                        </span>
+                                    </div>
+                                  </div>
 
-                                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-neutral-400">
+                                  {/* Fecha y Contraseña/Patrón (Mantenemos el tamaño compacto) */}
+                                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-neutral-400 text-xs pt-1 border-t border-neutral-800/50">
                                     <p className="flex items-center gap-2">
                                       <IconClock className="w-3.5 h-3.5 text-neutral-500" /> 
                                       Ingreso: <span className="font-medium text-white">{formatDateShort(eq.fecha_ingreso)}</span>
                                     </p>
                                     <p className="flex items-center gap-2">
                                       <IconKey className="w-3.5 h-3.5 text-neutral-500" />
-                                      {eq.password ? 'Contraseña:' : 'Patrón:'} <span className="font-medium text-white">{eq.password || eq.patron || "N/A"}</span>
+                                      {eq.password ? 'Pass:' : 'Patrón:'} <span className="font-medium text-white">{eq.password || eq.patron || "N/A"}</span>
                                     </p>
                                   </div>
                                 </div>
@@ -1081,15 +1073,15 @@ const EquipoPage = () => {
                                 {/* 4. BALANCES (Visualización Rápida COMPLETA) */}
                                 <div className="pt-3 border-t border-neutral-800 space-y-1">
                                     <div className="flex justify-between text-xs text-neutral-400">
-                                        <span>Costo Total:</span>
-                                        <span className="font-semibold text-red-300">
-                                            {mostrarBalances ? "****" : `-$${formatPrice(costoTotal)}`}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between text-xs text-neutral-400">
                                         <span>Total (a cobrar):</span>
                                         <span className="font-semibold text-green-300">
                                             {mostrarBalances ? "****" : `$${formatPrice(ventaTotal)}`}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between text-xs text-neutral-400">
+                                        <span>Costo Estimado:</span>
+                                        <span className="font-semibold text-red-300">
+                                            {mostrarBalances ? "****" : `-$${formatPrice(costoTotal)}`}
                                         </span>
                                     </div>
                                     <div className="flex justify-between text-sm font-semibold">
