@@ -1805,7 +1805,7 @@ const EquipoPage = () => {
                                     {eq.cliente_id && (
                                       <button
                                         onClick={() => handleAbrirHistorial(eq.cliente_id, clienteNombreCompleto)}
-                                        className="bg-purple-600/50 hover:bg-purple-700/70 text-purple-300 w-full px-2 py-1 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1"
+                                        className="bg-purple-600/50 hover:bg-purple-700/70 text-purple-300 w-full px-2 py-1 rounded-lg text-xs font-small transition-colors flex items-center justify-center gap-1"
                                         title="Ver historial de equipos y pagos del cliente"
                                       >
                                         <IconHistory className="w-3.5 h-3.5" /> Historial
@@ -1815,7 +1815,7 @@ const EquipoPage = () => {
                                     {/* BOTÓN PRESUPUESTOS (Columna 2) */}
                                     <Link
                                       to={`/equipos/${eq.id}`}
-                                      className="bg-neutral-700 hover:bg-neutral-600 text-white w-full px-2 py-1 rounded-lg text-xs font-medium transition-colors text-center"
+                                      className="bg-neutral-700 hover:bg-neutral-600 text-white w-full px-2 py-1 rounded-lg text-xs font-small transition-colors text-center"
                                     >
                                       Presupuestos
                                     </Link>
@@ -1823,7 +1823,7 @@ const EquipoPage = () => {
                                     {/* BOTÓN MODIFICAR (Columna 3) */}
                                     <button
                                       onClick={() => handleModificar(eq)}
-                                      className="bg-indigo-600 hover:bg-indigo-700 text-white w-full px-2 py-1 rounded-lg text-xs font-medium"
+                                      className="bg-indigo-600 hover:bg-indigo-700 text-white w-full px-2 py-1 rounded-lg text-xs font-small"
                                     >
                                       Modificar
                                     </button>
