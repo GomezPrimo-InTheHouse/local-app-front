@@ -1115,17 +1115,18 @@ const VentasPage = () => {
     }, 0);
   }, [ventas, productos]); // Agregamos 'productos' como dependencia
 
+
+
   /**
    * ✅ MEJORA: ventasAgrupadasPorMes ahora calcula y retorna el Balance Mensual
    * junto con el array de ventas.
    */
-  const ventasAgrupadasPorMes = useMemo(() => {
+  const balanceMensual = useMemo(() => {
     const grupos = ventasFiltradas.reduce((grupos, venta) => {
       const fechaStr = venta.fecha;
       let key = "Sin fecha";
-      let balanceVenta = 0;
 
-      // 1. Cálculo de Balance para la Venta (igual a totalBalanceGeneral)
+      // 1. Cálculo de Totales y Costo para la Venta
       const totalVenta = parseFloat(venta.total) || 0;
       const costoVenta = (venta.detalle_venta || []).reduce((costoAcc, det) => {
         const cantidad = Number(det.cantidad) || 0;
@@ -1134,9 +1135,9 @@ const VentasPage = () => {
         const costoUnitario = productoInfo ? Number(productoInfo.costo) || 0 : 0;
         return costoAcc + cantidad * costoUnitario;
       }, 0);
-      balanceVenta = totalVenta - costoVenta;
+      const balanceVenta = totalVenta - costoVenta;
 
-      // 2. Lógica de Agrupación
+      // 2. Lógica de Agrupación (YYYY-MM)
       if (typeof fechaStr === "string") {
         const [soloFecha] = fechaStr.split("T");
         const partes = soloFecha?.split("-");
@@ -1147,41 +1148,60 @@ const VentasPage = () => {
           if (!isNaN(yearNum) && !isNaN(monthNum)) {
             const fechaObj = new Date(yearNum, monthNum - 1, 1);
             if (!isNaN(fechaObj.getTime())) {
-              const mesNombre = fechaObj.toLocaleString("es-AR", {
+              // Clave para ordenar: YYYY-MM
+              const sortKey = `${yearStr}-${monthStr.padStart(2, '0')}`;
+              // Etiqueta para la UI
+              const mesLabel = fechaObj.toLocaleString("es-AR", {
                 month: "long",
               });
-              key = `${mesNombre} ${yearNum}`;
+              key = `${mesLabel} ${yearNum}`;
+
+              // Usar un objeto anidado para almacenar todos los datos
+              if (!grupos[sortKey]) grupos[sortKey] = { 
+                ventas: [], 
+                balance: 0, 
+                totalVentas: 0, // Nuevo
+                totalCosto: 0,  // Nuevo
+                label: key, // Nueva etiqueta
+              };
+              
+              grupos[sortKey].ventas.push(venta);
+              // Acumular todos los valores
+              grupos[sortKey].balance += balanceVenta; 
+              grupos[sortKey].totalVentas += totalVenta;
+              grupos[sortKey].totalCosto += costoVenta;
+              
+              return grupos;
             }
           }
         }
       }
 
-      if (!grupos[key]) grupos[key] = { ventas: [], balance: 0 };
-      grupos[key].ventas.push(venta);
-      // Acumular balance en el grupo
-      grupos[key].balance += balanceVenta; 
+      // Manejo de "Sin Fecha" (si aplica)
+      if (key === "Sin fecha") {
+        if (!grupos[key]) grupos[key] = { ventas: [], balance: 0, totalVentas: 0, totalCosto: 0, label: key };
+        grupos[key].ventas.push(venta);
+        grupos[key].balance += balanceVenta;
+        grupos[key].totalVentas += totalVenta;
+        grupos[key].totalCosto += costoVenta;
+      }
       
       return grupos;
     }, {});
 
-    // Ordenar por Año y Mes (descendente)
+    // Ordenar por clave YYYY-MM (descendente)
     return Object.entries(grupos).sort(([keyA], [keyB]) => {
-      const getSortableDate = (key) => {
-        const parts = key.split(" ");
-        const year = Number(parts[1]);
-        // Parsea el nombre del mes para obtener su índice
-        const monthIndex = new Date(Date.parse(parts[0] + " 1, 2020")).getMonth(); 
-
-        return year * 100 + monthIndex;
-      };
-
       if (keyA === "Sin fecha") return 1;
       if (keyB === "Sin fecha") return -1;
-
-      return getSortableDate(keyB) - getSortableDate(keyA);
+      return keyB.localeCompare(keyA);
     });
-  }, [ventasFiltradas, productos]); // Dependencia de productos es CRUCIAL para el cálculo del costo
-  // --- FIN Memos de Lógica ---
+  }, [ventasFiltradas, productos]); 
+  
+  // Mantenemos la variable 'ventasAgrupadasPorMes' con el contenido anterior para no romper la UI de abajo
+  // La reasignamos usando la nueva variable 'balanceMensual' (aunque se llamaba así en el código original)
+  const ventasAgrupadasPorMes = balanceMensual;
+  
+
 
   return (
     <div className="flex bg-neutral-950 text-white min-h-screen">
@@ -1282,6 +1302,59 @@ const VentasPage = () => {
             </span>
           </div>
         </div>
+
+        {/* ------------------------------------------------------------- */}
+        {/* ✅ NUEVO: Vista Rápida de Balance Mensual (Ventas - Costos)  */}
+        {/* ------------------------------------------------------------- */}
+        {ventasAgrupadasPorMes.length > 0 && (
+          <div className="pt-4">
+            <h2 className="text-xl font-semibold text-white mb-4">
+              Resumen de Balance por Mes
+            </h2>
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-x-auto shadow-lg">
+              <table className="min-w-full divide-y divide-neutral-800">
+                <thead className="bg-neutral-800/80">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Mes
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Venta Total
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Costo Total
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Balance Neto
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-800">
+                  {ventasAgrupadasPorMes.map(([, data]) => (
+                    <tr key={data.label} className="hover:bg-neutral-800/50 transition duration-150">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white capitalize">
+                        {data.label}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-green-300">
+                        ${formatPrice(data.totalVentas)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-red-300">
+                        -${formatPrice(data.totalCosto)}
+                      </td>
+                      <td
+                        className={`px-6 py-4 whitespace-nowrap text-sm font-semibold text-right ${
+                          data.balance >= 0 ? "text-emerald-400" : "text-red-400"
+                        }`}
+                      >
+                        ${formatPrice(data.balance)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Contenido principal: Loading, No Data, o Lista de Ventas */}
         <div className="pt-4">
