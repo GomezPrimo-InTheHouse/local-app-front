@@ -486,6 +486,7 @@
 // export default VentasModal;
 
 // src/components/Ventas/VentasModal.jsx
+// src/components/Ventas/VentasModal.jsx
 import { useEffect, useMemo, useState } from "react";
 import { getClientes } from "../../api/ClienteApi";
 import { getProductos } from "../../api/ProductoApi";
@@ -502,8 +503,10 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
   const [montoAbonadoToForm, setMontoAbonadoToForm] = useState(0);
   const [saving, setSaving] = useState(false);
 
+  // ===== Helpers =====
   const isEdicion = Boolean(initialData?.id ?? initialData?.venta_id);
 
+  // Mapa de cantidad previa por producto_id para modo edición
   const prevCantidadPorProd = useMemo(() => {
     const detalles = initialData?.detalle_venta || initialData?.detalles || [];
     return new Map(detalles.map((d) => [Number(d.producto_id), Number(d.cantidad) || 0]));
@@ -536,9 +539,10 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
     fetchInitialData();
   }, []);
 
-  // ===== Cargar initialData =====
+  // ===== Cargar initialData en el formulario =====
   useEffect(() => {
     if (initialData && productos.length > 0 && clientes.length > 0) {
+      // cliente
       const cliId = initialData?.cliente?.id ?? initialData?.cliente_id;
       if (cliId) {
         const clienteEncontrado = clientes.find((c) => Number(c.id) === Number(cliId));
@@ -554,6 +558,7 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
         setSearch("");
       }
 
+      // detalles -> items
       const detalles = initialData.detalle_venta || initialData.detalles || [];
       const loadedItems = detalles.map((detail) => {
         const productInfo = productos.find((p) => Number(p.id) === Number(detail.producto_id));
@@ -568,12 +573,13 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
       });
       setItems(loadedItems);
 
+      // monto abonado
       const abonado = Number(initialData.monto_abonado ?? 0);
       setPagado(String(Number.isFinite(abonado) ? Math.floor(abonado) : 0));
     }
   }, [initialData, productos, clientes]);
 
-  // ===== Búsqueda clientes =====
+  // ===== Búsqueda de clientes =====
   useEffect(() => {
     const q = search.trim().toLowerCase();
     if (!q) {
@@ -590,17 +596,18 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
     );
   }, [search, clientes]);
 
-  // ===== Cerrar con ESC =====
-  useEffect(() => {
-    const onKeyDown = (ev) => {
-      if (ev.key === "Escape" && !saving) handleClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saving, clientes]); // clientes para que handleClose tenga data cargada
+  // ===== Helpers numéricos =====
+  const sanitizeNumberString = (raw) => {
+    if (raw == null) return "";
+    return String(raw).replace(/[^0-9]/g, "");
+  };
 
-  // ===== Helpers =====
+  const onChangePagado = (e) => {
+    const v = sanitizeNumberString(e.target.value);
+    setPagado(v === "" ? "" : v);
+  };
+
+  // ===== Selectores cliente =====
   const handleSelectCliente = (c) => {
     setClienteSeleccionado(c);
     setSearch(`${c.nombre} ${c.apellido}`);
@@ -613,17 +620,7 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
     setFilteredClientes(clientes);
   };
 
-  const sanitizeNumberString = (raw) => {
-    if (raw == null) return "";
-    return String(raw).replace(/[^0-9]/g, "");
-  };
-
-  const onChangePagado = (e) => {
-    const v = sanitizeNumberString(e.target.value);
-    setPagado(v === "" ? "" : v);
-  };
-
-  // ===== Items =====
+  // ===== Productos / Items =====
   const handleAddItem = (e) => {
     const productoSeleccionado = productos.find((p) => String(p.id) === String(e.target.value));
     if (
@@ -689,18 +686,56 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
   };
 
   // ===== Totales =====
-  const total = items.reduce((acc, item) => acc + Number(item.cantidad || 0) * Number(item.precio || 0), 0);
+  const total = items.reduce(
+    (acc, item) => acc + Number(item.cantidad || 0) * Number(item.precio || 0),
+    0
+  );
   const pagadoNum = Number(pagado || 0);
   const saldo = Math.max(0, total - pagadoNum);
+
+  // ✅ saldado / lock como en web shop
+  const isSaldada = total > 0 && saldo === 0;
+  const lockEdicion = saving || isSaldada;
 
   useEffect(() => {
     setMontoAbonadoToForm(pagadoNum);
   }, [pagadoNum]);
 
+  // ===== Close =====
+  const handleClose = () => {
+    if (saving) return;
+    setClienteSeleccionado(null);
+    setSearch("");
+    setFilteredClientes(clientes);
+    setItems([]);
+    setPagado("");
+    onClose?.();
+  };
+
+  // ===== ESC =====
+  useEffect(() => {
+    const onKeyDown = (ev) => {
+      if (ev.key === "Escape" && !saving) handleClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saving]);
+
   // ===== Submit =====
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (saving) return;
+
+    if (isSaldada) {
+      alert("Esta venta ya está saldada. No se permiten modificaciones.");
+      return;
+    }
+
+    if (!clienteSeleccionado?.id) {
+      alert("Seleccioná un cliente.");
+      return;
+    }
 
     if (!Array.isArray(items) || items.length === 0) {
       alert("Debe agregar al menos un producto.");
@@ -735,11 +770,6 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
       return;
     }
 
-    if (!clienteSeleccionado?.id) {
-      alert("Seleccioná un cliente.");
-      return;
-    }
-
     const ventaPayload = {
       id: initialData?.id ?? initialData?.venta_id ?? undefined,
       cliente_id: clienteSeleccionado.id,
@@ -757,30 +787,21 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
 
     try {
       setSaving(true);
-      await onGuardar(ventaPayload); // ✅ si falla, no cerramos
+      await onGuardar(ventaPayload); // ✅ si falla, no cierra
       handleClose(); // ✅ cerrar solo si OK
     } finally {
       setSaving(false);
     }
   };
 
-  const handleClose = () => {
-    if (saving) return;
-    setClienteSeleccionado(null);
-    setSearch("");
-    setFilteredClientes(clientes);
-    setItems([]);
-    setPagado("");
-    onClose?.();
-  };
-
+  // ===== UI =====
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* overlay */}
       <button
         type="button"
         className="absolute inset-0 bg-black/70"
-        onClick={handleClose}
+        onClick={() => !saving && handleClose()}
         aria-label="Cerrar"
         disabled={saving}
       />
@@ -814,12 +835,18 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
           </p>
         </div>
 
+        {/* ✅ Venta saldada */}
+        {isSaldada && (
+          <div className="mb-4 text-xs px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-200">
+            ✅ Venta saldada. No se permiten más modificaciones.
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
           <div className="flex-1 overflow-y-auto space-y-4 pr-2 -mr-2">
-            {/* Cliente (card) */}
-            <div className="bg-neutral-700 p-3 rounded">
+            {/* CLIENTE */}
+            <div className="bg-neutral-700 p-3 rounded relative">
               <label className="block text-sm text-gray-300 mb-1">Cliente</label>
-
               <input
                 type="text"
                 value={search}
@@ -830,13 +857,13 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
                 onFocus={() => setShowDropdown(true)}
                 onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
                 placeholder="Buscar por nombre, apellido o celular"
-                disabled={saving}
+                disabled={lockEdicion}
                 className="w-full bg-neutral-600 p-2 rounded text-white transition
-                           focus:outline-none focus:ring-2 focus:ring-emerald-500/60 disabled:opacity-60"
+                           focus:outline-none focus:ring-2 focus:ring-emerald-500/60 disabled:opacity-60 disabled:cursor-not-allowed"
               />
 
-              {showDropdown && (
-                <ul className="absolute z-50 mt-1 bg-neutral-700 w-[calc(100%-3rem)] rounded max-h-44 overflow-y-auto shadow-lg border border-white/10">
+              {showDropdown && !lockEdicion && (
+                <ul className="absolute z-50 mt-1 bg-neutral-700 w-full left-0 rounded max-h-44 overflow-y-auto shadow-lg border border-white/10">
                   {filteredClientes.length > 0 ? (
                     filteredClientes.map((c) => (
                       <li
@@ -863,9 +890,9 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
                   <button
                     type="button"
                     onClick={handleClearCliente}
-                    disabled={saving}
+                    disabled={lockEdicion}
                     className="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-sm
-                               transition disabled:opacity-60"
+                               transition disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     Limpiar
                   </button>
@@ -873,16 +900,16 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
               )}
             </div>
 
-            {/* Productos (card) */}
+            {/* PRODUCTOS */}
             <div className="bg-neutral-700 p-3 rounded space-y-3">
               <div>
                 <label className="block text-sm text-gray-300 mb-1">Productos</label>
                 <select
                   onChange={handleAddItem}
                   className="w-full bg-neutral-600 p-2 rounded text-white transition
-                             focus:outline-none focus:ring-2 focus:ring-emerald-500/60 disabled:opacity-60"
+                             focus:outline-none focus:ring-2 focus:ring-emerald-500/60 disabled:opacity-60 disabled:cursor-not-allowed"
                   value=""
-                  disabled={saving}
+                  disabled={lockEdicion}
                 >
                   <option value="" disabled>
                     Añadir un producto
@@ -899,7 +926,6 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
                 </select>
               </div>
 
-              {/* Lista items */}
               <div className="space-y-2">
                 {items.map((item) => (
                   <div
@@ -917,9 +943,10 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
                           pattern="\d*"
                           value={item.cantidad}
                           onChange={(e) => handleUpdateItem(item.id, "cantidad", e.target.value)}
-                          disabled={saving}
+                          disabled={lockEdicion}
                           className="w-14 bg-neutral-600 p-2 rounded text-white text-center
-                                     focus:outline-none focus:ring-2 focus:ring-emerald-500/60 disabled:opacity-60"
+                                     focus:outline-none focus:ring-2 focus:ring-emerald-500/60
+                                     disabled:opacity-60 disabled:cursor-not-allowed"
                         />
                         <span className="text-gray-400">x</span>
                         <input
@@ -928,9 +955,10 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
                           pattern="\d*"
                           value={item.precio}
                           onChange={(e) => handleUpdateItem(item.id, "precio", e.target.value)}
-                          disabled={saving}
+                          disabled={lockEdicion}
                           className="w-24 bg-neutral-600 p-2 rounded text-white text-center
-                                     focus:outline-none focus:ring-2 focus:ring-emerald-500/60 disabled:opacity-60"
+                                     focus:outline-none focus:ring-2 focus:ring-emerald-500/60
+                                     disabled:opacity-60 disabled:cursor-not-allowed"
                         />
                         <span className="ml-1 font-semibold text-gray-100">
                           ${ (Number(item.cantidad) * Number(item.precio)).toLocaleString("es-AR") }
@@ -950,7 +978,7 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
                     <button
                       type="button"
                       onClick={() => handleRemoveItem(item.detalle_id ?? item.id)}
-                      disabled={saving}
+                      disabled={lockEdicion}
                       className="inline-flex h-9 w-9 items-center justify-center rounded-full
                                  bg-red-500/10 hover:bg-red-500/20 border border-red-500/20
                                  text-red-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
@@ -975,7 +1003,7 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
               </div>
             </div>
 
-            {/* Pago + Resumen (cards) */}
+            {/* PAGADO + RESUMEN */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-neutral-700 p-3 rounded">
                 <label className="block text-sm text-gray-300 mb-1">Monto pagado</label>
@@ -985,14 +1013,13 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
                   pattern="\d*"
                   value={pagado}
                   onChange={onChangePagado}
-                  disabled={saving}
+                  disabled={lockEdicion}
                   className="w-full bg-neutral-600 p-2 rounded text-white transition
-                             focus:outline-none focus:ring-2 focus:ring-emerald-500/60 disabled:opacity-60"
+                             focus:outline-none focus:ring-2 focus:ring-emerald-500/60
+                             disabled:opacity-60 disabled:cursor-not-allowed"
                   placeholder="Ej: 22000"
                 />
-                <p className="text-xs text-gray-400 mt-2">
-                  El saldo se calcula automáticamente.
-                </p>
+                <p className="text-xs text-gray-400 mt-2">El saldo se calcula automáticamente.</p>
               </div>
 
               <div className="bg-neutral-700 p-3 rounded">
@@ -1015,7 +1042,7 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
             )}
           </div>
 
-          {/* Acciones */}
+          {/* BOTONES */}
           <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-neutral-700">
             <button
               type="button"
@@ -1029,7 +1056,7 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
 
             <button
               type="submit"
-              disabled={saving || !clienteSeleccionado?.id || items.length === 0}
+              disabled={saving || isSaldada || !clienteSeleccionado?.id || items.length === 0}
               className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded transition
                          disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
@@ -1038,6 +1065,8 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
                   <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                   Guardando...
                 </>
+              ) : isSaldada ? (
+                "Venta saldada"
               ) : isEdicion ? (
                 "Guardar cambios"
               ) : (
@@ -1052,3 +1081,4 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
 };
 
 export default VentasModal;
+
