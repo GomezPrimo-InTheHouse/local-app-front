@@ -466,10 +466,12 @@
 // export default EquipoPage;
 
 // src/pages/EquipoPage.jsx
+// src/pages/EquipoPage.jsx
 import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-// Icons (asumo que se necesitan)
+
+// Iconos
 const IconMoney = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -500,6 +502,15 @@ const IconTrendingUp = () => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
   </svg>
 );
+const IconMapPin = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+);
+const IconPhone = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+);
+const IconAlertTriangle = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}> <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M6.832 20h10.336A2.973 2.973 0 0021 17.027V6.973A2.973 2.973 0 0017.168 4H6.832A2.973 2.973 0 003 6.973v10.054A2.973 2.973 0 006.832 20z" /> </svg>
+);
 
 
 //api
@@ -513,8 +524,6 @@ import {
 } from "../api/EquiposApi.jsx";
 import { getBalancesPresupuestos } from "../api/PresupuestoApi.jsx";
 import { getEstados } from "../api/EstadoApi.jsx";
-// import { createIngreso } from "../api/IngresoApi"; // (lo mantenemos por si lo reactivás)
-// import { enviarMensaje } from "../api/TwilioApi.jsx";
 import { getClienteById } from "../api/ClienteApi.jsx";
 
 //componentes
@@ -522,6 +531,10 @@ import SidebarEquipos from "../components/Equipo/SidebarEquipos.jsx";
 import EquipoModal from "../components/Equipo/EquipoModal.jsx";
 import BuscadorComponent from "../components/General/BuscadorComponent.jsx";
 import AlertNotification from "../components/Alerta/AlertNotification.jsx";
+// import SidebarCard from "../components/Ui/SidebarCard.jsx"; // No usado directamente, se deja en comentarios por limpieza
+// import { createIngreso } from "../api/IngresoApi";
+// import { enviarMensaje } from "../api/TwilioApi.jsx";
+
 
 const EquipoPage = () => {
   const [filtro, setFiltro] = useState("todos");
@@ -559,19 +572,25 @@ const EquipoPage = () => {
     setLoading(true);
     try {
       const data = await getEquipos();
-      // ✅ Fetchar los detalles completos del cliente para cada equipo (solo si es necesario y si el backend no lo devuelve)
-      // Si el backend ya devuelve cliente_nombre y cliente_apellido, esto no es necesario:
-      /*
+      
       const equiposConClienteDetalles = await Promise.all(data.map(async (equipo) => {
         if (equipo.cliente_id) {
-          const cliente = await getClienteById(equipo.cliente_id);
-          return { ...equipo, cliente_detalles: cliente };
+          try {
+            const clienteRes = await getClienteById(equipo.cliente_id);
+            const cliente = clienteRes?.data || clienteRes; 
+            return { 
+              ...equipo, 
+              cliente_detalles: cliente 
+            };
+          } catch (error) {
+            console.error(`Error al obtener cliente ${equipo.cliente_id}:`, error);
+            return { ...equipo, cliente_detalles: null };
+          }
         }
-        return equipo;
+        return { ...equipo, cliente_detalles: null };
       }));
+
       setEquipos(Array.isArray(equiposConClienteDetalles) ? equiposConClienteDetalles : []);
-      */
-      setEquipos(Array.isArray(data) ? data : []);
       
     } catch (err) {
       console.error("Error al obtener equipos:", err);
@@ -719,7 +738,7 @@ const EquipoPage = () => {
   };
 
   // ------------------------------------------------------------------
-  // ✅ 1. LÓGICA DE AGRUPACIÓN Y BALANCE MENSUAL MEJORADA
+  // ✅ LÓGICA DE AGRUPACIÓN Y BALANCE MENSUAL MEJORADA
   // ------------------------------------------------------------------
   const equiposAgrupadosPorMes = useMemo(() => {
     // 1. Agrupar equipos y calcular métricas por mes
@@ -785,7 +804,7 @@ const EquipoPage = () => {
         {/* Grid: sidebar fijo (280–360px) + contenido */}
         <div className="grid grid-cols-1 md:grid-cols-[30%_70%] gap-0 md:gap-6 w-full">
 
-          {/* ------- LADO IZQUIERDO (SIDEBAR) (sin modificar) ------- */}
+          {/* ------- LADO IZQUIERDO (SIDEBAR) ------- */}
           <aside
             className="
             md:sticky md:top-4
@@ -861,7 +880,7 @@ const EquipoPage = () => {
                     className="px-3 py-1.5 rounded-lg bg-neutral-800/70 hover:bg-neutral-800 border border-white/10 text-[12px] sm:text-sm"
                     title={mostrarBalances ? "Mostrar montos" : "Ocultar montos"}
                   >
-                    {mostrarBalances ? "Mostrar montos" : "Ocultar montos"}
+                    {mostrarBalances ? "Ocultar montos" : "Mostrar montos"}
                   </button>
                 </div>
               </div>
@@ -905,9 +924,7 @@ const EquipoPage = () => {
                 </div>
               </section>
 
-              {/* ------------------------------------------------------------------ */}
-              {/* ✅ 2. VISTA RÁPIDA DE BALANCE MENSUAL (Tabla tipo VentasPage) */}
-              {/* ------------------------------------------------------------------ */}
+              {/* VISTA RÁPIDA DE BALANCE MENSUAL (Tabla tipo VentasPage) */}
               {equiposAgrupadosPorMes.length > 0 && (
                 <section className="pt-2">
                   <h2 className="text-xl font-semibold text-white mb-3 flex items-center gap-2">
@@ -961,9 +978,7 @@ const EquipoPage = () => {
               )}
 
 
-              {/* ------------------------------------------------------------------ */}
-              {/* ✅ 3. LISTADO DE EQUIPOS (Diseño de Cards) */}
-              {/* ------------------------------------------------------------------ */}
+              {/* LISTADO DE EQUIPOS (Diseño de Cards) */}
               <section className="py-4">
                 {loading ? (
                   <p className="text-neutral-400 px-1">Cargando equipos...</p>
@@ -973,9 +988,8 @@ const EquipoPage = () => {
                   </div>
                 ) : (
                   equiposAgrupadosPorMes.map(([, data]) => {
-                    const { label: mes, equipos: equiposMes, totalBalance } = data;
+                    const { label: mes, equipos: equiposMes } = data;
 
-                    // El encabezado del mes ya no necesita el balance mes
                     return (
                       <div key={mes} className="mb-8">
                         {/* Encabezado de grupo (Mes) */}
@@ -990,15 +1004,16 @@ const EquipoPage = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                           {equiposMes.map((eq) => {
                             const balance = balanceByEquipoId[eq.id];
-                            const balanceNeto = balance?.balance_final ?? 0;
                             const costoTotal = balance?.costo_total ?? 0;
-                            const ventaTotal = balance?.total_total ?? 0;
+                            const ventaTotal = balance?.total_total ?? 0; // Total de Venta
+                            const balanceNeto = balance?.balance_final ?? 0; // Balance Neto
+                            
                             const estadoNombre = getNombreEstado(eq.estado_id);
                             
-                            // Asumo que tu backend no retorna los detalles del cliente (dirección/teléfono) en el objeto equipo.
-                            // Si los retorna, descomentar y usar eq.cliente.direccion, eq.cliente.celular. 
-                            const clienteDireccion = "Consultar API Cliente"; // Reemplazar si el JSON del equipo lo tiene anidado
-                            const clienteTelefono = "Consultar API Cliente"; // Reemplazar si el JSON del equipo lo tiene anidado
+                            const cliente = eq.cliente_detalles;
+                            const clienteDireccion = cliente?.direccion || "Dirección N/D";
+                            const clienteTelefono = cliente?.celular || cliente?.celular_contacto || "Teléfono N/D";
+                            const clienteNombreCompleto = `${eq.cliente_nombre || 'Anónimo'} ${eq.cliente_apellido || ''}`;
 
 
                             return (
@@ -1014,7 +1029,7 @@ const EquipoPage = () => {
                                       <IconLaptop className="w-5 h-5" />
                                       {eq.marca} {eq.modelo}
                                     </p>
-                                    <p className="text-xs font-light text-neutral-400 uppercase">{eq.tipo} | {eq.id}</p>
+                                    <p className="text-xs font-light text-neutral-400 uppercase">{eq.tipo} | ID: {eq.id}</p>
                                   </div>
                                   <span className={`px-3 py-1 text-xs font-bold rounded-full whitespace-nowrap ${
                                     estadoNombre.includes('Finalizado') ? 'bg-emerald-600/20 text-emerald-400' : 
@@ -1029,7 +1044,7 @@ const EquipoPage = () => {
                                 <div className="space-y-2 text-sm">
                                   <p className="text-neutral-300 font-semibold flex items-start gap-2">
                                     <span className="text-red-400/80">
-                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}> <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M6.832 20h10.336A2.973 2.973 0 0021 17.027V6.973A2.973 2.973 0 0017.168 4H6.832A2.973 2.973 0 003 6.973v10.054A2.973 2.973 0 006.832 20z" /> </svg>
+                                      <IconAlertTriangle />
                                     </span>
                                     Problema: <span className="font-light">{eq.problema}</span>
                                   </p>
@@ -1046,24 +1061,35 @@ const EquipoPage = () => {
                                   </div>
                                 </div>
 
-                                {/* 3. CLIENTE (Separador) */}
+                                {/* 3. CLIENTE (Ajustado y Compacto) */}
                                 <div className="pt-2 border-t border-neutral-800/50 space-y-1 text-sm">
                                   <p className="text-neutral-300 font-medium flex items-center gap-2">
                                       <IconUser className="w-4 h-4 text-white/70" />
-                                      {eq.cliente_nombre} {eq.cliente_apellido}
+                                      {clienteNombreCompleto}
                                   </p>
-                                  <p className="text-xs text-neutral-500 pl-6">
-                                    Dirección: {clienteDireccion} | Teléfono: {clienteTelefono}
+                                  <p className="text-xs text-neutral-500 pl-6 flex items-center gap-2">
+                                      <IconMapPin />
+                                      {clienteDireccion}
+                                  </p>
+                                   <p className="text-xs text-neutral-500 pl-6 flex items-center gap-2">
+                                      <IconPhone />
+                                      {clienteTelefono}
                                   </p>
                                 </div>
 
 
-                                {/* 4. BALANCES (Visualización Rápida) */}
+                                {/* 4. BALANCES (Visualización Rápida COMPLETA) */}
                                 <div className="pt-3 border-t border-neutral-800 space-y-1">
                                     <div className="flex justify-between text-xs text-neutral-400">
-                                        <span>Costo Estimado:</span>
+                                        <span>Costo Total:</span>
                                         <span className="font-semibold text-red-300">
-                                            {mostrarBalances ? "****" : `$${formatPrice(costoTotal)}`}
+                                            {mostrarBalances ? "****" : `-$${formatPrice(costoTotal)}`}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between text-xs text-neutral-400">
+                                        <span>Total (a cobrar):</span>
+                                        <span className="font-semibold text-green-300">
+                                            {mostrarBalances ? "****" : `$${formatPrice(ventaTotal)}`}
                                         </span>
                                     </div>
                                     <div className="flex justify-between text-sm font-semibold">
@@ -1075,23 +1101,23 @@ const EquipoPage = () => {
                                 </div>
 
 
-                                {/* 5. ACCIONES */}
-                                <div className="flex justify-end gap-3 pt-4 border-t border-neutral-800">
+                                {/* 5. ACCIONES (Botones compactos) */}
+                                <div className="flex justify-end gap-2 pt-4 border-t border-neutral-800">
                                   <Link
                                     to={`/equipos/${eq.id}`}
-                                    className="bg-neutral-700 hover:bg-neutral-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                                    className="bg-neutral-700 hover:bg-neutral-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors"
                                   >
                                     Presupuestos
                                   </Link>
                                   <button
                                     onClick={() => handleModificar(eq)}
-                                    className="bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                                    className="bg-purple-600 hover:bg-purple-700 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors"
                                   >
                                     Modificar
                                   </button>
                                   <button
                                     onClick={() => handleDelete(eq.id)}
-                                    className="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                                    className="bg-red-600 hover:bg-red-700 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors"
                                   >
                                     Eliminar
                                   </button>
