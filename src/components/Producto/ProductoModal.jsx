@@ -916,6 +916,7 @@ const ProductoModal = ({ isOpen, onClose, onSave, producto = null }) => {
       stock: form.stock ? parseInt(form.stock, 10) : 0,
       precio: form.precio ? parseFloat(form.precio) : 0,
       descripcion: form.descripcion.trim(),
+      descripcion_web: form.descripcion_web.trim() || null,
       estado_id: form.estado_id ? Number(form.estado_id) : null,
       categoria_id: form.categoria_id ? Number(form.categoria_id) : null,
       costo: form.costo ? parseFloat(form.costo) : 0,
