@@ -133,7 +133,7 @@ import useAuth from "../hooks/UseAuth.jsx";
 import { useState, useMemo } from "react";
 
 // Componentes
-import DashboardView from "../components/Dashboard/DashboardView";
+import DashboardView from "../components/Dashboard/DashboardView.jsx";
 import EstadisticasModal from "../components/General/EstadisticasModal";
 
 const Dashboard = () => {

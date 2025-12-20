@@ -3,7 +3,7 @@ import SidebarNav from "../Layout/Sidebar";
 import HeaderActions from "../General/Header";
 import IncomeCostChart from '../Chart/IncomeCostChart';
 import EquiposPieChart from '../Chart/EquiposPieChart';
-import KPICard from "./KPICard"; // Te recomiendo crear este pequeño componente
+import KPICard from "../Dashboard/KPICard"; // Te recomiendo crear este pequeño componente
 import { Wallet, Wrench, ShoppingCart, TrendingUp } from 'lucide-react';
 
 const DashboardView = ({ resumenData, isLoading, deviceTypeData, today, currentYear, handleLogout, handleOpenModal }) => {
