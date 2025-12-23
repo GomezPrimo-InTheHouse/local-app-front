@@ -1,14 +1,47 @@
 // src/components/Dashboard/DashboardView.jsx
 import SidebarNav from "../Layout/Sidebar";
 import HeaderActions from "../General/Header";
-import IncomeCostChart from '../Chart/IncomeCostChart';
-import EquiposPieChart from '../Chart/EquiposPieChart';
-import KPICard from "../Dashboard/KPICard"; // Te recomiendo crear este pequeño componente
-import { Wallet, Wrench, ShoppingCart, TrendingUp } from 'lucide-react';
+import IncomeCostChart from "../Chart/IncomeCostChart";
+import EquiposPieChart from "../Chart/EquiposPieChart";
+import KPICard from "../Dashboard/KPICard";
+import { Wallet, Wrench, ShoppingCart, TrendingUp } from "lucide-react";
 
-const DashboardView = ({ resumenData, isLoading, deviceTypeData, today, currentYear, handleLogout, handleOpenModal }) => {
-  
-  const stats = resumenData?.data; // Basado en tu JSON de endpoint
+const safeNum = (n) => (Number.isFinite(Number(n)) ? Number(n) : 0);
+
+const DashboardView = ({
+  resumenData,
+  isLoading,
+  deviceTypeData,
+  today,
+  currentYear,
+  handleLogout,
+  handleOpenModal,
+}) => {
+  // ✅ Ahora el payload real está en resumenData.data
+  const stats = resumenData?.data ?? null;
+
+  const resumenGeneral = stats?.resumen_general ?? {
+    total_facturado: 0,
+    costo_total: 0,
+    balance_total: 0,
+  };
+
+  const detalleEquipos = Array.isArray(stats?.taller?.detalle_por_equipo)
+    ? stats.taller.detalle_por_equipo
+    : [];
+
+  // ✅ Ganancia taller: sumatoria de balance_final por equipo
+  const gananciaTaller = detalleEquipos.reduce(
+    (acc, e) => acc + safeNum(e?.balance_final),
+    0
+  );
+
+  const ventasRoot = stats?.ventasResumen?.data ?? null;
+  const totalGananciaVentas = safeNum(ventasRoot?.total_ganancia);
+
+  const porCanal = ventasRoot?.por_canal ?? {};
+  const gananciaWeb = safeNum(porCanal?.web_shop?.total_ganancia);
+  const rendimientoWeb = totalGananciaVentas > 0 ? (gananciaWeb / totalGananciaVentas) * 100 : 0;
 
   return (
     <div className="relative h-screen w-screen bg-[#0a0a0a] text-white overflow-hidden flex flex-col">
@@ -24,39 +57,47 @@ const DashboardView = ({ resumenData, isLoading, deviceTypeData, today, currentY
               Dashboard de Estadísticas
             </h1>
             <p className="text-neutral-500 mt-2 text-lg">
-              Resumen operativo de <span className="text-neutral-200 capitalize">
-                {today.toLocaleString('es-AR', { month: 'long' })} {currentYear}
+              Resumen operativo de{" "}
+              <span className="text-neutral-200 capitalize">
+                {today.toLocaleString("es-AR", { month: "long" })} {currentYear}
               </span>
             </p>
           </header>
 
           {/* KPI Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            <KPICard 
-              title="Balance General" 
-              value={stats?.balance_total_general} 
+            <KPICard
+              title="Balance General"
+              value={safeNum(resumenGeneral?.balance_total)}
               icon={<Wallet className="text-emerald-400" />}
-              isCurrency isLoading={isLoading}
+              isCurrency
+              isLoading={isLoading}
               variant="highlight"
             />
-            <KPICard 
-              title="Ganancia Taller" 
-              value={stats?.taller?.ganancia_neta} 
+
+            <KPICard
+              title="Ganancia Taller"
+              value={gananciaTaller}
               icon={<Wrench className="text-blue-400" />}
-              subtitle={`${stats?.taller?.cantidad_equipos} reparaciones`}
-              isCurrency isLoading={isLoading}
+              subtitle={`${safeNum(stats?.taller?.cantidad_equipos)} reparaciones`}
+              isCurrency
+              isLoading={isLoading}
             />
-            <KPICard 
-              title="Ventas Totales" 
-              value={stats?.ventas?.ganancia_total_ventas} 
+
+            <KPICard
+              title="Ganancia Ventas"
+              value={totalGananciaVentas}
               icon={<ShoppingCart className="text-purple-400" />}
-              isCurrency isLoading={isLoading}
+              subtitle={`Ventas: $${safeNum(ventasRoot?.total_ventas).toLocaleString("es-AR")}`}
+              isCurrency
+              isLoading={isLoading}
             />
-            <KPICard 
-              title="Rendimiento Web" 
-              value={`${((stats?.ventas?.ganancia_web / stats?.ventas?.ganancia_total_ventas) * 100 || 0).toFixed(1)}%`}
+
+            <KPICard
+              title="Rendimiento Web"
+              value={`${rendimientoWeb.toFixed(1)}%`}
               icon={<TrendingUp className="text-amber-400" />}
-              subtitle={`Web: $${stats?.ventas?.ganancia_web?.toLocaleString()}`}
+              subtitle={`Web: $${gananciaWeb.toLocaleString("es-AR")}`}
               isLoading={isLoading}
             />
           </div>
@@ -64,12 +105,18 @@ const DashboardView = ({ resumenData, isLoading, deviceTypeData, today, currentY
           {/* Charts Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="bg-neutral-900/50 border border-neutral-800 p-6 rounded-3xl">
-               <h3 className="text-xl font-semibold mb-6 text-neutral-300">Flujo de Caja</h3>
-               <IncomeCostChart data={resumenData?.resumen_general} isLoading={isLoading} />
+              <h3 className="text-xl font-semibold mb-6 text-neutral-300">
+                Flujo de Caja
+              </h3>
+              {/* ✅ ahora viene desde stats.resumen_general */}
+              <IncomeCostChart data={resumenGeneral} isLoading={isLoading} />
             </div>
+
             <div className="bg-neutral-900/50 border border-neutral-800 p-6 rounded-3xl">
-               <h3 className="text-xl font-semibold mb-6 text-neutral-300">Tipos de Equipos</h3>
-               <EquiposPieChart data={deviceTypeData} isLoading={isLoading} />
+              <h3 className="text-xl font-semibold mb-6 text-neutral-300">
+                Tipos de Equipos
+              </h3>
+              <EquiposPieChart data={deviceTypeData} isLoading={isLoading} />
             </div>
           </div>
         </main>
