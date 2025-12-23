@@ -966,6 +966,7 @@ const EstadisticasPage = () => {
 
   const [resumen, setResumen] = useState(null);
   const [loading, setLoading] = useState(true);
+  
 
   // ✅ Un solo endpoint
   useEffect(() => {
@@ -985,6 +986,146 @@ const EstadisticasPage = () => {
 
     fetchData();
   }, [mes, anio]);
+
+  // ✅ Payload real del endpoint (SIEMPRE definido, aunque esté loading)
+const payload = resumen?.data ?? resumen ?? {};
+
+// ======= BASES SEGURAS (para que los hooks no rompan) =======
+const resumenGeneral = payload?.resumen_general ?? {
+  total_facturado: 0,
+  costo_total: 0,
+  balance_total: 0,
+};
+
+const taller = payload?.taller ?? { cantidad_equipos: 0, detalle_por_equipo: [] };
+const detalleEquipos = Array.isArray(taller?.detalle_por_equipo)
+  ? taller.detalle_por_equipo
+  : [];
+
+const ventasRoot = payload?.ventasResumen?.data ?? {};
+const ventasList = Array.isArray(ventasRoot?.ventas) ? ventasRoot.ventas : [];
+const porCanal = ventasRoot?.por_canal ?? {};
+const topClientesVentas = Array.isArray(ventasRoot?.top_clientes)
+  ? ventasRoot.top_clientes
+  : [];
+const topProductosVentas = Array.isArray(ventasRoot?.top_productos)
+  ? ventasRoot.top_productos
+  : [];
+
+// =========================
+// DERIVADOS: SERVICIO TÉCNICO
+// =========================
+const resumenData = useMemo(() => {
+  return [
+    { name: "Facturación", value: safeNum(resumenGeneral.total_facturado) },
+    { name: "Costos", value: safeNum(resumenGeneral.costo_total) },
+    { name: "Balance", value: safeNum(resumenGeneral.balance_total) },
+  ];
+}, [resumenGeneral]);
+
+// Balance por cliente (sumando balance_final por cliente_id)
+const trabajosData = useMemo(() => {
+  const map = new Map();
+  for (const e of detalleEquipos) {
+    const c = e?.cliente ?? {};
+    const id =
+      c?.cliente_id ?? `${c?.dni ?? ""}-${c?.nombre ?? ""}-${c?.apellido ?? ""}`;
+    const name =
+      normalizeText(`${c?.nombre ?? "Cliente"} ${c?.apellido ?? ""}`) ||
+      "Cliente";
+    const add = safeNum(e?.balance_final);
+
+    if (!map.has(id)) map.set(id, { name, balance: 0 });
+    map.get(id).balance += add;
+  }
+
+  return Array.from(map.values())
+    .sort((a, b) => safeNum(b.balance) - safeNum(a.balance))
+    .slice(0, 10);
+}, [detalleEquipos]);
+
+// Clientes frecuentes (por cantidad de equipos en el mes)
+const clientesData = useMemo(() => {
+  const map = new Map();
+  for (const e of detalleEquipos) {
+    const c = e?.cliente ?? {};
+    const id =
+      c?.cliente_id ?? `${c?.dni ?? ""}-${c?.nombre ?? ""}-${c?.apellido ?? ""}`;
+    const name =
+      normalizeText(`${c?.nombre ?? "Cliente"} ${c?.apellido ?? ""}`) ||
+      "Cliente";
+    if (!map.has(id)) map.set(id, { name, value: 0 });
+    map.get(id).value += 1;
+  }
+  return Array.from(map.values())
+    .sort((a, b) => safeNum(b.value) - safeNum(a.value))
+    .slice(0, 10);
+}, [detalleEquipos]);
+
+// Reparaciones comunes (por descripcion_presupuesto)
+const reparacionesData = useMemo(() => {
+  const map = new Map();
+  for (const e of detalleEquipos) {
+    const pres = Array.isArray(e?.presupuestos) ? e.presupuestos : [];
+    for (const p of pres) {
+      const desc = normalizeText(p?.descripcion_presupuesto);
+      if (!desc) continue;
+      // Tomamos “primera línea” como “tipo”
+      const firstLine = normalizeText(desc.split("\n")[0]);
+      const key = firstLine || desc;
+      map.set(key, (map.get(key) || 0) + 1);
+    }
+  }
+  return Array.from(map.entries())
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => safeNum(b.value) - safeNum(a.value))
+    .slice(0, 10);
+}, [detalleEquipos]);
+
+// Equipos más ingresados (marca + modelo)
+const equiposData = useMemo(() => {
+  const map = new Map();
+  for (const e of detalleEquipos) {
+    const name =
+      normalizeText(`${e?.marca ?? ""} ${e?.modelo ?? ""}`) || "Equipo";
+    map.set(name, (map.get(name) || 0) + 1);
+  }
+  return Array.from(map.entries())
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => safeNum(b.value) - safeNum(a.value))
+    .slice(0, 12);
+}, [detalleEquipos]);
+
+// =========================
+// DERIVADOS: VENTAS
+// =========================
+const totalVentas = safeNum(ventasRoot?.total_ventas);
+const totalCostos = safeNum(ventasRoot?.total_costos);
+const totalGanancia = safeNum(ventasRoot?.total_ganancia);
+
+const ventasLocal =
+  porCanal?.local ?? { total_ventas: 0, total_costos: 0, total_ganancia: 0 };
+const ventasWeb =
+  porCanal?.web_shop ?? {
+    total_ventas: 0,
+    total_costos: 0,
+    total_ganancia: 0,
+  };
+
+const ventasPorCanalData = useMemo(() => {
+  const local = safeNum(ventasLocal?.total_ventas);
+  const web = safeNum(ventasWeb?.total_ventas);
+  return [
+    { name: "Local", value: local },
+    { name: "Web Shop", value: web },
+  ];
+}, [ventasLocal, ventasWeb]);
+
+const topCliente = topClientesVentas?.[0];
+const topProducto = topProductosVentas?.[0];
+
+// ✅ IMPORTANTE: los returns condicionales (loading / !resumen / etc) VAN DESPUÉS de este bloque
+
 
   if (!mes || !anio) {
     return (
@@ -1033,123 +1174,123 @@ const EstadisticasPage = () => {
     );
   }
 
-  // ✅ Payload real del endpoint
-  const payload = resumen?.data ?? resumen; // por si en algún momento devolvés directo data
-  const resumenGeneral = payload?.resumen_general ?? {
-    total_facturado: 0,
-    costo_total: 0,
-    balance_total: 0,
-  };
+  // // ✅ Payload real del endpoint
+  // const payload = resumen?.data ?? resumen; // por si en algún momento devolvés directo data
+  // const resumenGeneral = payload?.resumen_general ?? {
+  //   total_facturado: 0,
+  //   costo_total: 0,
+  //   balance_total: 0,
+  // };
 
-  const taller = payload?.taller ?? { cantidad_equipos: 0, detalle_por_equipo: [] };
-  const detalleEquipos = Array.isArray(taller?.detalle_por_equipo)
-    ? taller.detalle_por_equipo
-    : [];
+  // const taller = payload?.taller ?? { cantidad_equipos: 0, detalle_por_equipo: [] };
+  // const detalleEquipos = Array.isArray(taller?.detalle_por_equipo)
+  //   ? taller.detalle_por_equipo
+  //   : [];
 
-  const ventasRoot = payload?.ventasResumen?.data ?? null;
-  const ventasList = Array.isArray(ventasRoot?.ventas) ? ventasRoot.ventas : [];
-  const porCanal = ventasRoot?.por_canal ?? {};
-  const topClientesVentas = Array.isArray(ventasRoot?.top_clientes) ? ventasRoot.top_clientes : [];
-  const topProductosVentas = Array.isArray(ventasRoot?.top_productos) ? ventasRoot.top_productos : [];
+  // const ventasRoot = payload?.ventasResumen?.data ?? null;
+  // const ventasList = Array.isArray(ventasRoot?.ventas) ? ventasRoot.ventas : [];
+  // const porCanal = ventasRoot?.por_canal ?? {};
+  // const topClientesVentas = Array.isArray(ventasRoot?.top_clientes) ? ventasRoot.top_clientes : [];
+  // const topProductosVentas = Array.isArray(ventasRoot?.top_productos) ? ventasRoot.top_productos : [];
 
-  // =========================
-  // DERIVADOS: SERVICIO TÉCNICO
-  // =========================
-  const resumenData = useMemo(() => {
-    return [
-      { name: "Facturación", value: safeNum(resumenGeneral.total_facturado) },
-      { name: "Costos", value: safeNum(resumenGeneral.costo_total) },
-      { name: "Balance", value: safeNum(resumenGeneral.balance_total) },
-    ];
-  }, [resumenGeneral]);
+  // // =========================
+  // // DERIVADOS: SERVICIO TÉCNICO
+  // // =========================
+  // const resumenData = useMemo(() => {
+  //   return [
+  //     { name: "Facturación", value: safeNum(resumenGeneral.total_facturado) },
+  //     { name: "Costos", value: safeNum(resumenGeneral.costo_total) },
+  //     { name: "Balance", value: safeNum(resumenGeneral.balance_total) },
+  //   ];
+  // }, [resumenGeneral]);
 
-  // Balance por cliente (sumando balance_final por cliente_id)
-  const trabajosData = useMemo(() => {
-    const map = new Map();
-    for (const e of detalleEquipos) {
-      const c = e?.cliente ?? {};
-      const id = c?.cliente_id ?? `${c?.dni ?? ""}-${c?.nombre ?? ""}-${c?.apellido ?? ""}`;
-      const name = normalizeText(`${c?.nombre ?? "Cliente"} ${c?.apellido ?? ""}`) || "Cliente";
-      const add = safeNum(e?.balance_final);
+  // // Balance por cliente (sumando balance_final por cliente_id)
+  // const trabajosData = useMemo(() => {
+  //   const map = new Map();
+  //   for (const e of detalleEquipos) {
+  //     const c = e?.cliente ?? {};
+  //     const id = c?.cliente_id ?? `${c?.dni ?? ""}-${c?.nombre ?? ""}-${c?.apellido ?? ""}`;
+  //     const name = normalizeText(`${c?.nombre ?? "Cliente"} ${c?.apellido ?? ""}`) || "Cliente";
+  //     const add = safeNum(e?.balance_final);
 
-      if (!map.has(id)) map.set(id, { name, balance: 0 });
-      map.get(id).balance += add;
-    }
+  //     if (!map.has(id)) map.set(id, { name, balance: 0 });
+  //     map.get(id).balance += add;
+  //   }
 
-    return Array.from(map.values())
-      .sort((a, b) => safeNum(b.balance) - safeNum(a.balance))
-      .slice(0, 10);
-  }, [detalleEquipos]);
+  //   return Array.from(map.values())
+  //     .sort((a, b) => safeNum(b.balance) - safeNum(a.balance))
+  //     .slice(0, 10);
+  // }, [detalleEquipos]);
 
-  // Clientes frecuentes (por cantidad de equipos en el mes)
-  const clientesData = useMemo(() => {
-    const map = new Map();
-    for (const e of detalleEquipos) {
-      const c = e?.cliente ?? {};
-      const id = c?.cliente_id ?? `${c?.dni ?? ""}-${c?.nombre ?? ""}-${c?.apellido ?? ""}`;
-      const name = normalizeText(`${c?.nombre ?? "Cliente"} ${c?.apellido ?? ""}`) || "Cliente";
-      if (!map.has(id)) map.set(id, { name, value: 0 });
-      map.get(id).value += 1;
-    }
-    return Array.from(map.values())
-      .sort((a, b) => safeNum(b.value) - safeNum(a.value))
-      .slice(0, 10);
-  }, [detalleEquipos]);
+  // // Clientes frecuentes (por cantidad de equipos en el mes)
+  // const clientesData = useMemo(() => {
+  //   const map = new Map();
+  //   for (const e of detalleEquipos) {
+  //     const c = e?.cliente ?? {};
+  //     const id = c?.cliente_id ?? `${c?.dni ?? ""}-${c?.nombre ?? ""}-${c?.apellido ?? ""}`;
+  //     const name = normalizeText(`${c?.nombre ?? "Cliente"} ${c?.apellido ?? ""}`) || "Cliente";
+  //     if (!map.has(id)) map.set(id, { name, value: 0 });
+  //     map.get(id).value += 1;
+  //   }
+  //   return Array.from(map.values())
+  //     .sort((a, b) => safeNum(b.value) - safeNum(a.value))
+  //     .slice(0, 10);
+  // }, [detalleEquipos]);
 
-  // Reparaciones comunes (por descripcion_presupuesto)
-  const reparacionesData = useMemo(() => {
-    const map = new Map();
-    for (const e of detalleEquipos) {
-      const pres = Array.isArray(e?.presupuestos) ? e.presupuestos : [];
-      for (const p of pres) {
-        const desc = normalizeText(p?.descripcion_presupuesto);
-        if (!desc) continue;
-        // Tomamos “primera línea” como “tipo”
-        const firstLine = normalizeText(desc.split("\n")[0]);
-        const key = firstLine || desc;
-        map.set(key, (map.get(key) || 0) + 1);
-      }
-    }
-    return Array.from(map.entries())
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => safeNum(b.value) - safeNum(a.value))
-      .slice(0, 10);
-  }, [detalleEquipos]);
+  // // Reparaciones comunes (por descripcion_presupuesto)
+  // const reparacionesData = useMemo(() => {
+  //   const map = new Map();
+  //   for (const e of detalleEquipos) {
+  //     const pres = Array.isArray(e?.presupuestos) ? e.presupuestos : [];
+  //     for (const p of pres) {
+  //       const desc = normalizeText(p?.descripcion_presupuesto);
+  //       if (!desc) continue;
+  //       // Tomamos “primera línea” como “tipo”
+  //       const firstLine = normalizeText(desc.split("\n")[0]);
+  //       const key = firstLine || desc;
+  //       map.set(key, (map.get(key) || 0) + 1);
+  //     }
+  //   }
+  //   return Array.from(map.entries())
+  //     .map(([name, value]) => ({ name, value }))
+  //     .sort((a, b) => safeNum(b.value) - safeNum(a.value))
+  //     .slice(0, 10);
+  // }, [detalleEquipos]);
 
-  // Equipos más ingresados (marca + modelo)
-  const equiposData = useMemo(() => {
-    const map = new Map();
-    for (const e of detalleEquipos) {
-      const name = normalizeText(`${e?.marca ?? ""} ${e?.modelo ?? ""}`) || "Equipo";
-      map.set(name, (map.get(name) || 0) + 1);
-    }
-    return Array.from(map.entries())
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => safeNum(b.value) - safeNum(a.value))
-      .slice(0, 12);
-  }, [detalleEquipos]);
+  // // Equipos más ingresados (marca + modelo)
+  // const equiposData = useMemo(() => {
+  //   const map = new Map();
+  //   for (const e of detalleEquipos) {
+  //     const name = normalizeText(`${e?.marca ?? ""} ${e?.modelo ?? ""}`) || "Equipo";
+  //     map.set(name, (map.get(name) || 0) + 1);
+  //   }
+  //   return Array.from(map.entries())
+  //     .map(([name, value]) => ({ name, value }))
+  //     .sort((a, b) => safeNum(b.value) - safeNum(a.value))
+  //     .slice(0, 12);
+  // }, [detalleEquipos]);
 
-  // =========================
-  // DERIVADOS: VENTAS
-  // =========================
-  const totalVentas = safeNum(ventasRoot?.total_ventas);
-  const totalCostos = safeNum(ventasRoot?.total_costos);
-  const totalGanancia = safeNum(ventasRoot?.total_ganancia);
+  // // =========================
+  // // DERIVADOS: VENTAS
+  // // =========================
+  // const totalVentas = safeNum(ventasRoot?.total_ventas);
+  // const totalCostos = safeNum(ventasRoot?.total_costos);
+  // const totalGanancia = safeNum(ventasRoot?.total_ganancia);
 
-  const ventasLocal = porCanal?.local ?? { total_ventas: 0, total_costos: 0, total_ganancia: 0 };
-  const ventasWeb = porCanal?.web_shop ?? { total_ventas: 0, total_costos: 0, total_ganancia: 0 };
+  // const ventasLocal = porCanal?.local ?? { total_ventas: 0, total_costos: 0, total_ganancia: 0 };
+  // const ventasWeb = porCanal?.web_shop ?? { total_ventas: 0, total_costos: 0, total_ganancia: 0 };
 
-  const ventasPorCanalData = useMemo(() => {
-    const local = safeNum(ventasLocal?.total_ventas);
-    const web = safeNum(ventasWeb?.total_ventas);
-    return [
-      { name: "Local", value: local },
-      { name: "Web Shop", value: web },
-    ];
-  }, [ventasLocal, ventasWeb]);
+  // const ventasPorCanalData = useMemo(() => {
+  //   const local = safeNum(ventasLocal?.total_ventas);
+  //   const web = safeNum(ventasWeb?.total_ventas);
+  //   return [
+  //     { name: "Local", value: local },
+  //     { name: "Web Shop", value: web },
+  //   ];
+  // }, [ventasLocal, ventasWeb]);
 
-  const topCliente = topClientesVentas?.[0];
-  const topProducto = topProductosVentas?.[0];
+  // const topCliente = topClientesVentas?.[0];
+  // const topProducto = topProductosVentas?.[0];
 
   return (
     <div className="flex flex-col md:flex-row h-screen w-screen bg-neutral-900 text-white overflow-hidden">
