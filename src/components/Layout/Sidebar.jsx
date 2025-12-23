@@ -140,7 +140,7 @@ const SidebarNav = ({ handleOpenModal }) => {
         {/* =========================
             MOBILE: Barra superior
            ========================= */}
-        <div className="lg:hidden">
+        <div className="lg:hidden mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Link to="/clientes" className={`${btnBaseMobile} bg-rose-600 hover:bg-rose-700`}>
               👥 <span className="hidden xs:inline">Clientes</span>
