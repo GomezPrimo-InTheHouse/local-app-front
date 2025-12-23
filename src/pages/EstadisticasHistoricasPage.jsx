@@ -1,7 +1,7 @@
 // src/pages/EstadisticasHistoricasPage.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getEstadisticasHistoricas } from "../api/EstadisticasApi";
+import { getDatosHistoricos } from "../api/EstadisticasApi.jsx";
 
 import {
   ResponsiveContainer,
@@ -67,7 +67,7 @@ const EstadisticasHistoricasPage = () => {
   useEffect(() => {
     const fetchHistorico = async () => {
       try {
-        const resp = await getEstadisticasHistoricas();
+        const resp = await getDatosHistoricos();
         setRes(resp);
       } catch (e) {
         console.error("Error cargando histórico:", e);
