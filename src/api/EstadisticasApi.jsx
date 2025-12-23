@@ -131,3 +131,13 @@ export const getResumenVentasPorMes = async (mes, anio) => {
       throw error;
     }
   }
+
+  export const getDatosHistoricos = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/estadisticas-historicas`);
+      return response.data
+    } catch (error) {
+      console.error('Error al obtener los datos históricos:', error);
+      throw error;
+    }
+  }

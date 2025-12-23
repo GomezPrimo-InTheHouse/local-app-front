@@ -80,6 +80,7 @@ const Historial = lazy(() => import("../pages/Historial.jsx"));
 const Estadisticas = lazy(() => import("../pages/EstadisticasPage.jsx"));
 const VentasPage = lazy(() => import("../pages/VentasPage.jsx"));
 const ProductoPage = lazy(() => import("../pages/ProductoPage.jsx"));
+const EstadisticasHistoricasPage = lazy(() => import("../pages/EstadisticasHistoricasPage.jsx"));
 const Login = lazy(() => import("../pages/LoginPage.jsx"));
 const ProtectedRoute = lazy(() => import("../components/ProtectedRoute.jsx"));
 
@@ -112,6 +113,7 @@ export default function AppRoutes() {
             <Route path="/equipos" element={<EquipoPage />} />
             <Route path="/ventas" element={<VentasPage />} />
             <Route path="/productos" element={<ProductoPage />} />
+            <Route path="/estadisticas-historicas" element={<EstadisticasHistoricasPage />} />
             <Route path="/equipos/:id" element={<DetalleDeEquipoPage />} />
             <Route path="/equipos/:id/historial" element={<Historial />} />
             <Route path="/historial/cliente/:clienteId" element={<Historial />} />
