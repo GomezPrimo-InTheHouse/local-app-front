@@ -81,7 +81,7 @@ const KPICard = ({
               "leading-[1.05]",
               "min-w-0",
               // ✅ CLAMP: se adapta al ancho y evita el desfasaje
-              "text-[clamp(28px,3.3vw,44px)] sm:text-[clamp(30px,3vw,46px)]",
+              "text-[clamp(18px,3.3vw,40px)] sm:text-[clamp(24px,3vw,40px)]",
               // ✅ si el valor es muy largo, que no se salga
               "truncate",
             ].join(" ")}
