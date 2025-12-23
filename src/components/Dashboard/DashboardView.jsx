@@ -127,7 +127,7 @@
 
 // export default DashboardView;
 // src/components/Dashboard/DashboardView.jsx
-import SidebarNav from "../layout/SidebarNav";
+import SidebarNav from "../layout/Sidebar";
 import HeaderActions from "../General/Header";
 import IncomeCostChart from "../Chart/IncomeCostChart";
 import EquiposPieChart from "../Chart/EquiposPieChart";
