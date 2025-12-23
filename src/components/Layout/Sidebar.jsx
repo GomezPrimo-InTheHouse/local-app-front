@@ -141,6 +141,14 @@ const SidebarNav = ({ handleOpenModal }) => {
             >
               📊 Estadísticas
             </button>
+            
+              <Link
+                to="/estadisticas-historicas"
+                className={`${btnBase} bg-blue-600 hover:bg-blue-700 text-left`}
+              >
+                📈 Históricas
+              </Link>
+            
 
             <Link
               to="/ventas"
