@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { getClientes } from "../../api/ClienteApi.jsx";
 import { getEquiposByClienteId, createEquipo } from "../../api/EquiposApi.jsx";
-import { createOrdenTrabajo } from "../../api/OrdenTrabajoApi.js";
+import { createOrdenTrabajo } from "../../api/OrdenTrabajoApi.jsx";
 import { getEstadoByAmbito } from "../../api/EstadoApi.jsx";
 import PatronInput from "../Equipo/PatronInput.jsx";
 

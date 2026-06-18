@@ -640,7 +640,7 @@ import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import { getEquipoById } from "../api/EquiposApi.jsx";
 import { getPresupuestosByEquipo, deletePresupuesto, aprobarPresupuesto } from "../api/PresupuestoApi.jsx";
 import { getEstados } from "../api/EstadoApi.jsx";
-import { updateOrdenTrabajo } from "../api/OrdenTrabajoApi.js";
+import { updateOrdenTrabajo } from "../api/OrdenTrabajoApi.jsx";
 import Swal from "sweetalert2";
 import PresupuestoModal from "../components/Presupuesto/PresupuestoModal.jsx";
 import CambiarEstadoModal from "../components/Ingreso/CambiarEstadoModal.jsx";
