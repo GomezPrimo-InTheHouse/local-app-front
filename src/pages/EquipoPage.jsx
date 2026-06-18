@@ -1402,11 +1402,15 @@ const EquipoPage = () => {
 
   const equiposAgrupadosPorMes = useMemo(() => {
     const grupos = equipos.reduce((acc, eq) => {
-      const fecha = eq.fecha_ingreso
-  ? new Date(eq.fecha_ingreso + "T12:00:00")
+
+     const fecha = eq.fecha_ingreso
+  ? new Date(eq.fecha_ingreso)
   : eq.created_at
     ? new Date(eq.created_at)
     : null;
+
+
+
       let key = "Sin fecha", sortKey = "9999-12";
       if (fecha && !isNaN(fecha.getTime())) {
         const year  = fecha.getFullYear();
