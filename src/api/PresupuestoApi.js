@@ -1,0 +1,163 @@
+// // src/api/PresupuestoApi.jsx
+// import axios from './Axios';
+
+// const API_BASE_URL = import.meta.env.VITE_API_URL_BACKEND;
+// const API_URL = `${API_BASE_URL}/presupuesto`;
+
+// export const http = axios.create({
+//   baseURL: API_URL,
+//   withCredentials: true, // si usás cookies
+//   headers: {
+//     "ngrok-skip-browser-warning": "true",   // <-- CLAVE
+//   },
+// });
+
+// // Obtener todos los presupuestos
+// export const getPresupuestos = async () => {
+//   const { data } = await axios.get(API_URL);
+//   return data;
+// };
+
+// // Obtener presupuestos de un equipo
+// export const getPresupuestosByEquipo = async (equipoId) => {
+//   const { data } = await axios.get(`${API_URL}/${equipoId}`);
+//   return data;
+// };
+
+// // Obtener presupuestos por ingreso
+// export const getPresupuestosByIngreso = async (ingresoId) => {
+//   const { data } = await axios.get(`${API_URL}/ingreso/${ingresoId}`);
+//   return data;
+// };
+
+// // Crear presupuesto
+// export const createPresupuesto = async (nuevoPresupuesto) => {
+//   const { data } = await axios.post(API_URL, nuevoPresupuesto);
+//   return data;
+// };
+
+// // Actualizar presupuesto
+// export const updatePresupuesto = async (id, presupuestoActualizado) => {
+//   const { data } = await axios.put(`${API_URL}/${id}`, presupuestoActualizado);
+//   return data;
+// };
+
+// // Eliminar presupuesto
+// export const deletePresupuesto = async (id) => {
+//   const { data } = await axios.delete(`${API_URL}/${id}`);
+//   return data;
+// };
+
+// // Obtener presupuesto por ID
+// export const getPresupuestoById = async (id) => {
+//   const { data } = await axios.get(`${API_URL}/${id}`);
+//   return data;
+// };
+
+// export const getBalancesPresupuestos = async () => {
+//   const { data } = await axios.get(`${API_URL}/balance`);
+//   return data;
+// };
+
+// // ✅ Aprobar presupuesto y generar venta asociada
+// export const aprobarPresupuesto = async (presupuestoId) => {
+//   // Ruta sugerida: POST /presupuestos/:id/aprobar-venta
+//   const res = await axios.post(`${API_URL}/${presupuestoId}/aprobar-venta`);
+//   return res.data;
+// };
+
+// export const savePresupuestoDetalles = async (presupuestoId, detalles) => {
+//   const res = await axios.post(
+//     `${API_URL}/${presupuestoId}/detalles`,
+//     { detalles }
+//   );
+//   return res.data;
+// };
+
+// export const getPresupuestoWithDetalles = async (id) => {
+//   const res = await axios.get(`${API_URL}/${id}/with-detalles`);
+//   // backend responde { success: true, data: {...} }
+//   return res.data?.data || res.data;
+// };
+
+
+
+
+// // src/api/PresupuestoAp
+
+
+// src/api/PresupuestoApi.js
+import axios from './Axios';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL_BACKEND;
+const API_URL = `${API_BASE_URL}/presupuesto`;
+
+// Obtener todos los presupuestos
+export const getPresupuestos = async () => {
+  const { data } = await axios.get(API_URL);
+  return data;
+};
+
+// Obtener presupuestos por equipo
+export const getPresupuestosByEquipo = async (equipoId) => {
+  const { data } = await axios.get(`${API_URL}/equipo/${equipoId}`);
+  return data;
+};
+
+// Obtener presupuestos por orden de trabajo
+export const getPresupuestosByOrden = async (ordenId) => {
+  const { data } = await axios.get(`${API_URL}/orden/${ordenId}`);
+  return data;
+};
+
+// Crear presupuesto
+// payload: { orden_trabajo_id, fecha, costo, total, observaciones, estado_id, productos? }
+export const createPresupuesto = async (nuevoPresupuesto) => {
+  const { data } = await axios.post(API_URL, nuevoPresupuesto);
+  return data;
+};
+
+// Actualizar presupuesto
+export const updatePresupuesto = async (id, presupuestoActualizado) => {
+  const { data } = await axios.put(`${API_URL}/${id}`, presupuestoActualizado);
+  return data;
+};
+
+// Eliminar presupuesto
+export const deletePresupuesto = async (id) => {
+  const { data } = await axios.delete(`${API_URL}/${id}`);
+  return data;
+};
+
+// Obtener presupuesto por ID
+export const getPresupuestoById = async (id) => {
+  const { data } = await axios.get(`${API_URL}/${id}`);
+  return data;
+};
+
+// Obtener presupuesto con detalles completos
+export const getPresupuestoWithDetalles = async (id) => {
+  const res = await axios.get(`${API_URL}/${id}/with-detalles`);
+  return res.data?.data || res.data;
+};
+
+// Balance de presupuestos (general o por equipo)
+export const getBalancesPresupuestos = async (equipoId = null) => {
+  const url = equipoId ? `${API_URL}/balance?equipo_id=${equipoId}` : `${API_URL}/balance`;
+  const { data } = await axios.get(url);
+  return data;
+};
+
+// Aprobar presupuesto y generar venta asociada
+export const aprobarPresupuesto = async (presupuestoId, nuevoEstadoId = null) => {
+  const res = await axios.post(`${API_URL}/${presupuestoId}/aprobar-venta`, {
+    nuevo_estado_id: nuevoEstadoId
+  });
+  return res.data;
+};
+
+// Guardar / reemplazar detalles de un presupuesto
+export const savePresupuestoDetalles = async (presupuestoId, detalles) => {
+  const res = await axios.post(`${API_URL}/${presupuestoId}/detalles`, { detalles });
+  return res.data;
+};
