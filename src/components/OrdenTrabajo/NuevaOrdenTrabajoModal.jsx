@@ -123,14 +123,21 @@ const NuevaOrdenTrabajoModal = ({ isOpen, onClose, onSuccess }) => {
     setEquiposCliente([]);
     setEquipoSeleccionado(null);
     setModoNuevoEquipo(false);
+
+
     try {
       const data = await getEquiposByClienteId(cliente.id);
-      setEquiposCliente(Array.isArray(data) ? data : []);
+      const lista = Array.isArray(data) ? data : [];
+      setEquiposCliente(lista);
+      // Si no tiene equipos o la respuesta vino vacía → modo nuevo equipo automático
+      if (!lista || lista.length === 0) {
+        setModoNuevoEquipo(true);
+      }
     } catch (e) {
       console.error("Error cargando equipos del cliente:", e);
       setEquiposCliente([]);
-    } finally {
-      setLoadingEquipos(false);
+      // Si falla la carga también habilitamos modo nuevo equipo
+      setModoNuevoEquipo(true);
     }
   };
 
@@ -169,12 +176,12 @@ const NuevaOrdenTrabajoModal = ({ isOpen, onClose, onSuccess }) => {
       // Si es equipo nuevo, lo creamos primero
       if (modoNuevoEquipo) {
         const nuevoEquipo = await createEquipo({
-          tipo:       formEquipo.tipo,
-          marca:      formEquipo.marca,
-          modelo:     formEquipo.modelo,
-          imei:       formEquipo.imei || null,
+          tipo: formEquipo.tipo,
+          marca: formEquipo.marca,
+          modelo: formEquipo.modelo,
+          imei: formEquipo.imei || null,
           cliente_id: clienteSeleccionado.id,
-          estado_id:  Number(formOT.estado_id),
+          estado_id: Number(formOT.estado_id),
         });
         equipoId = nuevoEquipo?.id ?? nuevoEquipo?.data?.id;
         if (!equipoId) throw new Error("No se pudo obtener el ID del equipo creado.");
@@ -182,13 +189,13 @@ const NuevaOrdenTrabajoModal = ({ isOpen, onClose, onSuccess }) => {
 
       // Crear la orden de trabajo
       await createOrdenTrabajo({
-        equipo_id:       equipoId,
+        equipo_id: equipoId,
         falla_reportada: formOT.falla_reportada.trim(),
-        password:        formOT.password || null,
-        patron:          formOT.patron   || null,
-        diagnostico:     formOT.diagnostico || null,
-        fecha_ingreso:   formOT.fecha_ingreso,
-        estado_id:       Number(formOT.estado_id),
+        password: formOT.password || null,
+        patron: formOT.patron || null,
+        diagnostico: formOT.diagnostico || null,
+        fecha_ingreso: formOT.fecha_ingreso,
+        estado_id: Number(formOT.estado_id),
       });
 
       onSuccess?.("✅ Orden de trabajo creada correctamente");
@@ -219,18 +226,17 @@ const NuevaOrdenTrabajoModal = ({ isOpen, onClose, onSuccess }) => {
             <div className="flex items-center gap-1 mt-1">
               {[PASO.CLIENTE, PASO.EQUIPO, PASO.ORDEN].map((p) => (
                 <div key={p} className="flex items-center gap-1">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
-                    paso === p ? "bg-emerald-500 text-white" :
-                    paso > p  ? "bg-emerald-800 text-emerald-300" :
-                                "bg-neutral-700 text-neutral-400"
-                  }`}>{p}</div>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${paso === p ? "bg-emerald-500 text-white" :
+                      paso > p ? "bg-emerald-800 text-emerald-300" :
+                        "bg-neutral-700 text-neutral-400"
+                    }`}>{p}</div>
                   {p < PASO.ORDEN && <div className={`w-8 h-0.5 ${paso > p ? "bg-emerald-700" : "bg-neutral-700"}`} />}
                 </div>
               ))}
               <span className="ml-2 text-xs text-neutral-400">
                 {paso === PASO.CLIENTE && "Cliente"}
-                {paso === PASO.EQUIPO  && "Equipo"}
-                {paso === PASO.ORDEN   && "Orden de trabajo"}
+                {paso === PASO.EQUIPO && "Equipo"}
+                {paso === PASO.ORDEN && "Orden de trabajo"}
               </span>
             </div>
           </div>
@@ -293,11 +299,10 @@ const NuevaOrdenTrabajoModal = ({ isOpen, onClose, onSuccess }) => {
                     {equiposCliente.map(eq => (
                       <button key={eq.id} type="button"
                         onClick={() => { setEquipoSeleccionado(eq); setModoNuevoEquipo(false); }}
-                        className={`w-full text-left rounded-lg border p-3 transition-colors text-sm ${
-                          equipoSeleccionado?.id === eq.id
+                        className={`w-full text-left rounded-lg border p-3 transition-colors text-sm ${equipoSeleccionado?.id === eq.id
                             ? "border-emerald-500 bg-emerald-900/30"
                             : "border-white/10 bg-neutral-700/40 hover:bg-neutral-700"
-                        }`}>
+                          }`}>
                         <div className="flex items-center gap-2">
                           <span className="text-lg">{iconoTipo(eq.tipo)}</span>
                           <div>
@@ -472,7 +477,7 @@ const NuevaOrdenTrabajoModal = ({ isOpen, onClose, onSuccess }) => {
             )}
             {paso === PASO.EQUIPO && (
               <button type="button" onClick={irPaso3}
-                disabled={!equipoSeleccionado && !modoNuevoEquipo}
+                disabled={!equipoSeleccionado && !modoNuevoEquipo && !formEquipo.tipo}
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm font-semibold">
                 Siguiente →
               </button>
