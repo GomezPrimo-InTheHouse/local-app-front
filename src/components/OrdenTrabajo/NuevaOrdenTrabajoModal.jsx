@@ -116,30 +116,29 @@ const NuevaOrdenTrabajoModal = ({ isOpen, onClose, onSuccess }) => {
 
   // ── seleccionar cliente → cargar sus equipos ──
   const handleSelectCliente = async (cliente) => {
-    setClienteSeleccionado(cliente);
-    setSearchCliente(`${cliente.nombre} ${cliente.apellido}`);
-    setShowDropdown(false);
-    setLoadingEquipos(true);
+  setClienteSeleccionado(cliente);
+  setSearchCliente(`${cliente.nombre} ${cliente.apellido}`);
+  setShowDropdown(false);
+  setLoadingEquipos(true);
+  setEquiposCliente([]);
+  setEquipoSeleccionado(null);
+  setModoNuevoEquipo(false);
+
+  try {
+    const data = await getEquiposByClienteId(cliente.id);
+    const lista = Array.isArray(data) ? data : [];
+    setEquiposCliente(lista);
+    if (lista.length === 0) setModoNuevoEquipo(true);
+  } catch (e) {
+    // El backend devuelve 404 cuando no hay equipos — no es un error real
+    console.log("Cliente sin equipos registrados");
     setEquiposCliente([]);
-    setEquipoSeleccionado(null);
-    setModoNuevoEquipo(false);
-
-
-    try {
-      const data = await getEquiposByClienteId(cliente.id);
-      const lista = Array.isArray(data) ? data : [];
-      setEquiposCliente(lista);
-      // Si no tiene equipos o la respuesta vino vacía → modo nuevo equipo automático
-      if (!lista || lista.length === 0) {
-        setModoNuevoEquipo(true);
-      }
-    } catch (e) {
-      console.error("Error cargando equipos del cliente:", e);
-      setEquiposCliente([]);
-      // Si falla la carga también habilitamos modo nuevo equipo
-      setModoNuevoEquipo(true);
-    }
-  };
+    setModoNuevoEquipo(true);
+  } finally {
+    // SIEMPRE liberar el loading, sin importar qué pasó
+    setLoadingEquipos(false);
+  }
+};
 
   // ── paso 1 → 2 ──
   const irPaso2 = () => {
