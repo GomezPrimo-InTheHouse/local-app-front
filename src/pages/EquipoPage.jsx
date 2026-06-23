@@ -259,7 +259,7 @@
 // src/pages/EquipoPage.jsx
 import { useState, useCallback } from "react";
 
-import { useEquipos }          from "../hooks/useEquipos.js";
+import { useEquipos }          from "../hooks/UseEquipos.jsx";
 import SidebarEquipos          from "../components/Equipo/SidebarEquipos.jsx";
 import BuscadorComponent       from "../components/General/BuscadorComponent.jsx";
 import AlertNotification       from "../components/Alerta/AlertNotification.jsx";
