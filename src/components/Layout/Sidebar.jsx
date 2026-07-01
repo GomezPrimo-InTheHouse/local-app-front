@@ -1,13 +1,12 @@
 // src/components/Layout/Sidebar.jsx
 import { Link, useLocation } from "react-router-dom";
-import ResumenSemana from "../Dashboard/ResumenSemana.jsx";
 
 const NAV_ITEMS = [
-  { to: "/clientes",                label: "Clientes",     emoji: "👥", color: "bg-rose-600 hover:bg-rose-700" },
-  { to: "/equipos",                 label: "Equipos",      emoji: "💻", color: "bg-orange-500 hover:bg-orange-600" },
-  { to: "/estadisticas-historicas", label: "Históricas",   emoji: "📈", color: "bg-indigo-600 hover:bg-indigo-700" },
-  { to: "/ventas",                  label: "Ventas",       emoji: "🛒", color: "bg-green-600 hover:bg-green-700" },
-  { to: "/productos",               label: "Productos",    emoji: "📦", color: "bg-emerald-600 hover:bg-emerald-700" },
+  { to: "/clientes",                label: "Clientes",   emoji: "👥", color: "bg-rose-600 hover:bg-rose-700" },
+  { to: "/equipos",                 label: "Equipos",    emoji: "💻", color: "bg-orange-500 hover:bg-orange-600" },
+  { to: "/estadisticas-historicas", label: "Históricas", emoji: "📈", color: "bg-indigo-600 hover:bg-indigo-700" },
+  { to: "/ventas",                  label: "Ventas",     emoji: "🛒", color: "bg-green-600 hover:bg-green-700" },
+  { to: "/productos",               label: "Productos",  emoji: "📦", color: "bg-emerald-600 hover:bg-emerald-700" },
 ];
 
 const SidebarNav = ({ handleOpenModal }) => {
@@ -25,8 +24,7 @@ const SidebarNav = ({ handleOpenModal }) => {
       <div className="
         lg:h-[calc(100vh-5rem)]
         lg:sticky lg:top-20
-        px-3 sm:px-4 py-3
-        lg:px-5 lg:pt-8 lg:pb-6
+        px-3 sm:px-4 py-3 lg:py-4
         min-w-0
         overflow-x-auto lg:overflow-x-hidden
         overflow-y-hidden lg:overflow-y-auto
@@ -56,9 +54,7 @@ const SidebarNav = ({ handleOpenModal }) => {
         </div>
 
         {/* ── DESKTOP: sidebar completo ── */}
-        <div className="hidden lg:flex lg:flex-col lg:gap-5">
-
-          {/* Navegación */}
+        <div className="hidden lg:flex lg:flex-col lg:gap-4">
           <div className="rounded-2xl border border-white/10 bg-neutral-800/70 p-4 shadow-sm">
             <p className="text-[11px] tracking-widest text-neutral-500 uppercase mb-3">Módulos</p>
             <div className="space-y-2">
@@ -80,7 +76,6 @@ const SidebarNav = ({ handleOpenModal }) => {
                   </Link>
                 );
               })}
-
               <button onClick={handleOpenModal}
                 className="w-full h-11 inline-flex items-center gap-3 rounded-xl px-4 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 opacity-90 hover:opacity-100 transition-all duration-150">
                 <span className="text-base">📊</span>
@@ -88,11 +83,8 @@ const SidebarNav = ({ handleOpenModal }) => {
               </button>
             </div>
           </div>
-
-          {/* Resumen semanal */}
-          <ResumenSemana />
-
         </div>
+
       </div>
     </aside>
   );

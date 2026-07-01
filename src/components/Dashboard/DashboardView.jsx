@@ -94,13 +94,8 @@ const DashboardView = ({
             />
           </div>
 
-          {/* ── Resumen Semanal (solo mobile — en desktop va en el sidebar) ── */}
-          <div className="lg:hidden mb-6">
-            <ResumenSemana />
-          </div>
-
           {/* ── Charts ── */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 min-w-0">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6 min-w-0">
             <div className="bg-neutral-900/40 border border-neutral-800 p-4 sm:p-5 rounded-2xl min-w-0">
               <p className="text-xs tracking-widest text-neutral-500 uppercase mb-1">Análisis</p>
               <h3 className="text-base font-semibold text-neutral-200 mb-4">Flujo de Caja</h3>
@@ -112,6 +107,9 @@ const DashboardView = ({
               <EquiposPieChart data={deviceTypeData} isLoading={isLoading} />
             </div>
           </div>
+
+          {/* ── Resumen Semanal — siempre visible, al pie del dashboard ── */}
+          <ResumenSemana />
 
         </main>
       </div>
