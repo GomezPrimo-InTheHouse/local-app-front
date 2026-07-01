@@ -141,3 +141,4 @@ export const getResumenVentasPorMes = async (mes, anio) => {
       throw error;
     }
   }
+
