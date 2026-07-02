@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { to: "/estadisticas-historicas", label: "Históricas", emoji: "📈", color: "bg-indigo-600 hover:bg-indigo-700" },
   { to: "/ventas",                  label: "Ventas",     emoji: "🛒", color: "bg-green-600 hover:bg-green-700" },
   { to: "/productos",               label: "Productos",  emoji: "📦", color: "bg-emerald-600 hover:bg-emerald-700" },
+  { to: "/celulares",               label: "Celulares",  emoji: "📱", color: "bg-sky-600 hover:bg-sky-700" },
 ];
 
 const SidebarNav = ({ handleOpenModal }) => {
