@@ -1,5 +1,5 @@
 // src/components/Celular/CelularModal.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { getCotizacionActual } from "../../api/DolarApi.jsx";
 import AlertNotification from "../Alerta/AlertNotification.jsx";
 
@@ -36,7 +36,11 @@ const CelularModal = ({ isOpen, onClose, onSave, celular = null }) => {
   const [oferta, setOferta] = useState("");
 
   const [dolar, setDolar] = useState(null);
-  const [precioTouched, setPrecioTouched] = useState(false); // si el usuario editó el precio a mano
+  // 'margen'  -> el margen es el dato "fuente" y el precio se calcula solo
+  // 'precio'  -> el precio es el dato "fuente" y el margen se calcula solo
+  const [modoCalculo, setModoCalculo] = useState("margen");
+  const skipCalcPrecioRef = useRef(false); // evita recalcular al inicializar/abrir el modal
+  const skipCalcMargenRef = useRef(false);
 
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -74,7 +78,7 @@ const CelularModal = ({ isOpen, onClose, onSave, celular = null }) => {
       setPreviewUrl(null);
       setFile2(null);
       setPreviewUrl2(null);
-      setPrecioTouched(false);
+      setModoCalculo("margen");
       setErrors({});
       setNotification({ message: null, type: "" });
       setIsSaving(false);
@@ -101,7 +105,9 @@ const CelularModal = ({ isOpen, onClose, onSave, celular = null }) => {
       setOferta(celular.oferta != null ? String(celular.oferta) : "");
       setPreviewUrl(celular.foto_url || null);
       setPreviewUrl2(celular.foto_url_2 || null);
-      setPrecioTouched(true); // en edición no pisamos el precio ya guardado automáticamente
+      setModoCalculo("margen"); // por defecto; el usuario elige qué campo editar
+      skipCalcPrecioRef.current = true; // no pisar el precio/margen ya guardados al abrir
+      skipCalcMargenRef.current = true;
     } else {
       setForm(FORM_VACIO);
       setSubirWeb(false);
@@ -110,28 +116,37 @@ const CelularModal = ({ isOpen, onClose, onSave, celular = null }) => {
       setPreviewUrl(null);
       setFile2(null);
       setPreviewUrl2(null);
-      setPrecioTouched(false);
+      setModoCalculo("margen");
+      skipCalcPrecioRef.current = true;
+      skipCalcMargenRef.current = true;
     }
   }, [isOpen, celular]);
 
-  // --- Recalcular precio recomendado en vivo (solo si el usuario no lo tocó a mano) ---
+  // --- Modo 'margen': costo_usd + margen -> calcula precio ---
   useEffect(() => {
-    if (!dolar || precioTouched) return;
+    if (skipCalcPrecioRef.current) { skipCalcPrecioRef.current = false; return; }
+    if (modoCalculo !== "margen" || !dolar) return;
     const costoUsdNum = Number(form.costo_usd);
     const margenNum = Number(form.margen_porcentaje);
     if (!costoUsdNum || isNaN(costoUsdNum) || isNaN(margenNum)) return;
 
-    const recomendado = costoUsdNum * Number(dolar.valor) * (1 + margenNum / 100);
-    setForm((prev) => ({ ...prev, precio: recomendado.toFixed(2) }));
-  }, [form.costo_usd, form.margen_porcentaje, dolar, precioTouched]);
+    const precioCalculado = costoUsdNum * Number(dolar.valor) * (1 + margenNum / 100);
+    setForm((prev) => ({ ...prev, precio: precioCalculado.toFixed(2) }));
+  }, [form.costo_usd, form.margen_porcentaje, dolar, modoCalculo]);
 
-  const precioRecomendadoPreview = (() => {
-    if (!dolar || !form.costo_usd || !form.margen_porcentaje) return null;
+  // --- Modo 'precio': costo_usd + precio -> calcula margen ---
+  useEffect(() => {
+    if (skipCalcMargenRef.current) { skipCalcMargenRef.current = false; return; }
+    if (modoCalculo !== "precio" || !dolar) return;
     const costoUsdNum = Number(form.costo_usd);
-    const margenNum = Number(form.margen_porcentaje);
-    if (isNaN(costoUsdNum) || isNaN(margenNum)) return null;
-    return costoUsdNum * Number(dolar.valor) * (1 + margenNum / 100);
-  })();
+    const precioNum = Number(form.precio);
+    if (!costoUsdNum || isNaN(costoUsdNum) || isNaN(precioNum)) return;
+
+    const costoPesos = costoUsdNum * Number(dolar.valor);
+    if (costoPesos <= 0) return;
+    const margenCalculado = (precioNum / costoPesos - 1) * 100;
+    setForm((prev) => ({ ...prev, margen_porcentaje: margenCalculado.toFixed(2) }));
+  }, [form.costo_usd, form.precio, dolar, modoCalculo]);
 
   // --- Helpers de sanitización / formateo (mismos que ProductoModal) ---
   const sanitizeIntegerInput = (val) => String(val).replace(/\D+/g, "").replace(/^0+(?=\d)/, "");
@@ -162,13 +177,14 @@ const CelularModal = ({ isOpen, onClose, onSave, celular = null }) => {
     if (errors[field]) setErrors((p) => ({ ...p, [field]: null }));
   };
 
-  const handlePrecioChange = (val) => {
-    setPrecioTouched(true);
-    handleNumChange("precio", sanitizeDecimalInput, val);
+  const handleMargenChange = (val) => {
+    setModoCalculo("margen");
+    handleNumChange("margen_porcentaje", sanitizeDecimalInput, val);
   };
 
-  const usarPrecioRecomendado = () => {
-    setPrecioTouched(false);
+  const handlePrecioChange = (val) => {
+    setModoCalculo("precio");
+    handleNumChange("precio", sanitizeDecimalInput, val);
   };
 
   const handleFile = (f, slot) => {
@@ -409,11 +425,13 @@ const CelularModal = ({ isOpen, onClose, onSave, celular = null }) => {
               {errors.costo_usd && <p className="text-red-400 text-xs mt-1">{errors.costo_usd}</p>}
             </div>
             <div>
-              <label className={labelClass}>Margen (%) *</label>
+              <label className={labelClass}>
+                Margen (%) *{modoCalculo === "precio" && <span className="text-emerald-500 normal-case font-normal"> (calculado)</span>}
+              </label>
               <input
                 inputMode="decimal"
                 value={form.margen_porcentaje}
-                onChange={(e) => handleNumChange("margen_porcentaje", sanitizeDecimalInput, e.target.value)}
+                onChange={(e) => handleMargenChange(e.target.value)}
                 className={inputClass(errors.margen_porcentaje)}
                 placeholder="30"
                 disabled={isSaving}
@@ -421,7 +439,9 @@ const CelularModal = ({ isOpen, onClose, onSave, celular = null }) => {
               {errors.margen_porcentaje && <p className="text-red-400 text-xs mt-1">{errors.margen_porcentaje}</p>}
             </div>
             <div>
-              <label className={labelClass}>Precio final (ARS)</label>
+              <label className={labelClass}>
+                Precio final (ARS){modoCalculo === "margen" && <span className="text-emerald-500 normal-case font-normal"> (calculado)</span>}
+              </label>
               <input
                 inputMode="decimal"
                 value={focused.precio ? form.precio : formatDecimalDisplay(form.precio)}
@@ -435,15 +455,13 @@ const CelularModal = ({ isOpen, onClose, onSave, celular = null }) => {
             </div>
           </div>
 
-          {precioRecomendadoPreview != null && (
-            <div className="text-xs text-gray-400 -mt-2 flex items-center gap-2">
-              Precio recomendado: <span className="text-emerald-400 font-medium">{formatPesos(precioRecomendadoPreview)}</span>
-              {precioTouched && (
-                <button type="button" onClick={usarPrecioRecomendado} className="text-emerald-500 underline hover:text-emerald-400">
-                  usar este valor
-                </button>
-              )}
-            </div>
+          <p className="text-xs text-gray-500 -mt-2">
+            {modoCalculo === "margen"
+              ? "Cargá el margen y el precio final se calcula solo. Si preferís, editá el precio final directamente y el margen se recalcula."
+              : "El margen se está recalculando en base al precio final que cargaste. Si editás el margen a mano, vuelve a tomar el control."}
+          </p>
+          {!dolar && (
+            <p className="text-xs text-amber-400 -mt-2">No se pudo cargar la cotización del dólar, el cálculo automático está desactivado.</p>
           )}
 
           {/* Oferta y publicación web */}
