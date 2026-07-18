@@ -112,7 +112,9 @@ export const useEquipos = () => {
   // ── agrupación por mes ──
   const equiposAgrupadosPorMes = useMemo(() => {
     const grupos = equiposFiltrados.reduce((acc, eq) => {
-      const fecha = eq.fecha_ingreso ? new Date(eq.fecha_ingreso) : null;
+      const fecha = eq.fecha_ingreso
+  ? new Date(eq.fecha_ingreso.toString().replace(" ", "T") + "Z")
+  : null;
       let key = "Sin fecha", sortKey = "9999-12";
       if (fecha && !isNaN(fecha.getTime())) {
         const year  = fecha.getFullYear();
