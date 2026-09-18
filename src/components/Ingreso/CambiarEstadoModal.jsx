@@ -169,8 +169,8 @@
 
 // src/components/Ingreso/CambiarEstadoModal.jsx
 import { useEffect, useState } from "react";
-import { updateOrdenTrabajo } from "../../api/OrdenTrabajoApi.jsx";
 import { getEstadoByAmbito } from "../../api/EstadoApi.jsx";
+import { updateOrdenTrabajo } from "../../api/OrdenTrabajoApi.jsx";
 import PatronInput from "../Equipo/PatronInput.jsx";
 
 const toInputDate = (value) => {
@@ -182,6 +182,7 @@ const toInputDate = (value) => {
   const day = String(d.getUTCDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 };
+
 
 const CambiarEstadoModal = ({
   isOpen,
