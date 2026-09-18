@@ -169,7 +169,7 @@
 
 // src/components/Ingreso/CambiarEstadoModal.jsx
 import { useEffect, useState } from "react";
-import { updateOrdenTrabajo } from "../../api/OrdenTrabajoApi.js";
+import { updateOrdenTrabajo } from "../../api/OrdenTrabajoApi.jsx";
 import { getEstadoByAmbito } from "../../api/EstadoApi.jsx";
 import PatronInput from "../Equipo/PatronInput.jsx";
 
