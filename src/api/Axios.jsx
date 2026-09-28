@@ -3,7 +3,9 @@ import axios from "axios";
 
 
 
-const API_BASE_URL = import.meta.env.REACT_APP_API_UR;
+// Antes: import.meta.env.REACT_APP_API_UR (typo + prefijo que Vite no expone)
+// → API_URL quedaba "undefined" y el refresh nunca llegaba al backend.
+const API_BASE_URL = import.meta.env.VITE_API_URL_BACKEND;
 const API_URL = `${API_BASE_URL}`.replace(/\/$/, "");
 
 const api = axios.create({
@@ -29,10 +31,23 @@ function onRefreshed(token) {
   refreshSubscribers = [];
 }
 
-// request: si hay accessToken en localStorage lo pone
+// Limpia tokens y manda a /login (evita que la UI quede "logueada" con tokens muertos)
+function limpiarSesionYRedirigir() {
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("auth_email");
+  delete api.defaults.headers.common["Authorization"];
+  if (window.location.pathname !== "/login") {
+    window.location.assign("/login");
+  }
+}
+
+// request: siempre usa el accessToken más reciente de localStorage.
+// (Antes solo lo ponía si no había header: el header viejo de
+//  api.defaults ganaba y el reintento post-refresh salía con el token vencido.)
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
-  if (token && !config.headers["Authorization"]) {
+  if (token) {
     config.headers["Authorization"] = `Bearer ${token}`;
   }
   return config;
@@ -52,9 +67,7 @@ api.interceptors.response.use(
     // No reintentar refresh si ya estamos llamando al endpoint de refresh
     if (originalRequest.url?.includes("/auth/refresh-token")) {
       // Si falló la renovación: limpiar y redirigir a login
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("auth_email");
+      limpiarSesionYRedirigir();
       return Promise.reject(error);
     }
 
@@ -72,22 +85,26 @@ api.interceptors.response.use(
       });
     }
 
+    const refreshToken = localStorage.getItem("refreshToken");
+    if (!refreshToken) {
+      limpiarSesionYRedirigir();
+      return Promise.reject(error);
+    }
+
     isRefreshing = true;
-    const email = localStorage.getItem("auth_email");
     try {
-      const resp = await axios.post(`${API_URL}/auth/refresh-token`, { email });
+      const resp = await axios.post(`${API_URL}/auth/refresh-token`, { refreshToken });
       const newAccessToken = resp.data.accessToken;
       // actualizar storage y defaults
       localStorage.setItem("accessToken", newAccessToken);
       api.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`;
       onRefreshed(newAccessToken);
+      originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
       return api(originalRequest);
     } catch (refreshError) {
       // no se pudo renovar -> limpiar y forzar login
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("auth_email");
       onRefreshed(null);
+      limpiarSesionYRedirigir();
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;
