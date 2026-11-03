@@ -1,5 +1,3 @@
-
-
 // export default VentasPage;
 
 // import { useState, useEffect, useMemo } from "react";
@@ -736,6 +734,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import VentasModal from "../components/Ventas/VentasModal.jsx";
 import VentasModalWebShop from "../components/Ventas/VentasModalWebShop.jsx";
+import HistorialPagosVentasModal from "../components/Pagos/HistorialPagosVentasModal.jsx";
 import BuscadorComponent from "../components/General/BuscadorComponent.jsx";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.css";
@@ -744,6 +743,7 @@ import {
   createVenta,
   updateVenta,
   deleteVenta,
+  registrarPagoVenta,
 } from "../api/VentaApi.jsx";
 import { getProductos } from "../api/ProductoApi.jsx";
 
@@ -862,6 +862,9 @@ const VentasPage = () => {
   const [modalWebOpen, setModalWebOpen] = useState(false);
   const [selectedWebVenta, setSelectedWebVenta] = useState(null);
 
+  // Historial de pagos de ventas del cliente { clienteId, clienteNombre, ventaId }
+  const [pagosCliente, setPagosCliente] = useState(null);
+
   const [filtroClienteId, setFiltroClienteId] = useState(null);
   const [filtroCanal, setFiltroCanal] = useState("todos");
   const [loading, setLoading] = useState(true);
@@ -922,8 +925,14 @@ const VentasPage = () => {
             error: "No se pudo determinar el ID de la venta para actualizar.",
           };
 
-        // ✅ IMPORTANTE: capturamos respuesta y la devolvemos
-        resp = await updateVenta(ventaId, ventaPayload);
+        // Web: solo se registra el pago (no se recalculan ítems ni se pierde el cupón).
+        // Local: edición completa (ítems, cliente, descuento, abonado).
+        resp = isWebPayload
+          ? await registrarPagoVenta(ventaId, {
+              monto: ventaPayload?.pago,
+              metodo_pago: ventaPayload?.metodo_pago,
+            })
+          : await updateVenta(ventaId, ventaPayload);
 
         // ✅ si es web_shop, actualizamos selectedWebVenta en memoria para reflejar en UI inmediato
         if (isWebPayload) {
@@ -1446,6 +1455,11 @@ const VentasPage = () => {
                                   <span className="text-2xl font-extrabold text-purple-400 tracking-tight">
                                     ${formatPrice(venta.total)}
                                   </span>
+                                  {Number(venta.descuento_real) > 0 && (
+                                    <span className="text-xs text-amber-300">
+                                      −${formatPrice(venta.descuento_real)} desc.
+                                    </span>
+                                  )}
                                   {/* ✅ Badge canal */}
                                   <span
                                     className={`ml-1 text-xs px-2 py-1 rounded-full font-semibold ${venta.canal === "web_shop"
@@ -1507,6 +1521,22 @@ const VentasPage = () => {
                                   : "Editar"}
                               </button>
 
+                              {(venta.cliente?.id ?? venta.cliente_id) && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPagosCliente({
+                                      clienteId: venta.cliente?.id ?? venta.cliente_id,
+                                      clienteNombre: `${venta.cliente?.nombre ?? ""} ${venta.cliente?.apellido ?? ""}`.trim(),
+                                      ventaId: getVentaId(venta),
+                                    });
+                                  }}
+                                  className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-semibold bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 transition duration-150 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-neutral-900"
+                                >
+                                  $ Pagos
+                                </button>
+                              )}
+
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1542,6 +1572,16 @@ const VentasPage = () => {
           productos={productos}
         />
       )}
+
+      {/* Historial de pagos de ventas del cliente */}
+      <HistorialPagosVentasModal
+        isOpen={!!pagosCliente}
+        clienteId={pagosCliente?.clienteId}
+        clienteNombre={pagosCliente?.clienteNombre}
+        ventaIdFoco={pagosCliente?.ventaId}
+        onChange={fetchData}
+        onClose={() => setPagosCliente(null)}
+      />
 
       {/* ✅ Modal web_shop (solo lectura) */}
       <VentasModalWebShop

@@ -1,5 +1,3 @@
-
-
 // import { useEffect, useState, useMemo } from "react";
 // import { useParams, useNavigate } from "react-router-dom";
 // import { getHistorialEquipo, getHistorialCliente } from "../api/HistorialApi.jsx";
@@ -344,22 +342,56 @@ const TIPO_ICONO = {
 };
 const getIcono = (tipo) => TIPO_ICONO[tipo?.toLowerCase()] ?? "🔧";
 
+// Presupuestos que NO suman a lo facturado: Pendiente(1), Rechazado(3), Baja(18)
+const PRESUPUESTO_NO_FACTURADO = new Set([1, 3, 18]);
+const cuentaComoFacturado = (p) =>
+  !PRESUPUESTO_NO_FACTURADO.has(Number(p?.estado_presupuesto_id));
+
+// Ventas que suman: Activa/saldada(19) y Pendiente de pago(26)
+const VENTA_ACTIVA = new Set([19, 26]);
+
 const HistorialClientePage = () => {
-  const { clienteId } = useParams();
+  // Esta página se usa en /historial/cliente/:clienteId y en /equipos/:id/historial
+  const { clienteId: clienteIdParam, id: equipoIdParam } = useParams();
   const [rows, setRows]       = useState([]);
+  const [ventas, setVentas]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
   const [equipoFiltro, setEquipoFiltro] = useState("todos");
 
   useEffect(() => {
-    if (!clienteId) return;
+    if (!clienteIdParam && !equipoIdParam) {
+      setLoading(false);
+      setError("No se indicó cliente ni equipo.");
+      return;
+    }
     (async () => {
       try {
         setLoading(true);
-        const { data } = await axios.get(
-          `${API_BASE_URL}/historial/cliente/${clienteId}`
-        );
-        setRows(data || []);
+        setError(null);
+
+        const url = clienteIdParam
+          ? `${API_BASE_URL}/historial/cliente/${clienteIdParam}`
+          : `${API_BASE_URL}/historial/equipo/${equipoIdParam}`;
+        const { data } = await axios.get(url);
+        const filas = Array.isArray(data) ? data : [];
+        setRows(filas);
+
+        // Desde un equipo: arrancar filtrado en ese equipo
+        if (equipoIdParam) setEquipoFiltro(String(equipoIdParam));
+
+        const cid = clienteIdParam ?? filas[0]?.cliente_id;
+        if (cid) {
+          try {
+            const { data: vs } = await axios.get(
+              `${API_BASE_URL}/historial/cliente/${cid}/ventas`
+            );
+            setVentas(Array.isArray(vs) ? vs : []);
+          } catch (e) {
+            console.error("Error cargando ventas del cliente:", e);
+            setVentas([]);
+          }
+        }
       } catch (e) {
         console.error("Error cargando historial:", e);
         setError("No se pudo cargar el historial del cliente.");
@@ -367,7 +399,10 @@ const HistorialClientePage = () => {
         setLoading(false);
       }
     })();
-  }, [clienteId]);
+  }, [clienteIdParam, equipoIdParam]);
+
+  const backHref  = equipoIdParam ? `/equipos/${equipoIdParam}` : "/clientes";
+  const backLabel = equipoIdParam ? "← Volver al equipo" : "← Volver a clientes";
 
   // Agrupar rows por equipo
   const equipos = useMemo(() => {
@@ -434,19 +469,38 @@ const HistorialClientePage = () => {
     [equipos, equipoFiltro]
   );
 
-  // Totales generales
+  const ventasActivas = useMemo(
+    () => ventas.filter((v) => VENTA_ACTIVA.has(Number(v.estado_id))),
+    [ventas]
+  );
+
+  // Totales generales: reparaciones facturables + ventas activas
   const totales = useMemo(() => {
-    let totalFacturado = 0, totalCosto = 0;
+    let repTotal = 0, repCosto = 0;
     for (const eq of equipos) {
       for (const ot of eq.ordenes) {
         for (const p of ot.presupuestos) {
-          totalFacturado += Number(p.total  || 0);
-          totalCosto     += Number(p.costo  || 0);
+          if (!cuentaComoFacturado(p)) continue;
+          repTotal += Number(p.total  || 0);
+          repCosto += Number(p.costo  || 0);
         }
       }
     }
-    return { totalFacturado, totalCosto, balance: totalFacturado - totalCosto };
-  }, [equipos]);
+    let venTotal = 0, venCosto = 0, venSaldo = 0;
+    for (const v of ventasActivas) {
+      venTotal += Number(v.total || 0);
+      venSaldo += Number(v.saldo || 0);
+      for (const d of v.detalle_venta || []) {
+        venCosto += Number(d.cantidad || 0) * Number(d.producto?.costo || 0);
+      }
+    }
+    const totalFacturado = repTotal + venTotal;
+    const totalCosto = repCosto + venCosto;
+    return {
+      totalFacturado, totalCosto, balance: totalFacturado - totalCosto,
+      repTotal, venTotal, venSaldo,
+    };
+  }, [equipos, ventasActivas]);
 
   if (loading) return (
     <div className="min-h-screen bg-neutral-900 text-white flex items-center justify-center">
@@ -461,8 +515,8 @@ const HistorialClientePage = () => {
     <div className="min-h-screen bg-neutral-900 text-white flex items-center justify-center">
       <div className="text-center space-y-3">
         <p className="text-red-400 text-lg">{error}</p>
-        <Link to="/clientes" className="text-emerald-400 hover:underline text-sm">
-          ← Volver a clientes
+        <Link to={backHref} className="text-emerald-400 hover:underline text-sm">
+          {backLabel}
         </Link>
       </div>
     </div>
@@ -475,23 +529,27 @@ const HistorialClientePage = () => {
         {/* Header */}
         <div className="flex items-center justify-between gap-4">
           <div>
-            <Link to="/clientes" className="text-xs text-neutral-500 hover:text-white transition-colors">
-              ← Volver a clientes
+            <Link to={backHref} className="text-xs text-neutral-500 hover:text-white transition-colors">
+              {backLabel}
             </Link>
             <h1 className="text-2xl font-bold text-white mt-1">Historial del Cliente</h1>
             <p className="text-sm text-neutral-400 mt-0.5">
               {equipos.length} equipo{equipos.length !== 1 ? "s" : ""} ·{" "}
-              {equipos.reduce((acc, e) => acc + e.ordenes.length, 0)} ingreso{equipos.reduce((acc, e) => acc + e.ordenes.length, 0) !== 1 ? "s" : ""}
+              {equipos.reduce((acc, e) => acc + e.ordenes.length, 0)} ingreso{equipos.reduce((acc, e) => acc + e.ordenes.length, 0) !== 1 ? "s" : ""} ·{" "}
+              {ventasActivas.length} venta{ventasActivas.length !== 1 ? "s" : ""}
             </p>
           </div>
         </div>
 
         {/* Resumen de totales */}
-        {equipos.length > 0 && (
+        {(equipos.length > 0 || ventasActivas.length > 0) && (
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-neutral-800/60 border border-white/10 rounded-xl p-3 text-center">
               <p className="text-xs text-neutral-400 mb-1">Facturado</p>
               <p className="text-base font-bold text-green-300">{formatCurrency(totales.totalFacturado)}</p>
+              <p className="text-[10px] text-neutral-500 mt-0.5">
+                Taller {formatCurrency(totales.repTotal)} · Ventas {formatCurrency(totales.venTotal)}
+              </p>
             </div>
             <div className="bg-neutral-800/60 border border-white/10 rounded-xl p-3 text-center">
               <p className="text-xs text-neutral-400 mb-1">Costo</p>
@@ -528,7 +586,7 @@ const HistorialClientePage = () => {
         )}
 
         {/* Sin datos */}
-        {equipos.length === 0 && (
+        {equipos.length === 0 && ventas.length === 0 && (
           <div className="rounded-xl border border-dashed border-white/15 p-10 text-center">
             <p className="text-4xl mb-3">📋</p>
             <p className="text-neutral-300 text-lg">Este cliente no tiene historial registrado.</p>
@@ -564,8 +622,9 @@ const HistorialClientePage = () => {
                   <p className="px-4 py-3 text-sm text-neutral-500">Sin órdenes de trabajo registradas.</p>
                 ) : (
                   eq.ordenes.map(ot => {
-                    const totalOT = ot.presupuestos.reduce((acc, p) => acc + Number(p.total || 0), 0);
-                    const costoOT = ot.presupuestos.reduce((acc, p) => acc + Number(p.costo || 0), 0);
+                    const facturables = ot.presupuestos.filter(cuentaComoFacturado);
+                    const totalOT = facturables.reduce((acc, p) => acc + Number(p.total || 0), 0);
+                    const costoOT = facturables.reduce((acc, p) => acc + Number(p.costo || 0), 0);
 
                     return (
                       <div key={ot.orden_trabajo_id} className="px-4 py-4 space-y-3">
@@ -645,6 +704,57 @@ const HistorialClientePage = () => {
             </div>
           ))}
         </div>
+
+        {/* Ventas del cliente */}
+        {ventas.length > 0 && equipoFiltro === "todos" && (
+          <div className="bg-neutral-800/40 border border-white/10 rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between gap-3 px-4 py-3 bg-neutral-800/60 border-b border-white/10">
+              <p className="font-semibold text-white">🛒 Ventas</p>
+              {totales.venSaldo > 0 && (
+                <span className="text-xs text-red-300">Saldo pendiente: {formatCurrency(totales.venSaldo)}</span>
+              )}
+            </div>
+            <div className="divide-y divide-white/5">
+              {ventas.map((v) => {
+                const anulada = !VENTA_ACTIVA.has(Number(v.estado_id));
+                return (
+                  <div key={v.id} className={`px-4 py-3 ${anulada ? "opacity-50" : ""}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap text-xs">
+                          <span className="text-neutral-500">Venta #{v.id}</span>
+                          <span className="text-neutral-400">{formatDate(v.fecha)}</span>
+                          <span className="px-2 py-0.5 rounded-full bg-neutral-700/60 text-neutral-300">
+                            {v.canal === "web_shop" ? "Web" : "Local"}
+                          </span>
+                          {anulada && (
+                            <span className="px-2 py-0.5 rounded-full bg-red-600/20 text-red-300">
+                              {v.estado?.nombre || "Anulada"}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-neutral-300 mt-1 line-clamp-2">
+                          {(v.detalle_venta || [])
+                            .map((d) => `${d.cantidad}× ${d.producto?.nombre ?? "Producto"}`)
+                            .join(" · ") || "Sin productos"}
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-sm font-semibold text-green-300">{formatCurrency(v.total)}</p>
+                        {Number(v.descuento) > 0 && (
+                          <p className="text-[11px] text-amber-300">desc. {formatCurrency(v.descuento)}</p>
+                        )}
+                        {Number(v.saldo) > 0 && !anulada && (
+                          <p className="text-[11px] text-red-300">saldo {formatCurrency(v.saldo)}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

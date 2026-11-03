@@ -1,5 +1,3 @@
-
-
 // // src/components/Ventas/VentasModal.jsx
 // import { useEffect, useMemo, useState } from "react";
 // import { getClientes } from "../../api/ClienteApi";
@@ -633,6 +631,8 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
   const [items, setItems] = useState([]);
   const [pagado, setPagado] = useState("");
   const [montoAbonadoToForm, setMontoAbonadoToForm] = useState(0);
+  const [descuento, setDescuento] = useState("");
+  const [metodoPago, setMetodoPago] = useState("Efectivo");
   const [saving, setSaving] = useState(false);
 
   // ✅ NUEVO: estado para buscador de productos
@@ -709,6 +709,9 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
 
       const abonado = Number(initialData.monto_abonado ?? 0);
       setPagado(String(Number.isFinite(abonado) ? Math.floor(abonado) : 0));
+
+      const desc = Number(initialData.descuento ?? 0);
+      setDescuento(Number.isFinite(desc) && desc > 0 ? String(Math.floor(desc)) : "");
     }
   }, [initialData, productos, clientes]);
 
@@ -749,6 +752,11 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
   const onChangePagado = (e) => {
     const v = sanitizeNumberString(e.target.value);
     setPagado(v === "" ? "" : v);
+  };
+
+  const onChangeDescuento = (e) => {
+    const v = sanitizeNumberString(e.target.value);
+    setDescuento(v === "" ? "" : v);
   };
 
   // ===== Selectores cliente =====
@@ -850,10 +858,12 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
   };
 
   // ===== Totales =====
-  const total = items.reduce(
+  const subtotal = items.reduce(
     (acc, item) => acc + Number(item.cantidad || 0) * Number(item.precio || 0),
     0
   );
+  const descuentoNum = Number(descuento || 0);
+  const total = Math.max(0, subtotal - descuentoNum);
   const pagadoNum = Number(pagado || 0);
   const saldo = Math.max(0, total - pagadoNum);
 
@@ -872,6 +882,8 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
     setFilteredClientes(clientes);
     setItems([]);
     setPagado("");
+    setDescuento("");
+    setMetodoPago("Efectivo");
     setProductSearch("");
     onClose?.();
   };
@@ -933,8 +945,18 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
       }
     }
 
+    if (descuentoNum > subtotal) {
+      alert("El descuento no puede superar el subtotal.");
+      setSaving(false);
+      return;
+    }
+
     if (pagado !== "" && pagadoNum > total) {
-      alert("El monto pagado no puede exceder el total.");
+      alert(
+        isEdicion
+          ? `El nuevo total ($${total.toLocaleString("es-AR")}) no puede ser menor a lo ya pagado ($${pagadoNum.toLocaleString("es-AR")}). Anulá un pago desde el historial de pagos si corresponde.`
+          : "El monto pagado no puede exceder el total."
+      );
       setSaving(false);
       return;
     }
@@ -942,7 +964,10 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
     const ventaPayload = {
       id: initialData?.id ?? initialData?.venta_id ?? undefined,
       cliente_id: clienteSeleccionado.id,
-      monto_abonado: montoAbonadoToForm,
+      // Al crear: el monto pagado se guarda como primer pago del historial.
+      // Al editar: no se envía; los pagos se cargan desde "Pagos".
+      ...(isEdicion ? {} : { monto_abonado: montoAbonadoToForm, metodo_pago: metodoPago }),
+      descuento: descuentoNum,
       fecha: new Date().toISOString(),
       total,
       saldo,
@@ -1184,26 +1209,71 @@ const VentasModal = ({ onClose, onGuardar, initialData }) => {
               </div>
             </div>
 
-            {/* PAGADO + RESUMEN */}
+            {/* DESCUENTO + PAGADO + RESUMEN */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-neutral-700 p-3 rounded">
-                <label className="block text-sm text-gray-300 mb-1">Monto pagado</label>
+                <label className="block text-sm text-gray-300 mb-1">Descuento ($)</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="\d*"
+                  value={descuento}
+                  onChange={onChangeDescuento}
+                  disabled={lockEdicion}
+                  className="w-full bg-neutral-600 p-2 rounded text-white transition
+                             focus:outline-none focus:ring-2 focus:ring-emerald-500/60
+                             disabled:opacity-60 disabled:cursor-not-allowed"
+                  placeholder="0"
+                />
+                {descuentoNum > subtotal && (
+                  <p className="text-xs text-red-300 mt-2">Supera el subtotal.</p>
+                )}
+              </div>
+
+              <div className="bg-neutral-700 p-3 rounded">
+                <label className="block text-sm text-gray-300 mb-1">
+                  {isEdicion ? "Pagado hasta ahora" : "Pago inicial"}
+                </label>
                 <input
                   type="text"
                   inputMode="numeric"
                   pattern="\d*"
                   value={pagado}
                   onChange={onChangePagado}
-                  disabled={lockEdicion}
+                  disabled={lockEdicion || isEdicion}
                   className="w-full bg-neutral-600 p-2 rounded text-white transition
                              focus:outline-none focus:ring-2 focus:ring-emerald-500/60
                              disabled:opacity-60 disabled:cursor-not-allowed"
                   placeholder="Ej: 22000"
                 />
-                <p className="text-xs text-gray-400 mt-2">El saldo se calcula automáticamente.</p>
+                {isEdicion ? (
+                  <p className="text-xs text-gray-400 mt-2">
+                    Para sumar o anular pagos usá el botón <b>Pagos</b> de la venta.
+                  </p>
+                ) : (
+                  <select
+                    value={metodoPago}
+                    onChange={(e) => setMetodoPago(e.target.value)}
+                    disabled={lockEdicion || pagadoNum <= 0}
+                    className="mt-2 w-full bg-neutral-600 p-2 rounded text-white text-sm
+                               focus:outline-none focus:ring-2 focus:ring-emerald-500/60
+                               disabled:opacity-50"
+                  >
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Transferencia">Transferencia</option>
+                    <option value="Tarjeta">Tarjeta</option>
+                    <option value="Mercado Pago">Mercado Pago</option>
+                  </select>
+                )}
               </div>
 
-              <div className="bg-neutral-700 p-3 rounded">
+              <div className="bg-neutral-700 p-3 rounded col-span-2">
+                {descuentoNum > 0 && (
+                  <div className="flex justify-between text-xs text-gray-400 mb-1">
+                    <span>Subtotal ${subtotal.toLocaleString("es-AR")}</span>
+                    <span className="text-amber-300">− ${descuentoNum.toLocaleString("es-AR")}</span>
+                  </div>
+                )}
                 <div className="text-xs text-gray-400">Total</div>
                 <div className="text-xl font-bold text-gray-100">
                   ${total.toLocaleString("es-AR")}
