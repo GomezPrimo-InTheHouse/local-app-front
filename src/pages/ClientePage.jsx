@@ -1,949 +1,445 @@
-
-
-// // export default ClientePage;
-
-// import { useEffect, useState, useMemo } from "react";
-// import Swal from "sweetalert2";
-// import {
-//   getClientes,
-//   createCliente,
-//   updateCliente,
-//   deleteCliente,
-// } from "../api/ClienteApi";
-// import { getHistorialCliente } from "../api/HistorialApi.jsx";
-// import ClienteModal from "../components/Cliente/ClienteModal.jsx";
-// import { useNavigate } from "react-router-dom";
-// import AlertNotification from "../components/Alerta/AlertNotification.jsx";
-
-// const ClientePage = () => {
-//   const [clientes, setClientes] = useState([]);
-//   const [filteredClientes, setFilteredClientes] = useState([]);
-//   const [search, setSearch] = useState("");
-//   const [loading, setLoading] = useState(true);
-
-//   const [isOpen, setIsOpen] = useState(false);
-//   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
-
-//   // mini balances por cliente { [id]: { ingresos, costos, total, balance } }
-//   const [balances, setBalances] = useState({});
-//   const [loadingBalances, setLoadingBalances] = useState(false);
-
-//    const [alert, setAlert] = useState({
-//     message: "",
-//     type: "success", // "success" | "error" | "warning"
-//     key: 0,          // para forzar el re-render de la animación
-//   });
-
-//   const navigate = useNavigate();
-
-//   // ---- Helpers ----
-//   const currency = (n) =>
-//     (n ?? 0).toLocaleString("es-AR", {
-//       style: "currency",
-//       currency: "ARS",
-//       minimumFractionDigits: 0,
-//     });
-
-//   const computeResumenHistorial = (raw) => {
-//     // La API puede devolver { equipos: [...] } o un array de equipos
-//     const equipos = Array.isArray(raw?.equipos)
-//       ? raw.equipos
-//       : Array.isArray(raw)
-//       ? raw
-//       : [];
-
-//     let sumCosto = 0;
-//     let sumTotal = 0;
-
-//     for (const eq of equipos) {
-//       const ingresos = eq?.ingresos || [];
-//       for (const ing of ingresos) {
-//         const presupuestos = ing?.presupuestos || [];
-//         for (const p of presupuestos) {
-//           const costo = Number(p?.costo_presupuesto ?? p?.costo ?? 0);
-//           const total = Number(p?.total_presupuesto ?? p?.total ?? 0);
-//           sumCosto += costo;
-//           sumTotal += total;
-//         }
-//       }
-//     }
-//     return {
-//       ingresos: sumTotal,
-//       costos: sumCosto,
-//       balance: sumTotal - sumCosto,
-//     };
-//   };
-
-//   // ---- Carga de clientes ----
-//   useEffect(() => {
-//     cargarClientes();
-//   }, []);
-
-//   const cargarClientes = async () => {
-//     try {
-//       setLoading(true);
-//       const data = await getClientes();
-//       setClientes(data || []);
-//       setFilteredClientes(data || []);
-//     } catch (error) {
-//       console.error("Error cargando clientes:", error);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   // ---- Filtrado tiempo real ----
-//   useEffect(() => {
-//     const q = (search || "").toLowerCase().trim();
-//     const filtered = (clientes || []).filter((cli) => {
-//       const nombre = (cli?.nombre || "").toLowerCase();
-//       const apellido = (cli?.apellido || "").toLowerCase();
-//       const celular = (cli?.celular || "").toLowerCase();
-//       return nombre.includes(q) || apellido.includes(q) || celular.includes(q);
-//     });
-//     setFilteredClientes(filtered);
-//   }, [search, clientes]);
-
-//   // ---- Cargar balances por cliente (tras cargar/filtrar) ----
-//   useEffect(() => {
-//     // Para evitar llamar para cada tecla del buscador, calculamos balances
-//     // sobre TODOS los clientes cargados (no solo filtrados). Si ya existe, no recalculamos.
-//     const fetchBalances = async () => {
-//       if (!Array.isArray(clientes) || clientes.length === 0) return;
-//       setLoadingBalances(true);
-//       const next = { ...balances };
-
-//       // ids que aún no tienen balance
-//       const idsToFetch = clientes
-//         .map((c) => c?.id)
-//         .filter((id) => id != null && next[id] == null);
-
-//       try {
-//         await Promise.all(
-//           idsToFetch.map(async (id) => {
-//             try {
-//               const hist = await getHistorialCliente(id);
-//               next[id] = computeResumenHistorial(hist);
-//             } catch (e) {
-//               console.error("Error historial cliente", id, e);
-//               next[id] = { ingresos: 0, costos: 0, balance: 0 };
-//             }
-//           })
-//         );
-//         setBalances(next);
-//       } finally {
-//         setLoadingBalances(false);
-//       }
-//     };
-//     fetchBalances();
-//     // eslint-disable-next-line react-hooks/exhaustive-deps
-//   }, [clientes]);
-
-//   // ---- Acciones CRUD ----
-//   const handleAgregar = () => {
-//     setClienteSeleccionado(null);
-//     setIsOpen(true);
-//   };
-
-//   const handleModificar = (cliente) => {
-//     setClienteSeleccionado(cliente);
-//     setIsOpen(true);
-//   };
-
-//   const handleDeleteCliente = async (id) => {
-//     Swal.fire({
-//       title: "¿Estás seguro?",
-//       text: "No podrás deshacer esta acción.",
-//       icon: "warning",
-//       theme: "dark",
-//       showCancelButton: true,
-//       confirmButtonText: "Sí, eliminar",
-//       cancelButtonText: "Cancelar",
-//     }).then(async (result) => {
-//       if (result.isConfirmed) {
-//         try {
-//           await deleteCliente(id);
-//           // limpiamos balance en memoria
-//           setBalances((prev) => {
-//             const n = { ...prev };
-//             delete n[id];
-//             return n;
-//           });
-//           cargarClientes();
-//         } catch (error) {
-//           console.error("Error eliminando cliente:", error);
-//           Swal.fire("Error", "No se pudo eliminar el cliente", "error");
-//         }
-//       }
-//     });
-//   };
-
-//   //handle submit modificado para manejar foto
-//   const handleSubmit = async (formData) => {
-//   try {
-//     // formData viene directo del modal e incluye:
-//     // nombre, apellido, dni, direccion, celular, celular_contacto,
-//     // fotoFile (File | null), foto_url (string | "")
-
-//     if (clienteSeleccionado) {
-      
-//       await updateCliente(clienteSeleccionado.id, formData);
-//         setAlert({
-//         message: "Cliente actualizado correctamente ✅",
-//         type: "success",
-//         key: Date.now(),
-//       });
-//     } else {
-      
-//       await createCliente(formData);
-//       setAlert({
-//         message: "Cliente creado correctamente ✅",
-//         type: "success",
-//         key: Date.now(),
-//       });
-//     }
-
-//     cargarClientes();
-//   } catch (error) {
-//     console.error("Error guardando cliente:", error);
-//       const msgBackend =
-//       error?.response?.data?.msg ||
-//       error?.response?.data?.error ||
-//       "Ocurrió un error al guardar el cliente";
-
-//     setAlert({
-//       message: msgBackend,
-//       type: "error",
-//       key: Date.now(),
-//     });
-//   }
-// };
-
-
-//   const handleVerHistorial = (clienteId) => {
-//     navigate(`/historial/cliente/${clienteId}`);
-//   };
-
-//   // ---- UI helpers ----
-//   const balanceChipClass = (value) => {
-//     if (value > 0) return "bg-emerald-500/15 text-emerald-200 border-emerald-400/20";
-//     if (value < 0) return "bg-rose-500/15 text-rose-200 border-rose-400/20";
-//     return "bg-amber-500/15 text-amber-200 border-amber-400/20";
-//     // podés cambiar por tu paleta
-//   };
-
-//   return (
-//     // Contenedor general, fondos atenuados por sección
-//     <div className="min-h-dvh w-screen bg-neutral-900 text-white/95 overflow-hidden">
-//       <div className="px-4 sm:px-6 lg:px-8">
-//       {/* 🔔 Notificación global de Clientes */}
-//       {alert.message && (
-//         <AlertNotification
-//           key={alert.key}          // fuerza la animación cada vez
-//           message={alert.message}
-//           type={alert.type}
-//           duration={2500}          // ms (2,5 segundos)
-//           onClose={() =>
-//             setAlert((prev) => ({
-//               ...prev,
-//               message: "",
-//             }))
-//           }
-//         />
-//       )}
-      
-//       {/* Grid 30/70, solo scrollea el lado derecho en desktop */}
-//       <div className="grid grid-cols-1 md:grid-cols-[30%_70%] gap-0 md:gap-6 w-full">
-//         {/* Lateral (30%) fijo/sticky y con su propio scroll si hiciera falta */}
-//         <aside className="bg-neutral-900 md:bg-transparent md:sticky md:top-0 md:h-screen md:overflow-y-auto px-3 sm:px-4 py-4 sm:py-6 border-b md:border-b-0 md:border-r border-white/10">
-//           {/* Sección Acción principal */}
-//           <div className="rounded-2xl border border-white/10 bg-neutral-800/60 p-4 sm:p-5">
-//             <div className="flex items-center justify-between gap-2">
-//               <h2 className="text-lg sm:text-xl font-semibold">Gestión de Clientes</h2>
-//               <button
-//                 onClick={() => navigate("/")}
-//                 className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-neutral-700 hover:bg-neutral-600 text-[11px] sm:text-sm"
-//               >
-//                 ← Dashboard
-//               </button>
-//             </div>
-
-            
-
-//             <button
-//               onClick={handleAgregar}
-//               className="mt-4 w-full px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-[12px] sm:text-sm font-semibold"
-//             >
-//               + Agregar Cliente
-//             </button>
-//           </div>
-
-//           {/* Sección Filtros / Búsqueda (fondo ligeramente distinto para seccionar) */}
-//           <div className="mt-4 rounded-2xl border border-white/10 bg-neutral-800/40 p-4 sm:p-5">
-//             <label className="block text-[11px] sm:text-xs text-neutral-300/80 mb-1">
-//               Buscar cliente
-//             </label>
-//             <input
-//               type="text"
-//               inputMode="search"
-//               placeholder="Nombre, apellido o celular…"
-//               value={search}
-//               onChange={(e) => setSearch(e.target.value)}
-//               className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-neutral-400"
-//             />
-
-//             {/* Leyenda balances */}
-//             <div className="mt-3 text-[11px] text-neutral-300/80">
-//               {loadingBalances
-//                 ? "Calculando balances…"
-//                 : "Mini balance: neto (Total − Costos)."}
-//             </div>
-//           </div>
-//         </aside>
-
-//         {/* Derecha (70%) — scrollea solo este panel en desktop */}
-//         <section className="md:h-screen md:overflow-y-auto">
-//           {/* Encabezado del listado sticky con color de fondo sutil distinto */}
-//           <div className="sticky top-0 z-10 px-3 sm:px-4 py-3 backdrop-blur bg-neutral-900/85 border-b border-white/10">
-//             <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
-//               <h3 className="text-base sm:text-lg font-semibold">Lista de Clientes</h3>
-//               {/* Buscador duplicado solo para mobile (accesible al scrollear) */}
-//               <div className="md:hidden w-1/2">
-//                 <input
-//                   type="text"
-//                   inputMode="search"
-//                   placeholder="Buscar…"
-//                   value={search}
-//                   onChange={(e) => setSearch(e.target.value)}
-//                   className="w-full rounded-lg bg-white/5 border border-white/10 px-2.5 py-1.5 text-[12px] focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-neutral-400"
-//                 />
-//               </div>
-//             </div>
-//           </div>
-
-//           {/* Contenido (fondos alternados/atenuados para secciones) */}
-//           <div className="px-3 sm:px-4 py-4 space-y-4">
-//             {/* Bloque listado */}
-//             <div className="rounded-2xl border border-white/10 bg-neutral-800/40 p-3 sm:p-4">
-//               {loading ? (
-//                 <p className="text-neutral-400 px-1">Cargando clientes…</p>
-//               ) : !Array.isArray(filteredClientes) || filteredClientes.length === 0 ? (
-//                 <div className="rounded-xl border border-dashed border-white/15 p-6 text-center bg-white/5">
-//                   <p className="text-neutral-300">No hay clientes que coincidan con la búsqueda.</p>
-//                   <button
-//                     onClick={handleAgregar}
-//                     className="mt-3 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-sm font-semibold"
-//                   >
-//                     + Crear cliente
-//                   </button>
-//                 </div>
-//               ) : (
-//                 <>
-//                   {/* MOBILE: Cards */}
-//                   <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:hidden">
-//                     {filteredClientes.map((cli) => {
-//                       const bal = balances[cli.id];
-//                       const chip = balanceChipClass(bal?.balance ?? 0);
-
-//                       return (
-//                         <li
-//                           key={cli.id}
-//                           onClick={() => handleModificar(cli)}
-//                           className="rounded-xl border border-white/10 bg-neutral-800/50 hover:bg-neutral-800/70 hover:border-white/20 transition p-4 flex flex-col gap-3"
-//                         >
-//                           <div className="flex items-start justify-between gap-3">
-//                             <div className="flex items-center gap-3 min-w-0">
-//                               <div className="h-10 w-10 rounded-full bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-200 font-semibold">
-//                                 {(cli?.nombre?.[0] || "C").toUpperCase()}
-//                               </div>
-//                               <div className="min-w-0">
-//                                 <p className="font-semibold truncate">
-//                                   {cli.nombre} {cli.apellido}
-//                                 </p>
-//                                 <p className="text-xs text-neutral-400 truncate">
-//                                   {cli.celular || "Sin teléfono"}
-//                                 </p>
-//                               </div>
-//                             </div>
-
-//                             {/* Mini balance */}
-//                             <span className={`px-2 py-1 rounded-full border text-[11px] ${chip}`} title="Balance neto">
-//                               {currency(bal?.balance ?? 0)}
-//                             </span>
-//                           </div>
-
-//                           <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-//                             <p className="text-[11px] text-neutral-400">Dirección</p>
-//                             <p className="text-sm font-medium break-words">{cli.direccion || "—"}</p>
-//                           </div>
-
-//                           <div className="flex items-center justify-between gap-2">
-//                             <button
-//                               onClick={() => handleVerHistorial(cli.id)}
-//                               className="flex-1 px-3 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-[12px] sm:text-sm font-semibold"
-//                             >
-//                               Ver Historial
-//                             </button>
-//                             <div className="hidden sm:flex items-center gap-2">
-//                               <button
-//                                 onClick={() => handleModificar(cli)}
-//                                 className="px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-[12px] sm:text-sm font-medium"
-//                               >
-//                                 Modificar
-//                               </button>
-//                               <button
-//                                 onClick={() => handleDeleteCliente(cli.id)}
-//                                 className="px-3 py-1.5 rounded-md bg-rose-600 hover:bg-rose-700 text-[12px] sm:text-sm font-medium"
-//                               >
-//                                 Eliminar
-//                               </button>
-//                             </div>
-//                           </div>
-//                         </li>
-//                       );
-//                     })}
-//                   </ul>
-
-//                   {/* DESKTOP: Lista clásica (30%/70% mantenido por el grid padre) */}
-//                   <ol className="hidden md:block space-y-3 list-decimal list-inside">
-//                     {filteredClientes.map((cli) => {
-//                       const bal = balances[cli.id];
-//                       const chip = balanceChipClass(bal?.balance ?? 0);
-
-//                       return (
-//                         <li
-//                           key={cli.id}
-                          
-//                           className="rounded-xl border border-white/10 bg-neutral-800/30 hover:bg-neutral-800/50 transition p-4 flex justify-between items-center"
-//                         >
-//                           <div className="min-w-0">
-//                             <p className="font-semibold text-white truncate">
-//                               {cli.nombre} {cli.apellido}
-//                             </p>
-//                             <p className="text-sm text-gray-400 truncate">
-//                               {cli.celular} | {cli.direccion}
-//                             </p>
-//                           </div>
-
-//                           <div className="flex items-center gap-2 flex-shrink-0">
-//                             {/* Mini balance en desktop */}
-//                             <span className={`px-2 py-1 rounded-full border text-[12px] ${chip}`} title="Balance neto">
-//                               {currency(bal?.balance ?? 0)}
-//                             </span>
-
-//                             <button
-//                               onClick={() => handleVerHistorial(cli.id)}
-//                               className="bg-teal-600 hover:bg-teal-700 px-3 py-1.5 rounded text-sm font-medium"
-//                             >
-//                               Ver Historial
-//                             </button>
-//                             <button
-//                               onClick={() => handleModificar(cli)}
-//                               className="bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded text-sm font-medium"
-//                             >
-//                               Modificar
-//                             </button>
-//                             <button
-//                               onClick={() => handleDeleteCliente(cli.id)}
-//                               className="bg-rose-600 hover:bg-rose-700 px-3 py-1.5 rounded text-sm font-medium"
-//                             >
-//                               Eliminar
-//                             </button>
-//                           </div>
-//                         </li>
-//                       );
-//                     })}
-//                   </ol>
-//                 </>
-//               )}
-//             </div>
-
-//             {/* Sección informativa/ayuda (otro fondo para separar) */}
-//             <div className="rounded-2xl border border-white/10 bg-neutral-800/30 p-4">
-//               <p className="text-xs text-neutral-300/80">
-//                 Tip: el mini balance es el <b>neto</b> de cada cliente (Total − Costos) calculado a partir del historial de equipos e ingresos.
-//               </p>
-//             </div>
-//           </div>
-//         </section>
-//       </div>
-
-//       {/* Modal */}
-//       <ClienteModal
-//         isOpen={isOpen}
-//         onClose={() => setIsOpen(false)}
-//         onSubmit={handleSubmit}
-//         clienteSeleccionado={clienteSeleccionado}
-//       />
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default ClientePage;
-
-
-
-
-// export default ClientePage;
-
-import { useEffect, useState, useMemo } from "react";
+// src/components/Pagos/HistorialPagosVentasModal.jsx
+// Historial y carga de pagos de VENTAS de un cliente.
+// Misma lógica que HistorialPagosModal (servicio técnico): un pago del cliente
+// se reparte a la venta más vieja primero. También se puede pagar una venta puntual.
+// Los pagos no se borran: se anulan y quedan tachados en el historial.
+import { useState, useEffect, useCallback, useMemo } from "react";
+import Modal from "react-modal";
 import Swal from "sweetalert2";
 import {
-  getClientes,
-  createCliente,
-  updateCliente,
-  deleteCliente,
-} from "../api/ClienteApi";
-import { getResumenBalanceClientes } from "../api/HistorialApi.jsx";
-import ClienteModal from "../components/Cliente/ClienteModal.jsx";
-import HistorialPagosVentasModal from "../components/Pagos/HistorialPagosVentasModal.jsx";
-import { useNavigate } from "react-router-dom";
-import AlertNotification from "../components/Alerta/AlertNotification.jsx";
+  getPagosVentasCliente,
+  pagarVentasCliente,
+  registrarPagoVenta,
+  anularPagoVenta,
+} from "../../api/VentaApi.jsx";
 
-const ClientePage = () => {
-  const [clientes, setClientes] = useState([]);
-  const [filteredClientes, setFilteredClientes] = useState([]);
-  const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
+const METODOS = ["Efectivo", "Transferencia", "Tarjeta", "Mercado Pago"];
+const DESTINO_REPARTIR = "repartir";
 
-  const [isOpen, setIsOpen] = useState(false);
-  const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
+const parseNumber = (v) => parseInt(String(v).replace(/\D/g, ""), 10) || 0;
+const formatNumberWithDots = (n) =>
+  n === 0 ? "" : Number(n).toLocaleString("es-AR", { maximumFractionDigits: 0 });
+const formatPrice = (p) =>
+  Number(p || 0).toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const formatDate = (s) => {
+  if (!s) return "—";
+  const d = new Date(s);
+  return isNaN(d.getTime())
+    ? "—"
+    : d.toLocaleString("es-AR", {
+        day: "2-digit", month: "2-digit", year: "2-digit",
+        hour: "2-digit", minute: "2-digit",
+        timeZone: "America/Argentina/Buenos_Aires",
+      });
+};
 
-  // mini balances por cliente { [id]: { ingresos, costos, total, balance } }
-  const [balances, setBalances] = useState({});
-  const [loadingBalances, setLoadingBalances] = useState(false);
+const swalDark = {
+  popup: "bg-neutral-800 text-white border border-neutral-700 rounded-lg shadow-xl",
+  htmlContainer: "text-gray-300",
+};
 
-  // Pagos de ventas del cliente seleccionado { id, nombre }
-  const [pagosCliente, setPagosCliente] = useState(null);
+const HistorialPagosVentasModal = ({
+  isOpen,
+  onClose,
+  clienteId,
+  clienteNombre,
+  ventaIdFoco = null, // si se abre desde una venta, se preselecciona como destino
+  onChange,           // se llama después de cargar/anular un pago (para refrescar la lista)
+}) => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [monto, setMonto] = useState("");
+  const [metodo, setMetodo] = useState("Efectivo");
+  const [observaciones, setObservaciones] = useState("");
+  const [destino, setDestino] = useState(DESTINO_REPARTIR);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-   const [alert, setAlert] = useState({
-    message: "",
-    type: "success", // "success" | "error" | "warning"
-    key: 0,          // para forzar el re-render de la animación
-  });
+  const ventas = useMemo(() => data?.ventas ?? [], [data]);
+  const pagos = useMemo(() => data?.pagos ?? [], [data]);
+  const deudaTotal = Number(data?.deuda_total ?? 0);
 
-  const navigate = useNavigate();
+  const ventasConSaldo = useMemo(
+    () => ventas.filter((v) => !v.anulada && Number(v.saldo) > 0),
+    [ventas]
+  );
 
-  // ---- Helpers ----
-  const currency = (n) =>
-    (n ?? 0).toLocaleString("es-AR", {
-      style: "currency",
-      currency: "ARS",
-      minimumFractionDigits: 0,
-    });
+  const abonosPrevios = useMemo(
+    () => ventas.filter((v) => Number(v.abonado_previo) > 0),
+    [ventas]
+  );
 
-  // ---- Carga de clientes ----
-  useEffect(() => {
-    cargarClientes();
-  }, []);
+  const saldoDestino =
+    destino === DESTINO_REPARTIR
+      ? deudaTotal
+      : Number(ventasConSaldo.find((v) => String(v.venta_id) === String(destino))?.saldo ?? 0);
 
-  const cargarClientes = async () => {
+  const fetchHistorial = useCallback(async () => {
+    if (!clienteId) return;
+    setLoading(true);
     try {
-      setLoading(true);
-      const data = await getClientes();
-      setClientes(data || []);
-      setFilteredClientes(data || []);
+      const res = await getPagosVentasCliente(clienteId);
+      setData(res);
+      return res;
     } catch (error) {
-      console.error("Error cargando clientes:", error);
+      console.error("Error al cargar pagos de ventas:", error);
+      setData(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [clienteId]);
 
-  // ---- Filtrado tiempo real ----
   useEffect(() => {
-    const q = (search || "").toLowerCase().trim();
-    const filtered = (clientes || []).filter((cli) => {
-      const nombre = (cli?.nombre || "").toLowerCase();
-      const apellido = (cli?.apellido || "").toLowerCase();
-      const celular = (cli?.celular || "").toLowerCase();
-      return nombre.includes(q) || apellido.includes(q) || celular.includes(q);
+    if (!isOpen || !clienteId) return;
+    setMonto("");
+    setObservaciones("");
+    setMetodo("Efectivo");
+    fetchHistorial().then((res) => {
+      const foco = (res?.ventas ?? []).find(
+        (v) => String(v.venta_id) === String(ventaIdFoco) && !v.anulada && Number(v.saldo) > 0
+      );
+      setDestino(foco ? String(foco.venta_id) : DESTINO_REPARTIR);
     });
-    setFilteredClientes(filtered);
-  }, [search, clientes]);
+  }, [isOpen, clienteId, ventaIdFoco, fetchHistorial]);
 
-  // ---- Cargar balances de todos los clientes (una sola consulta) ----
-  // Incluye reparaciones (presupuestos no pendientes/rechazados) + ventas activas.
-  const cargarBalances = async () => {
-    setLoadingBalances(true);
+  const handleNuevoPago = async (e) => {
+    e.preventDefault();
+    const montoNum = parseNumber(monto);
+
+    if (montoNum <= 0) {
+      Swal.fire({ title: "Monto inválido", text: "El pago debe ser mayor a 0.", icon: "warning", customClass: swalDark });
+      return;
+    }
+    if (montoNum > saldoDestino) {
+      Swal.fire({
+        title: "Monto mayor al saldo",
+        text: `El pago no puede superar $${formatPrice(saldoDestino)}.`,
+        icon: "warning",
+        customClass: swalDark,
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
-      const rows = await getResumenBalanceClientes();
-      const next = {};
-      for (const r of Array.isArray(rows) ? rows : []) {
-        next[r.cliente_id] = r;
+      let mensaje;
+      if (destino === DESTINO_REPARTIR) {
+        const res = await pagarVentasCliente(clienteId, {
+          monto: montoNum,
+          metodo_pago: metodo,
+          observaciones,
+        });
+        const aplicado = res?.data?.aplicado ?? [];
+        mensaje =
+          `Pago de $${formatPrice(montoNum)} aplicado en ${aplicado.length} venta${aplicado.length !== 1 ? "s" : ""}: ` +
+          aplicado.map((a) => `#${a.venta_id} ($${formatPrice(a.monto)})`).join(", ");
+      } else {
+        await registrarPagoVenta(destino, { monto: montoNum, metodo_pago: metodo, observaciones });
+        mensaje = `Pago de $${formatPrice(montoNum)} registrado en la venta #${destino}.`;
       }
-      setBalances(next);
-    } catch (e) {
-      console.error("Error cargando balances de clientes", e);
+
+      Swal.fire({ title: "Pago registrado", text: mensaje, icon: "success", timer: 3500, showConfirmButton: false, customClass: swalDark });
+      setMonto("");
+      setObservaciones("");
+      const res = await fetchHistorial();
+      const sigueConSaldo = (res?.ventas ?? []).some(
+        (v) => String(v.venta_id) === String(destino) && !v.anulada && Number(v.saldo) > 0
+      );
+      if (!sigueConSaldo) setDestino(DESTINO_REPARTIR);
+      onChange?.();
+    } catch (error) {
+      console.error("Error al registrar pago:", error);
+      Swal.fire({ title: "Error", text: error?.error || "No se pudo registrar el pago.", icon: "error", customClass: swalDark });
     } finally {
-      setLoadingBalances(false);
+      setIsSubmitting(false);
     }
   };
 
-  useEffect(() => {
-    if (Array.isArray(clientes) && clientes.length > 0) cargarBalances();
-  }, [clientes]);
-
-  // ---- Acciones CRUD ----
-  const handleAgregar = () => {
-    setClienteSeleccionado(null);
-    setIsOpen(true);
-  };
-
-  const handleModificar = (cliente) => {
-    setClienteSeleccionado(cliente);
-    setIsOpen(true);
-  };
-
-  const handleDeleteCliente = async (id) => {
-    Swal.fire({
-      title: "¿Estás seguro?",
-      text: "No podrás deshacer esta acción.",
+  const handleAnular = async (pago) => {
+    const result = await Swal.fire({
+      title: `¿Anular pago de $${formatPrice(pago.monto)}?`,
+      text: `Venta #${pago.venta_id} · ${pago.metodo_pago}. El pago queda en el historial como anulado y el saldo vuelve a la venta.`,
+      input: "text",
+      inputPlaceholder: "Motivo (opcional)",
       icon: "warning",
-      theme: "dark",
       showCancelButton: true,
-      confirmButtonText: "Sí, eliminar",
+      confirmButtonText: "Anular pago",
       cancelButtonText: "Cancelar",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          await deleteCliente(id);
-          // limpiamos balance en memoria
-          setBalances((prev) => {
-            const n = { ...prev };
-            delete n[id];
-            return n;
-          });
-          cargarClientes();
-        } catch (error) {
-          console.error("Error eliminando cliente:", error);
-          Swal.fire("Error", "No se pudo eliminar el cliente", "error");
-        }
-      }
+      confirmButtonColor: "#dc2626",
+      customClass: { ...swalDark, input: "bg-neutral-900 text-white border border-neutral-700" },
     });
-  };
+    if (!result.isConfirmed) return;
 
-  //handle submit modificado para manejar foto
-  const handleSubmit = async (formData) => {
-  try {
-    // formData viene directo del modal e incluye:
-    // nombre, apellido, dni, direccion, celular, celular_contacto,
-    // fotoFile (File | null), foto_url (string | "")
-
-    if (clienteSeleccionado) {
-      
-      await updateCliente(clienteSeleccionado.id, formData);
-        setAlert({
-        message: "Cliente actualizado correctamente ✅",
-        type: "success",
-        key: Date.now(),
-      });
-    } else {
-      
-      await createCliente(formData);
-      setAlert({
-        message: "Cliente creado correctamente ✅",
-        type: "success",
-        key: Date.now(),
-      });
+    try {
+      await anularPagoVenta(pago.pago_id, result.value || null);
+      await fetchHistorial();
+      onChange?.();
+      Swal.fire({ title: "Pago anulado", icon: "success", timer: 2000, showConfirmButton: false, customClass: swalDark });
+    } catch (error) {
+      console.error("Error al anular pago:", error);
+      Swal.fire({ title: "Error", text: error?.error || "No se pudo anular el pago.", icon: "error", customClass: swalDark });
     }
-
-    cargarClientes();
-  } catch (error) {
-    console.error("Error guardando cliente:", error);
-      const msgBackend =
-      error?.response?.data?.msg ||
-      error?.response?.data?.error ||
-      "Ocurrió un error al guardar el cliente";
-
-    setAlert({
-      message: msgBackend,
-      type: "error",
-      key: Date.now(),
-    });
-  }
-};
-
-
-  const handleVerHistorial = (clienteId) => {
-    navigate(`/historial/cliente/${clienteId}`);
-  };
-
-  // ---- UI helpers ----
-  const balanceChipClass = (value) => {
-    if (value > 0) return "bg-emerald-500/15 text-emerald-200 border-emerald-400/20";
-    if (value < 0) return "bg-rose-500/15 text-rose-200 border-rose-400/20";
-    return "bg-amber-500/15 text-amber-200 border-amber-400/20";
-    // podés cambiar por tu paleta
   };
 
   return (
-    // Contenedor general, fondos atenuados por sección
-    <div className="min-h-dvh w-screen bg-neutral-900 text-white/95 overflow-hidden">
-      <div className="px-4 sm:px-6 lg:px-8">
-      {/* 🔔 Notificación global de Clientes */}
-      {alert.message && (
-        <AlertNotification
-          key={alert.key}          // fuerza la animación cada vez
-          message={alert.message}
-          type={alert.type}
-          duration={2500}          // ms (2,5 segundos)
-          onClose={() =>
-            setAlert((prev) => ({
-              ...prev,
-              message: "",
-            }))
-          }
-        />
-      )}
-      
-      {/* Grid 30/70, solo scrollea el lado derecho en desktop */}
-      <div className="grid grid-cols-1 md:grid-cols-[30%_70%] gap-0 md:gap-6 w-full">
-        {/* Lateral (30%) fijo/sticky y con su propio scroll si hiciera falta */}
-        <aside className="bg-neutral-900 md:bg-transparent md:sticky md:top-0 md:h-screen md:overflow-y-auto px-3 sm:px-4 py-4 sm:py-6 border-b md:border-b-0 md:border-r border-white/10">
-          {/* Sección Acción principal */}
-          <div className="rounded-2xl border border-white/10 bg-neutral-800/60 p-4 sm:p-5">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-lg sm:text-xl font-semibold">Gestión de Clientes</h2>
-              <button
-                onClick={() => navigate("/")}
-                className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-neutral-700 hover:bg-neutral-600 text-[11px] sm:text-sm"
+    <Modal
+      isOpen={isOpen}
+      onRequestClose={onClose}
+      ariaHideApp={false}
+      className="fixed inset-0 flex items-center justify-center p-4 z-50"
+      overlayClassName="fixed inset-0 bg-black/70 z-40"
+    >
+      <div className="bg-neutral-900 border border-neutral-700 rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="p-5 border-b border-neutral-800 bg-neutral-800/50 relative">
+          <h2 className="text-xl sm:text-2xl font-bold text-white">
+            Pagos de ventas: <span className="text-purple-400">{clienteNombre}</span>
+          </h2>
+          <p className="text-sm text-neutral-400">
+            {ventas.length} venta{ventas.length !== 1 ? "s" : ""} · {pagos.filter((p) => !p.anulado).length} pago
+            {pagos.filter((p) => !p.anulado).length !== 1 ? "s" : ""} registrados
+          </p>
+          <button onClick={onClose} className="absolute top-4 right-4 text-neutral-500 hover:text-white transition text-3xl leading-none">
+            &times;
+          </button>
+        </div>
+
+        <div className="flex-grow grid md:grid-cols-3 gap-4 p-5 overflow-y-auto md:overflow-hidden">
+          {/* COLUMNA 1: CARGA + HISTORIAL */}
+          <div className="md:col-span-1 md:border-r border-neutral-800 md:pr-4 flex flex-col md:overflow-y-auto space-y-4">
+            <div className={`p-4 rounded-xl border ${deudaTotal > 0 ? "bg-red-900/40 border-red-500/50" : "bg-emerald-900/40 border-emerald-500/50"}`}>
+              <p className="text-sm font-medium text-neutral-300">Deuda en ventas:</p>
+              <p className="text-3xl font-extrabold tracking-tight">
+                <span className={deudaTotal > 0 ? "text-red-400" : "text-emerald-400"}>${formatPrice(deudaTotal)}</span>
+              </p>
+              <small className="text-neutral-500 block mt-1">
+                Total pagado con historial: ${formatPrice(data?.total_pagado)}
+              </small>
+            </div>
+
+            {/* Formulario */}
+            <form onSubmit={handleNuevoPago} className="p-3 bg-neutral-800 border border-neutral-700 rounded-lg grid grid-cols-4 gap-3">
+              <h4 className="col-span-4 text-sm font-semibold text-neutral-300">Registrar pago</h4>
+
+              <select
+                value={destino}
+                onChange={(e) => setDestino(e.target.value)}
+                disabled={ventasConSaldo.length === 0 || isSubmitting}
+                className="col-span-4 p-2 rounded bg-neutral-900 border border-neutral-700 text-white text-sm focus:border-purple-500"
               >
-                ← Dashboard
-              </button>
-            </div>
+                <option value={DESTINO_REPARTIR}>Repartir (venta más vieja primero)</option>
+                {ventasConSaldo.map((v) => (
+                  <option key={v.venta_id} value={String(v.venta_id)}>
+                    Venta #{v.venta_id} · saldo ${formatPrice(v.saldo)}
+                  </option>
+                ))}
+              </select>
 
-            
-
-            <button
-              onClick={handleAgregar}
-              className="mt-4 w-full px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-[12px] sm:text-sm font-semibold"
-            >
-              + Agregar Cliente
-            </button>
-          </div>
-
-          {/* Sección Filtros / Búsqueda (fondo ligeramente distinto para seccionar) */}
-          <div className="mt-4 rounded-2xl border border-white/10 bg-neutral-800/40 p-4 sm:p-5">
-            <label className="block text-[11px] sm:text-xs text-neutral-300/80 mb-1">
-              Buscar cliente
-            </label>
-            <input
-              type="text"
-              inputMode="search"
-              placeholder="Nombre, apellido o celular…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-neutral-400"
-            />
-
-            {/* Leyenda balances */}
-            <div className="mt-3 text-[11px] text-neutral-300/80">
-              {loadingBalances
-                ? "Calculando balances…"
-                : "Mini balance: neto (Total − Costos)."}
-            </div>
-          </div>
-        </aside>
-
-        {/* Derecha (70%) — scrollea solo este panel en desktop */}
-        <section className="md:h-screen md:overflow-y-auto">
-          {/* Encabezado del listado sticky con color de fondo sutil distinto */}
-          <div className="sticky top-0 z-10 px-3 sm:px-4 py-3 backdrop-blur bg-neutral-900/85 border-b border-white/10">
-            <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
-              <h3 className="text-base sm:text-lg font-semibold">Lista de Clientes</h3>
-              {/* Buscador duplicado solo para mobile (accesible al scrollear) */}
-              <div className="md:hidden w-1/2">
+              <div className="col-span-2 relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 font-bold">$</span>
                 <input
                   type="text"
-                  inputMode="search"
-                  placeholder="Buscar…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-lg bg-white/5 border border-white/10 px-2.5 py-1.5 text-[12px] focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-neutral-400"
+                  inputMode="numeric"
+                  placeholder="Monto"
+                  value={monto}
+                  onChange={(e) => setMonto(formatNumberWithDots(parseNumber(e.target.value)))}
+                  disabled={ventasConSaldo.length === 0 || isSubmitting}
+                  className="w-full pl-7 pr-3 py-2 rounded bg-neutral-900 border border-neutral-700 text-white placeholder-neutral-500 text-sm focus:border-purple-500"
                 />
               </div>
-            </div>
-          </div>
 
-          {/* Contenido (fondos alternados/atenuados para secciones) */}
-          <div className="px-3 sm:px-4 py-4 space-y-4">
-            {/* Bloque listado */}
-            <div className="rounded-2xl border border-white/10 bg-neutral-800/40 p-3 sm:p-4">
+              <select
+                value={metodo}
+                onChange={(e) => setMetodo(e.target.value)}
+                disabled={ventasConSaldo.length === 0 || isSubmitting}
+                className="col-span-2 p-2 rounded bg-neutral-900 border border-neutral-700 text-white text-sm focus:border-purple-500"
+              >
+                {METODOS.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+
+              <input
+                type="text"
+                placeholder="Observaciones (opcional)"
+                value={observaciones}
+                onChange={(e) => setObservaciones(e.target.value)}
+                disabled={ventasConSaldo.length === 0 || isSubmitting}
+                className="col-span-4 p-2 rounded bg-neutral-900 border border-neutral-700 text-white placeholder-neutral-500 text-sm focus:border-purple-500"
+              />
+
+              {ventasConSaldo.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setMonto(formatNumberWithDots(Math.floor(saldoDestino)))}
+                  className="col-span-4 text-xs text-purple-300 hover:text-purple-200 text-left"
+                >
+                  Completar con el saldo (${formatPrice(saldoDestino)})
+                </button>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSubmitting || ventasConSaldo.length === 0 || parseNumber(monto) <= 0}
+                className="col-span-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold p-2 rounded transition text-sm disabled:opacity-50"
+              >
+                {isSubmitting ? "Procesando..." : ventasConSaldo.length === 0 ? "Sin saldo pendiente" : "Registrar pago"}
+              </button>
+            </form>
+
+            {/* Historial */}
+            <div className="pt-4 border-t border-neutral-800">
+              <h4 className="text-sm font-semibold text-neutral-400 mb-2">Historial de pagos</h4>
               {loading ? (
-                <p className="text-neutral-400 px-1">Cargando clientes…</p>
-              ) : !Array.isArray(filteredClientes) || filteredClientes.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-white/15 p-6 text-center bg-white/5">
-                  <p className="text-neutral-300">No hay clientes que coincidan con la búsqueda.</p>
-                  <button
-                    onClick={handleAgregar}
-                    className="mt-3 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-sm font-semibold"
-                  >
-                    + Crear cliente
-                  </button>
-                </div>
+                <p className="text-neutral-500 text-sm">Cargando…</p>
+              ) : pagos.length === 0 && abonosPrevios.length === 0 ? (
+                <p className="text-neutral-500 text-sm">No hay pagos registrados.</p>
               ) : (
-                <>
-                  {/* MOBILE: Cards */}
-                  <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:hidden">
-                    {filteredClientes.map((cli) => {
-                      const bal = balances[cli.id];
-                      const chip = balanceChipClass(bal?.balance ?? 0);
-
-                      return (
-                        <li
-                          key={cli.id}
-                          onClick={() => handleModificar(cli)}
-                          className="rounded-xl border border-white/10 bg-neutral-800/50 hover:bg-neutral-800/70 hover:border-white/20 transition p-4 flex flex-col gap-3"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div className="h-10 w-10 rounded-full bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-200 font-semibold">
-                                {(cli?.nombre?.[0] || "C").toUpperCase()}
-                              </div>
-                              <div className="min-w-0">
-                                <p className="font-semibold truncate">
-                                  {cli.nombre} {cli.apellido}
-                                </p>
-                                <p className="text-xs text-neutral-400 truncate">
-                                  {cli.celular || "Sin teléfono"}
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* Mini balance */}
-                            <span className={`px-2 py-1 rounded-full border text-[11px] ${chip}`} title="Balance neto">
-                              {currency(bal?.balance ?? 0)}
+                <ul className="divide-y divide-neutral-800">
+                  {pagos.map((pago) => (
+                    <li key={pago.pago_id} className={`py-2 text-sm ${pago.anulado ? "opacity-60" : ""}`}>
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex flex-col min-w-0">
+                          <span className={`font-medium ${pago.anulado ? "line-through text-neutral-500" : "text-white"}`}>
+                            ${formatPrice(pago.monto)}
+                          </span>
+                          <span className="text-xs text-neutral-500">
+                            {pago.metodo_pago} · Venta #{pago.venta_id}
+                            {pago.grupo_pago ? " · repartido" : ""}
+                          </span>
+                          {pago.observaciones && (
+                            <span className="text-xs text-neutral-400 italic truncate" title={pago.observaciones}>
+                              {pago.observaciones}
                             </span>
-                          </div>
-
-                          <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                            <p className="text-[11px] text-neutral-400">Dirección</p>
-                            <p className="text-sm font-medium break-words">{cli.direccion || "—"}</p>
-                          </div>
-
-                          <div className="flex items-center justify-between gap-2">
-                            <button
-                              onClick={() => handleVerHistorial(cli.id)}
-                              className="flex-1 px-3 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-[12px] sm:text-sm font-semibold"
-                            >
-                              Ver Historial
-                            </button>
-                            <button
-                              onClick={() => setPagosCliente({ id: cli.id, nombre: `${cli.nombre ?? ""} ${cli.apellido ?? ""}`.trim() })}
-                              className="flex-1 px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-[12px] sm:text-sm font-semibold"
-                            >
-                              Pagos ventas
-                            </button>
-                            <div className="hidden sm:flex items-center gap-2">
-                              <button
-                                onClick={() => handleModificar(cli)}
-                                className="px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-[12px] sm:text-sm font-medium"
-                              >
-                                Modificar
-                              </button>
-                              <button
-                                onClick={() => handleDeleteCliente(cli.id)}
-                                className="px-3 py-1.5 rounded-md bg-rose-600 hover:bg-rose-700 text-[12px] sm:text-sm font-medium"
-                              >
-                                Eliminar
-                              </button>
-                            </div>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-
-                  {/* DESKTOP: Lista clásica (30%/70% mantenido por el grid padre) */}
-                  <ol className="hidden md:block space-y-3 list-decimal list-inside">
-                    {filteredClientes.map((cli) => {
-                      const bal = balances[cli.id];
-                      const chip = balanceChipClass(bal?.balance ?? 0);
-
-                      return (
-                        <li
-                          key={cli.id}
-                          
-                          className="rounded-xl border border-white/10 bg-neutral-800/30 hover:bg-neutral-800/50 transition p-4 flex justify-between items-center"
-                        >
-                          <div className="min-w-0">
-                            <p className="font-semibold text-white truncate">
-                              {cli.nombre} {cli.apellido}
-                            </p>
-                            <p className="text-sm text-gray-400 truncate">
-                              {cli.celular} | {cli.direccion}
-                            </p>
-                          </div>
-
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {/* Mini balance en desktop */}
-                            <span className={`px-2 py-1 rounded-full border text-[12px] ${chip}`} title="Balance neto">
-                              {currency(bal?.balance ?? 0)}
+                          )}
+                          {pago.anulado && (
+                            <span className="text-xs text-red-300">
+                              Anulado {formatDate(pago.anulado_at)}
+                              {pago.anulado_motivo ? ` · ${pago.anulado_motivo}` : ""}
                             </span>
+                          )}
+                        </div>
+                        <div className="flex flex-col items-end flex-shrink-0">
+                          <span className="text-xs text-neutral-500">{formatDate(pago.fecha_pago)}</span>
+                          {!pago.anulado && (
+                            <button
+                              type="button"
+                              onClick={() => handleAnular(pago)}
+                              className="mt-1 text-[11px] text-red-400 hover:text-red-300"
+                            >
+                              Anular
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
 
-                            <button
-                              onClick={() => handleVerHistorial(cli.id)}
-                              className="bg-teal-600 hover:bg-teal-700 px-3 py-1.5 rounded text-sm font-medium"
-                            >
-                              Ver Historial
-                            </button>
-                            <button
-                              onClick={() => setPagosCliente({ id: cli.id, nombre: `${cli.nombre ?? ""} ${cli.apellido ?? ""}`.trim() })}
-                              className="bg-emerald-700 hover:bg-emerald-800 px-3 py-1.5 rounded text-sm font-medium"
-                            >
-                              Pagos ventas
-                            </button>
-                            <button
-                              onClick={() => handleModificar(cli)}
-                              className="bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded text-sm font-medium"
-                            >
-                              Modificar
-                            </button>
-                            <button
-                              onClick={() => handleDeleteCliente(cli.id)}
-                              className="bg-rose-600 hover:bg-rose-700 px-3 py-1.5 rounded text-sm font-medium"
-                            >
-                              Eliminar
-                            </button>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                </>
+                  {abonosPrevios.map((v) => (
+                    <li key={`previo-${v.venta_id}`} className="py-2 text-sm">
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-neutral-300">${formatPrice(v.abonado_previo)}</span>
+                          <span className="text-xs text-neutral-500">
+                            Abonado previo (sin detalle) · Venta #{v.venta_id}
+                          </span>
+                        </div>
+                        <span className="text-xs text-neutral-600">{formatDate(v.fecha)}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
-
-            {/* Sección informativa/ayuda (otro fondo para separar) */}
-            <div className="rounded-2xl border border-white/10 bg-neutral-800/30 p-4">
-              <p className="text-xs text-neutral-300/80">
-                Tip: el mini balance es el <b>neto</b> de cada cliente (Total − Costos) de reparaciones (presupuestos no pendientes ni rechazados) más ventas activas.
-              </p>
-            </div>
           </div>
-        </section>
-      </div>
 
-      {/* Modal */}
-      <HistorialPagosVentasModal
-        isOpen={!!pagosCliente}
-        clienteId={pagosCliente?.id}
-        clienteNombre={pagosCliente?.nombre}
-        onChange={cargarBalances}
-        onClose={() => setPagosCliente(null)}
-      />
+          {/* COLUMNA 2: DETALLE POR VENTA */}
+          <div className="md:col-span-2 flex flex-col space-y-4 md:overflow-y-auto md:pl-4">
+            <h3 className="text-lg font-semibold text-neutral-300">Saldo por venta</h3>
+            {loading && !data ? (
+              <p className="text-neutral-500">Cargando…</p>
+            ) : ventas.length === 0 ? (
+              <p className="text-neutral-500 text-lg md:pt-10 text-center">Este cliente no tiene ventas.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {ventas.map((v) => {
+                  const saldo = Number(v.saldo);
+                  return (
+                    <div
+                      key={v.venta_id}
+                      className={`p-4 rounded-xl space-y-2 ${
+                        v.anulada
+                          ? "bg-neutral-800/30 border border-neutral-700/50 opacity-50"
+                          : saldo > 0
+                            ? "bg-neutral-800/70 border border-red-800/50"
+                            : "bg-neutral-800/70 border border-emerald-800/50"
+                      } ${String(v.venta_id) === String(ventaIdFoco) ? "ring-2 ring-purple-500/60" : ""}`}
+                    >
+                      <div className="flex justify-between items-start gap-2">
+                        <p className="font-bold text-sm text-purple-300">
+                          Venta #{v.venta_id}
+                          <span className="ml-2 text-[11px] font-normal text-neutral-400">
+                            {v.canal === "web_shop" ? "Web" : "Local"} · {formatDate(v.fecha)}
+                          </span>
+                        </p>
+                        {v.anulada && (
+                          <span className="text-[11px] px-2 py-0.5 rounded-full bg-red-600/20 text-red-300">
+                            {v.estado_nombre || "Anulada"}
+                          </span>
+                        )}
+                      </div>
+                      {v.productos && <p className="text-xs text-neutral-400 line-clamp-2">{v.productos}</p>}
 
-      <ClienteModal
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        onSubmit={handleSubmit}
-        clienteSeleccionado={clienteSeleccionado}
-      />
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs text-neutral-400">
+                          <span>Total:</span>
+                          <span className="font-semibold text-green-400">${formatPrice(v.total)}</span>
+                        </div>
+                        {Number(v.descuento) > 0 && (
+                          <div className="flex justify-between text-xs text-neutral-400">
+                            <span>Descuento:</span>
+                            <span className="text-amber-300">${formatPrice(v.descuento)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-xs text-neutral-400">
+                          <span>Abonado:</span>
+                          <span className="font-semibold text-yellow-400">${formatPrice(v.monto_abonado)}</span>
+                        </div>
+                        {Number(v.abonado_previo) > 0 && (
+                          <div className="flex justify-between text-[11px] text-neutral-500">
+                            <span>(incluye abonado previo sin detalle)</span>
+                            <span>${formatPrice(v.abonado_previo)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-sm font-bold pt-1 border-t border-neutral-700">
+                          <span>Pendiente:</span>
+                          <span className={saldo > 0 && !v.anulada ? "text-red-400" : "text-emerald-400"}>
+                            {v.anulada ? "—" : saldo > 0 ? `$${formatPrice(saldo)}` : "Saldado ✓"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {!v.anulada && saldo > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDestino(String(v.venta_id));
+                            setMonto(formatNumberWithDots(Math.floor(saldo)));
+                          }}
+                          className="w-full mt-1 text-xs py-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-200"
+                        >
+                          Pagar esta venta
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 
-export default ClientePage;
+export default HistorialPagosVentasModal;
