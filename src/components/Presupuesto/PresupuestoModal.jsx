@@ -382,7 +382,7 @@ import {
   precioSugeridoLinea,
   diferenciaContraLista,
   formatPesos,
-} from "../../utils/precioServicio.js";
+} from "../../utils/PrecioServicio.js";
 
 // ---- Líneas de servicio ----
 let _seqLinea = 0;
