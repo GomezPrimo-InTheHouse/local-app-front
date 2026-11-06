@@ -55,8 +55,14 @@ const ClientePage = () => {
     try {
       setLoading(true);
       const data = await getClientes();
-      setClientes(data || []);
-      setFilteredClientes(data || []);
+      // Del último registrado al primero (por fecha de alta y, si empata, por id)
+      const ordenados = [...(data || [])].sort((a, b) => {
+        const fa = new Date(a?.created_at ?? 0).getTime() || 0;
+        const fb = new Date(b?.created_at ?? 0).getTime() || 0;
+        return fb - fa || Number(b?.id ?? 0) - Number(a?.id ?? 0);
+      });
+      setClientes(ordenados);
+      setFilteredClientes(ordenados);
     } catch (error) {
       console.error("Error cargando clientes:", error);
     } finally {

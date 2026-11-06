@@ -5,6 +5,7 @@ import IncomeCostChart from "../Chart/IncomeCostChart";
 import EquiposPieChart from "../Chart/EquiposPieChart";
 import KPICard         from "../Dashboard/KPICard";
 import ResumenSemana   from "../Dashboard/ResumenSemana.jsx";
+import ResumenVentasSemana from "../Dashboard/ResumenVentasSemana.jsx";
 import { Wallet, Wrench, ShoppingCart, TrendingUp } from "lucide-react";
 
 const safeNum = (n) => (Number.isFinite(Number(n)) ? Number(n) : 0);
@@ -108,8 +109,11 @@ const DashboardView = ({
             </div>
           </div>
 
-          {/* ── Resumen Semanal — siempre visible, al pie del dashboard ── */}
-          <ResumenSemana />
+          {/* ── Resúmenes semanales — servicio técnico y ventas del local ── */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <ResumenSemana />
+            <ResumenVentasSemana />
+          </div>
 
         </main>
       </div>
