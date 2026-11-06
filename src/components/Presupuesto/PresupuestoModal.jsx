@@ -375,7 +375,7 @@ import {
   getConfiguracionServicios,
   getPresupuestoServicios,
   savePresupuestoServicios,
-} from "../../api/ServicioApi.jsx";
+} from "../../api/ServiciosApi.jsx";
 import {
   CONFIG_DEFAULT,
   precioListaLinea,
