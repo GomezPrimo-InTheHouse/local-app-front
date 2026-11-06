@@ -5,7 +5,7 @@ import IncomeCostChart from "../Chart/IncomeCostChart";
 import EquiposPieChart from "../Chart/EquiposPieChart";
 import KPICard         from "../Dashboard/KPICard";
 import ResumenSemana   from "../Dashboard/ResumenSemana.jsx";
-import ResumenVentasSemana from "../Dashboard/ResumenVentasSemana.jsx";
+import ResumenVentasSemana from "../Dashboard/ResumenSemana.jsx";
 import { Wallet, Wrench, ShoppingCart, TrendingUp } from "lucide-react";
 
 const safeNum = (n) => (Number.isFinite(Number(n)) ? Number(n) : 0);
