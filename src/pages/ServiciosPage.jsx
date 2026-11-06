@@ -14,7 +14,7 @@ import {
   aumentarPreciosServicios,
   getConfiguracionServicios,
   updateConfiguracionServicios,
-} from "../api/ServicioApi.jsx";
+} from "../api/ServiciosApi.jsx";
 import { CONFIG_DEFAULT, redondearPrecio, formatPesos } from "../utils/precioServicio.jsx";
 
 const FORM_VACIO = {
