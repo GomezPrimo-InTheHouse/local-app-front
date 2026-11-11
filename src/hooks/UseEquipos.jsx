@@ -266,6 +266,59 @@ import Swal from "sweetalert2";
 
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
 
+// ── Período: helpers de fecha (todo como texto "YYYY-MM-DD", sin líos de zona horaria) ──
+const pad = (n) => String(n).padStart(2, "0");
+const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const ultimoDiaMes = (y, m) => new Date(y, m + 1, 0).getDate(); // m: 0-11
+const mesActualStr = () => { const h = new Date(); return `${h.getFullYear()}-${pad(h.getMonth() + 1)}`; };
+const nombreMes = (y, m) =>
+  new Date(y, m, 1).toLocaleString("es-AR", { month: "long", year: "numeric" });
+const fmtCorta = (s) => (s ? s.split("-").reverse().join("/") : "…");
+
+// Misma interpretación que la agrupación por mes (la fecha guardada se lee como UTC)
+const fechaKeyEquipo = (eq) => {
+  if (!eq?.fecha_ingreso) return null;
+  const raw = eq.fecha_ingreso.toString();
+  const normalized = raw.includes("Z") || raw.includes("+") ? raw : raw.replace(" ", "T") + "Z";
+  const f = new Date(normalized);
+  if (isNaN(f.getTime())) return null;
+  return `${f.getUTCFullYear()}-${pad(f.getUTCMonth() + 1)}-${pad(f.getUTCDate())}`;
+};
+
+// Devuelve { desde, hasta, etiqueta } o null si no hay filtro
+const calcularRango = (periodo) => {
+  const hoy = new Date();
+  const y = hoy.getFullYear(), m = hoy.getMonth();
+  switch (periodo.modo) {
+    case "este_mes":
+      return { desde: `${y}-${pad(m + 1)}-01`, hasta: ymd(hoy), etiqueta: nombreMes(y, m) };
+    case "mes_ant": {
+      const d = new Date(y, m - 1, 1);
+      const ya = d.getFullYear(), ma = d.getMonth();
+      return { desde: `${ya}-${pad(ma + 1)}-01`, hasta: `${ya}-${pad(ma + 1)}-${ultimoDiaMes(ya, ma)}`, etiqueta: nombreMes(ya, ma) };
+    }
+    case "ult_3": {
+      const d = new Date(y, m - 2, 1);
+      return { desde: ymd(d), hasta: ymd(hoy), etiqueta: "Últimos 3 meses" };
+    }
+    case "este_anio":
+      return { desde: `${y}-01-01`, hasta: ymd(hoy), etiqueta: `Año ${y}` };
+    case "mes": {
+      if (!periodo.mes) return null;
+      const [ys, ms] = periodo.mes.split("-").map(Number);
+      return { desde: `${periodo.mes}-01`, hasta: `${periodo.mes}-${ultimoDiaMes(ys, ms - 1)}`, etiqueta: nombreMes(ys, ms - 1) };
+    }
+    case "rango": {
+      if (!periodo.desde && !periodo.hasta) return null;
+      let { desde, hasta } = periodo;
+      if (desde && hasta && desde > hasta) [desde, hasta] = [hasta, desde];
+      return { desde: desde || null, hasta: hasta || null, etiqueta: `${fmtCorta(desde)} → ${fmtCorta(hasta)}` };
+    }
+    default:
+      return null;
+  }
+};
+
 export const useEquipos = () => {
   const [equipos, setEquipos]           = useState([]);
   const [loading, setLoading]           = useState(true);
@@ -274,6 +327,9 @@ export const useEquipos = () => {
   const [filtro, setFiltro]             = useState("todos");
   const [filtroEquipo, setFiltroEquipo] = useState("");
   const [alert, setAlert]               = useState({ message: "", type: "success" });
+  const [periodo, setPeriodo]           = useState(() => ({
+    modo: "todos", mes: mesActualStr(), desde: "", hasta: "",
+  }));
 
   const autoRefreshRef = useRef(null);
 
@@ -343,15 +399,39 @@ export const useEquipos = () => {
     [balances]
   );
 
+  const rangoPeriodo = useMemo(() => calcularRango(periodo), [periodo]);
+
   const equiposFiltrados = useMemo(() => {
-    if (!filtroEquipo.trim()) return equipos;
-    const q = filtroEquipo.toLowerCase();
-    return equipos.filter(eq =>
-      eq.marca?.toLowerCase().includes(q)  ||
-      eq.modelo?.toLowerCase().includes(q) ||
-      eq.tipo?.toLowerCase().includes(q)
-    );
-  }, [equipos, filtroEquipo]);
+    let lista = equipos;
+
+    if (filtroEquipo.trim()) {
+      const q = filtroEquipo.toLowerCase();
+      lista = lista.filter(eq =>
+        eq.marca?.toLowerCase().includes(q)  ||
+        eq.modelo?.toLowerCase().includes(q) ||
+        eq.tipo?.toLowerCase().includes(q)
+      );
+    }
+
+    if (rangoPeriodo) {
+      const { desde, hasta } = rangoPeriodo;
+      lista = lista.filter(eq => {
+        const k = fechaKeyEquipo(eq);
+        if (!k) return false; // sin fecha: queda fuera cuando hay período
+        if (desde && k < desde) return false;
+        if (hasta && k > hasta) return false;
+        return true;
+      });
+    }
+
+    return lista;
+  }, [equipos, filtroEquipo, rangoPeriodo]);
+
+  // Balance de lo que se está viendo (para cuando hay período elegido)
+  const totalBalancePeriodo = useMemo(
+    () => equiposFiltrados.reduce((acc, eq) => acc + (balanceByEquipoId[eq.id]?.balance_final ?? 0), 0),
+    [equiposFiltrados, balanceByEquipoId]
+  );
 
   const equiposAgrupadosPorMes = useMemo(() => {
     const grupos = equiposFiltrados.reduce((acc, eq) => {
@@ -482,11 +562,15 @@ export const useEquipos = () => {
     loading,
     balanceByEquipoId,
     totalBalanceGeneral,
+    totalBalancePeriodo,
     equiposFiltrados,
     equiposAgrupadosPorMes,
     filtro,
     filtroEquipo,
     setFiltroEquipo,
+    periodo,
+    setPeriodo,
+    rangoPeriodo,
     alert,
     setAlert,
     getNombreEstado,

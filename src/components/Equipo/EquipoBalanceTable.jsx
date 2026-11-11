@@ -11,7 +11,8 @@ const IconTrendingUp = () => (
   </svg>
 );
 
-const EquipoBalanceTable = ({ equiposAgrupadosPorMes, mostrarBalances }) => {
+// oculto / onToggleOculto: permiten contraer la tabla (la preferencia la guarda la página)
+const EquipoBalanceTable = ({ equiposAgrupadosPorMes, mostrarBalances, oculto = false, onToggleOculto }) => {
   if (!equiposAgrupadosPorMes.length) return null;
 
   const totalVenta   = equiposAgrupadosPorMes.reduce((acc, [, d]) => acc + d.totalVenta,   0);
@@ -20,10 +21,23 @@ const EquipoBalanceTable = ({ equiposAgrupadosPorMes, mostrarBalances }) => {
 
   return (
     <section className="pt-2">
-      <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-        <IconTrendingUp /> Balance por Mes
-      </h2>
+      <div className={`flex items-center justify-between gap-2 ${oculto ? "" : "mb-3"}`}>
+        <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+          <IconTrendingUp /> Balance por Mes
+          {oculto && <span className="text-xs font-normal text-neutral-500">(oculto)</span>}
+        </h2>
+        {onToggleOculto && (
+          <button
+            type="button"
+            onClick={onToggleOculto}
+            className="px-3 py-1.5 rounded-lg bg-neutral-800/70 hover:bg-neutral-800 border border-white/10 text-xs transition-colors"
+          >
+            {oculto ? "▸ Mostrar resumen" : "▾ Ocultar resumen"}
+          </button>
+        )}
+      </div>
 
+      {!oculto && (
       <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-x-auto shadow-lg">
         <table className="min-w-full divide-y divide-neutral-800 text-sm">
           <thead className="bg-neutral-800/80">
@@ -89,6 +103,7 @@ const EquipoBalanceTable = ({ equiposAgrupadosPorMes, mostrarBalances }) => {
           </tfoot>
         </table>
       </div>
+      )}
     </section>
   );
 };

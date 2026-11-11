@@ -11,6 +11,27 @@ import EquipoModal             from "../components/Equipo/EquipoModal.jsx";
 import EquipoBalanceTable      from "../components/Equipo/EquipoBalanceTable.jsx";
 import EquipoGrid              from "../components/Equipo/EquipoGrid.jsx";
 import PresupuestoModal        from "../components/Presupuesto/PresupuestoModal.jsx";
+import FiltroPeriodo           from "../components/Equipo/FiltroPeriodo.jsx";
+
+// Preferencias de vista que se recuerdan en este navegador
+const usePreferenciaBool = (clave, inicial = false) => {
+  const [valor, setValor] = useState(() => {
+    try {
+      const v = localStorage.getItem(clave);
+      return v === null ? inicial : v === "1";
+    } catch {
+      return inicial;
+    }
+  });
+  const toggle = useCallback(() => {
+    setValor((prev) => {
+      const nuevo = !prev;
+      try { localStorage.setItem(clave, nuevo ? "1" : "0"); } catch { /* sin almacenamiento */ }
+      return nuevo;
+    });
+  }, [clave]);
+  return [valor, toggle];
+};
 
 const formatPrice = (p) =>
   Number(p || 0).toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -26,10 +47,15 @@ const EquipoPage = () => {
     loading,
     balanceByEquipoId,
     totalBalanceGeneral,
+    totalBalancePeriodo,
+    equiposFiltrados,
     equiposAgrupadosPorMes,
     filtro,
     filtroEquipo,
     setFiltroEquipo,
+    periodo,
+    setPeriodo,
+    rangoPeriodo,
     alert,
     setAlert,
     getNombreEstado,
@@ -40,7 +66,12 @@ const EquipoPage = () => {
     handleSubmitEquipo,
   } = useEquipos();
 
-  const [mostrarBalances, setMostrarBalances] = useState(false);
+  // OJO: el nombre es histórico — mostrarBalances = true significa "montos ocultos (****)"
+  const [mostrarBalances, toggleMontos]  = usePreferenciaBool("jg_equipos_montos_ocultos");
+  const [resumenOculto, toggleResumen]   = usePreferenciaBool("jg_equipos_resumen_oculto");
+
+  const hayPeriodo   = Boolean(rangoPeriodo);
+  const balanceArriba = hayPeriodo ? totalBalancePeriodo : totalBalanceGeneral;
 
   // ── Modal Nueva OT ──
   const [isNuevaOTOpen, setIsNuevaOTOpen]               = useState(false);
@@ -153,9 +184,9 @@ const EquipoPage = () => {
                       "{filtroEquipo}"
                     </span>
                   )}
-                  <button onClick={() => setMostrarBalances(v => !v)}
+                  <button onClick={toggleMontos}
                     className="px-3 py-1.5 rounded-lg bg-neutral-800/70 hover:bg-neutral-800 border border-white/10 text-xs sm:text-sm transition-colors">
-                    {mostrarBalances ? "👁 Mostrar" : "🙈 Ocultar"}
+                    {mostrarBalances ? "👁 Mostrar montos" : "🙈 Ocultar montos"}
                   </button>
                 </div>
               </div>
@@ -172,17 +203,28 @@ const EquipoPage = () => {
                     />
                   </div>
                   <div className="rounded-xl border border-white/10 bg-neutral-900/40 p-3 flex items-center justify-between">
-                    <span className="text-sm text-neutral-300 flex items-center gap-2"><IconMoney /> Balance GLOBAL</span>
-                    <span className={`text-xl font-semibold ${totalBalanceGeneral >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                      {mostrarBalances ? "******" : `$${formatPrice(totalBalanceGeneral)}`}
+                    <span className="text-sm text-neutral-300 flex items-center gap-2">
+                      <IconMoney /> {hayPeriodo ? "Balance del PERÍODO" : "Balance GLOBAL"}
+                    </span>
+                    <span className={`text-xl font-semibold ${balanceArriba >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      {mostrarBalances ? "******" : `$${formatPrice(balanceArriba)}`}
                     </span>
                   </div>
                 </div>
               </section>
 
+              <FiltroPeriodo
+                periodo={periodo}
+                setPeriodo={setPeriodo}
+                rango={rangoPeriodo}
+                cantidad={equiposFiltrados.length}
+              />
+
               <EquipoBalanceTable
                 equiposAgrupadosPorMes={equiposAgrupadosPorMes}
                 mostrarBalances={mostrarBalances}
+                oculto={resumenOculto}
+                onToggleOculto={toggleResumen}
               />
 
               <EquipoGrid
