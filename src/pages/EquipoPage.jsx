@@ -12,6 +12,8 @@ import EquipoBalanceTable      from "../components/Equipo/EquipoBalanceTable.jsx
 import EquipoGrid              from "../components/Equipo/EquipoGrid.jsx";
 import PresupuestoModal        from "../components/Presupuesto/PresupuestoModal.jsx";
 import FiltroPeriodo           from "../components/Equipo/FiltroPeriodo.jsx";
+import AvisoWhatsappModal      from "../components/Equipo/AvisoWhatsappModal.jsx";
+import { getClienteById }      from "../api/ClienteApi";
 
 // Preferencias de vista que se recuerdan en este navegador
 const usePreferenciaBool = (clave, inicial = false) => {
@@ -81,6 +83,9 @@ const EquipoPage = () => {
   const [isEquipoModalOpen, setIsEquipoModalOpen]       = useState(false);
   const [equipoSeleccionado, setEquipoSeleccionado]     = useState(null);
 
+  // ── Aviso WhatsApp "listo para retirar" (al pasar a Finalizado desde Modificar) ──
+  const [avisoListo, setAvisoListo] = useState(null); // { cliente, equipoTexto, total }
+
   // ── Modal Historial ──
   const [isHistorialOpen, setIsHistorialOpen]           = useState(false);
   const [clienteHistorial, setClienteHistorial]         = useState({ id: null, nombre: "" });
@@ -135,9 +140,31 @@ const EquipoPage = () => {
 
   const handleSubmitEquipoModal = useCallback(async (formData) => {
     if (!equipoSeleccionado) return;
-    const ok = await handleSubmitEquipo(equipoSeleccionado.id, formData);
-    if (ok) handleCerrarEquipoModal();
-  }, [equipoSeleccionado, handleSubmitEquipo, handleCerrarEquipoModal]);
+    const eq = equipoSeleccionado;
+    const ok = await handleSubmitEquipo(eq.id, formData);
+    if (!ok) return;
+    handleCerrarEquipoModal();
+
+    // Si pasó a "Finalizado", ofrecemos el aviso de "listo para retirar" (contacto secundario)
+    const pasoAFinalizado =
+      String(getNombreEstado(Number(formData.estado_id))).toLowerCase().includes("finaliz") &&
+      Number(eq.estado_id) !== Number(formData.estado_id);
+    if (!pasoAFinalizado) return;
+
+    let cliente = {
+      id: eq.cliente_id, nombre: eq.cliente_nombre, apellido: eq.cliente_apellido, celular: eq.cliente_celular,
+    };
+    try {
+      const completo = await getClienteById(formData.cliente_id || eq.cliente_id);
+      if (completo?.id) cliente = completo;
+    } catch { /* usamos lo que ya tenemos */ }
+    const tipoTxt = formData.tipo ? formData.tipo.charAt(0).toUpperCase() + formData.tipo.slice(1) : "";
+    setAvisoListo({
+      cliente,
+      equipoTexto: [tipoTxt, formData.marca, formData.modelo].filter(Boolean).join(" "),
+      total: 0, // sin monto: el balance del equipo puede sumar varias OTs (el detalle sí calcula el de la OT)
+    });
+  }, [equipoSeleccionado, handleSubmitEquipo, handleCerrarEquipoModal, getNombreEstado]);
 
   const showAlert = useCallback((msg, type = "success") => {
     setAlert({ message: msg, type });
@@ -265,6 +292,16 @@ const EquipoPage = () => {
           onClose={handleCerrarHistorial}
           clienteId={clienteHistorial.id}
           clienteNombre={clienteHistorial.nombre}
+        />
+
+        <AvisoWhatsappModal
+          isOpen={Boolean(avisoListo)}
+          onClose={() => setAvisoListo(null)}
+          tipoInicial="listo"
+          titulo="El equipo pasó a Finalizado. ¿Le avisamos al cliente?"
+          cliente={avisoListo?.cliente}
+          equipoTexto={avisoListo?.equipoTexto}
+          total={avisoListo?.total}
         />
 
         {/* PresupuestoModal — abre desde la card con la OT pre-cargada */}

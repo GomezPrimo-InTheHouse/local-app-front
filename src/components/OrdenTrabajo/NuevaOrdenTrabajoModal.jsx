@@ -1,5 +1,3 @@
-
-
 // // src/components/OrdenTrabajo/NuevaOrdenTrabajoModal.jsx
 // import { useEffect, useState, useCallback } from "react";
 // import { getClientes } from "../../api/ClienteApi";
@@ -504,11 +502,12 @@
 
 // src/components/OrdenTrabajo/NuevaOrdenTrabajoModal.jsx
 import { useEffect, useState, useCallback } from "react";
-import { getClientes } from "../../api/ClienteApi";
+import { getClientes, getClienteById } from "../../api/ClienteApi";
 import { getEquiposByClienteId, createEquipo } from "../../api/EquiposApi.jsx";
 import { createOrdenTrabajo } from "../../api/OrdenTrabajoApi.jsx";
 import { getEstadoByAmbito } from "../../api/EstadoApi.jsx";
 import PatronInput from "../Equipo/PatronInput.jsx";
+import AvisoWhatsappModal from "../Equipo/AvisoWhatsappModal.jsx";
 
 const TIPOS_EQUIPO = [
   "celular","notebook","pc","consola",
@@ -568,6 +567,9 @@ const NuevaOrdenTrabajoModal = ({
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState("");
 
+  // Aviso de ingreso por WhatsApp (se ofrece al crear la OT)
+  const [avisoIngreso, setAvisoIngreso] = useState(null); // { cliente, equipoTexto }
+
   const resetAll = useCallback(() => {
     setPaso(PASO.CLIENTE);
     setSearchCliente("");
@@ -582,6 +584,7 @@ const NuevaOrdenTrabajoModal = ({
       diagnostico: "", fecha_ingreso: new Date().toISOString().split("T")[0], estado_id: "",
     });
     setError("");
+    setAvisoIngreso(null);
   }, []);
 
   const handleClose = () => { resetAll(); onClose(); };
@@ -722,7 +725,23 @@ const NuevaOrdenTrabajoModal = ({
       });
 
       onSuccess?.("✅ Orden de trabajo creada correctamente");
-      handleClose();
+
+      // En vez de cerrar, ofrecemos avisar el ingreso por WhatsApp (celular principal).
+      // Traemos el cliente completo para tener celular y celular_contacto actualizados.
+      let clienteAviso = clienteSeleccionado;
+      try {
+        const completo = await getClienteById(clienteSeleccionado.id);
+        if (completo?.id) clienteAviso = completo;
+      } catch { /* usamos lo que ya tenemos */ }
+      if (!clienteAviso?.celular && equipoSeleccionado?.cliente_celular) {
+        clienteAviso = { ...clienteAviso, celular: equipoSeleccionado.cliente_celular };
+      }
+      const eq = modoNuevoEquipo ? formEquipo : (equipoSeleccionado || {});
+      const tipoTxt = eq.tipo ? eq.tipo.charAt(0).toUpperCase() + eq.tipo.slice(1) : "";
+      setAvisoIngreso({
+        cliente: clienteAviso,
+        equipoTexto: [tipoTxt, eq.marca, eq.modelo].filter(Boolean).join(" "),
+      });
     } catch (err) {
       console.error("Error creando OT:", err);
       setError(err?.response?.data?.error || err.message || "Error al crear la orden de trabajo.");
@@ -732,6 +751,19 @@ const NuevaOrdenTrabajoModal = ({
   };
 
   if (!isOpen) return null;
+
+  if (avisoIngreso) {
+    return (
+      <AvisoWhatsappModal
+        isOpen
+        onClose={handleClose}
+        tipoInicial="ingresado"
+        titulo="Orden creada ✅ ¿Le avisamos al cliente que recibimos el equipo?"
+        cliente={avisoIngreso.cliente}
+        equipoTexto={avisoIngreso.equipoTexto}
+      />
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">

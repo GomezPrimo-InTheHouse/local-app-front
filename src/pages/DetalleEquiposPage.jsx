@@ -1,4 +1,3 @@
-
 // // src/pages/DetalleEquiposPage.jsx
 // import { useEffect, useState } from "react";
 // import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
@@ -645,6 +644,7 @@ import Swal from "sweetalert2";
 import PresupuestoModal from "../components/Presupuesto/PresupuestoModal.jsx";
 import CambiarEstadoModal from "../components/Ingreso/CambiarEstadoModal.jsx";
 import AlertNotification from "../components/Alerta/AlertNotification.jsx";
+import AvisoWhatsappModal from "../components/Equipo/AvisoWhatsappModal.jsx";
 
 const DetalleEquiposPage = () => {
   const { id } = useParams();
@@ -662,6 +662,7 @@ const DetalleEquiposPage = () => {
   const [modalAbierto, setModalAbierto]           = useState(false);
   const [presupuestoSeleccionado, setPresupuestoSeleccionado] = useState(null);
   const [ordenSeleccionada, setOrdenSeleccionada]             = useState(null);
+  const [avisoWa, setAvisoWa] = useState({ abierto: false, tipo: "listo", titulo: "" });
 
   const nuevoOrdenId = location.state?.nuevoIngresoId ?? location.state?.nuevoOrdenId;
 
@@ -833,6 +834,24 @@ const DetalleEquiposPage = () => {
   const totalIngresos = presupuestosValidos.reduce((acc, p) => acc + (p.total_presupuesto ?? p.total ?? 0), 0);
   const totalFinal    = totalIngresos - totalCostos;
 
+  // ---- Aviso por WhatsApp ----
+  const equipoTexto = [
+    equipo?.tipo ? equipo.tipo.charAt(0).toUpperCase() + equipo.tipo.slice(1).toLowerCase() : "",
+    equipo?.marca, equipo?.modelo,
+  ].filter(Boolean).join(" ");
+  const presupuestosOT = presupuestosValidos.filter(
+    p => !ordenActual?.id || Number(p.orden_trabajo_id ?? ordenActual.id) === Number(ordenActual.id)
+  );
+  const aprobadosOT = presupuestosOT.filter(p =>
+    Number(p.estado_presupuesto_id ?? p.estado_id) === 2 ||
+    String(p.estado_presupuesto_nombre ?? p.estado ?? "").toLowerCase().includes("aprob")
+  );
+  const totalAviso = (aprobadosOT.length ? aprobadosOT : presupuestosOT.slice(0, 1))
+    .reduce((acc, p) => acc + Number(p.total_presupuesto ?? p.total ?? 0), 0);
+  const tipoAvisoSugerido = String(estadoOrdenNombre || "").toLowerCase().includes("finaliz")
+    ? "listo"
+    : presupuestosOT.length ? "presupuesto" : "ingresado";
+
   return (
     <div className="flex flex-col min-h-dvh w-screen bg-neutral-900 text-white/95">
       {alertMessage && <AlertNotification message={alertMessage} type={alertType} />}
@@ -916,6 +935,13 @@ const DetalleEquiposPage = () => {
                   <p className="text-neutral-300/80">Cliente</p>
                   <p className="font-medium">{cliente?.nombre} {cliente?.apellido}</p>
                   <p className="text-neutral-300/80 mt-1">Tel: <span className="font-medium">{cliente?.celular || "—"}</span></p>
+                  <p className="text-neutral-300/80">Contacto: <span className="font-medium">{cliente?.celular_contacto || "—"}</span></p>
+                  <button
+                    onClick={() => setAvisoWa({ abierto: true, tipo: tipoAvisoSugerido, titulo: "" })}
+                    className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 text-xs font-semibold"
+                  >
+                    📲 Avisar por WhatsApp
+                  </button>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-3">
                   <p className="text-neutral-300/80">Dirección</p>
@@ -1042,6 +1068,17 @@ const DetalleEquiposPage = () => {
         onSuccess={m => showAlert(m, "success")}
         onError={m => showAlert(m, "error")}
         onUpdated={fetchAll}
+        onFinalizado={() => setAvisoWa({ abierto: true, tipo: "listo", titulo: "El equipo pasó a Finalizado. ¿Le avisamos al cliente?" })}
+      />
+
+      <AvisoWhatsappModal
+        isOpen={avisoWa.abierto}
+        onClose={() => setAvisoWa(a => ({ ...a, abierto: false }))}
+        tipoInicial={avisoWa.tipo}
+        titulo={avisoWa.titulo}
+        cliente={cliente}
+        equipoTexto={equipoTexto}
+        total={totalAviso}
       />
 
       <PresupuestoModal

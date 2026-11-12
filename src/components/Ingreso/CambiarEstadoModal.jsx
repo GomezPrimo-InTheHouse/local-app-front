@@ -1,4 +1,3 @@
-
 // // src/components/Ingreso/CambiarEstadoModal.jsx
 // import { useEffect, useState } from "react";
 // import { updateOrdenTrabajo } from "../../api/OrdenTrabajoApi.jsx";
@@ -191,6 +190,7 @@ const CambiarEstadoModal = ({
   onSuccess,
   onError,
   onUpdated,
+  onFinalizado, // se llama cuando la OT pasa a un estado "Finalizado"
 }) => {
   const [estados, setEstados]               = useState([]);
   const [loadingEstados, setLoadingEstados] = useState(true);
@@ -262,6 +262,13 @@ const CambiarEstadoModal = ({
       onSuccess?.("Orden de trabajo actualizada correctamente ✅");
       onUpdated?.();
       onClose();
+
+      // Si pasó a "Finalizado" (y antes no lo estaba), ofrecer el aviso por WhatsApp
+      const nombreNuevo = estados.find(e => String(e.id) === String(estado_id))?.nombre ?? "";
+      const estadoAnterior = ingresoActual.estado_id ?? ingresoActual.estado ?? null;
+      if (nombreNuevo.toLowerCase().includes("finaliz") && Number(estadoAnterior) !== Number(estado_id)) {
+        onFinalizado?.(nombreNuevo);
+      }
     } catch (error) {
       console.error("Error actualizando orden de trabajo:", error);
       onError?.("Error al actualizar la orden de trabajo ❌");
