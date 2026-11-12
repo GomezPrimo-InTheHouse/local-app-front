@@ -257,14 +257,13 @@ import {
   getEquipos,
   updateEquipo,
   deleteEquipo,
-  getEquiposByTipo,
-  getEquiposByClienteId,
 } from "../api/EquiposApi.jsx";
 import { getBalancesPresupuestos } from "../api/PresupuestoApi.jsx";
 import { getEstados } from "../api/EstadoApi.jsx";
 import Swal from "sweetalert2";
 
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
+const TIPOS_PRINCIPALES = ["celular", "notebook", "pc"];
 
 // ── Período: helpers de fecha (todo como texto "YYYY-MM-DD", sin líos de zona horaria) ──
 const pad = (n) => String(n).padStart(2, "0");
@@ -326,6 +325,7 @@ export const useEquipos = () => {
   const [estados, setEstados]           = useState([]);
   const [filtro, setFiltro]             = useState("todos");
   const [filtroEquipo, setFiltroEquipo] = useState("");
+  const [clienteFiltroId, setClienteFiltroId] = useState(null);
   const [alert, setAlert]               = useState({ message: "", type: "success" });
   const [periodo, setPeriodo]           = useState(() => ({
     modo: "todos", mes: mesActualStr(), desde: "", hasta: "",
@@ -404,6 +404,17 @@ export const useEquipos = () => {
   const equiposFiltrados = useMemo(() => {
     let lista = equipos;
 
+    if (clienteFiltroId) {
+      lista = lista.filter(eq => Number(eq.cliente_id) === clienteFiltroId);
+    }
+
+    if (filtro && filtro !== "todos") {
+      const t = filtro.toLowerCase();
+      lista = t === "otros"
+        ? lista.filter(eq => !TIPOS_PRINCIPALES.includes(eq.tipo?.toLowerCase()))
+        : lista.filter(eq => eq.tipo?.toLowerCase() === t);
+    }
+
     if (filtroEquipo.trim()) {
       const q = filtroEquipo.toLowerCase();
       lista = lista.filter(eq =>
@@ -425,7 +436,7 @@ export const useEquipos = () => {
     }
 
     return lista;
-  }, [equipos, filtroEquipo, rangoPeriodo]);
+  }, [equipos, clienteFiltroId, filtro, filtroEquipo, rangoPeriodo]);
 
   // Balance de lo que se está viendo (para cuando hay período elegido)
   const totalBalancePeriodo = useMemo(
@@ -477,41 +488,19 @@ export const useEquipos = () => {
     });
   }, [equiposFiltrados, balanceByEquipoId]);
 
-  const handleFiltro = useCallback(async (tipo) => {
+  // Tipo y cliente se filtran sobre la lista completa (ya trae la fecha de la última OT,
+  // ultima_ot_id, falla, etc.). Así no se pierden datos y el auto-refresh no borra el filtro.
+  const handleFiltro = useCallback((tipo) => {
     setFiltro(tipo);
     setFiltroEquipo("");
-    setLoading(true);
-    try {
-      if (tipo === "todos") {
-        await fetchEquipos();
-      } else if (tipo === "otros") {
-        const todos = await getEquipos();
-        setEquipos(todos.filter(eq =>
-          !["celular", "notebook", "pc"].includes(eq.tipo?.toLowerCase())
-        ));
-      } else {
-        const data = await getEquiposByTipo(tipo);
-        setEquipos(Array.isArray(data) ? data : []);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchEquipos]);
+    setClienteFiltroId(null);
+  }, []);
 
-  const buscarPorCliente = useCallback(async (clienteId) => {
-    setLoading(true);
+  const buscarPorCliente = useCallback((clienteId) => {
     setFiltroEquipo("");
-    try {
-      if (!clienteId) {
-        await fetchEquipos();
-      } else {
-        const data = await getEquiposByClienteId(clienteId);
-        setEquipos(Array.isArray(data) ? data : []);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchEquipos]);
+    setFiltro("todos");
+    setClienteFiltroId(clienteId ? Number(clienteId) : null);
+  }, []);
 
   const handleDelete = useCallback(async (id) => {
     const result = await Swal.fire({
