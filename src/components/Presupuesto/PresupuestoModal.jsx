@@ -951,6 +951,14 @@ const PresupuestoModal = ({
                             </label>
                           </>
                         )}
+                        {l.tipo_calculo === "manual" && (
+                          <label className="flex flex-col gap-1">
+                            <span className="text-neutral-400">Costo</span>
+                            <input inputMode="numeric" value={l.costo_repuesto} placeholder="0"
+                              onChange={(e) => actualizarLineaServ(l.key, { costo_repuesto: e.target.value.replace(/[^\d]/g, "") })}
+                              className="bg-neutral-700 text-white p-1.5 rounded" />
+                          </label>
+                        )}
                         {l.tipo_calculo !== "manual" && (
                           <label className="flex flex-col gap-1">
                             <span className="text-neutral-400">Recargo %</span>
@@ -984,6 +992,13 @@ const PresupuestoModal = ({
                           )}
                         </span>
                         <span className="text-neutral-300">
+                          {l.tipo_calculo === "manual" && numero(l.costo_repuesto) > 0 && (
+                            <span className="text-neutral-400 mr-2">
+                              Ganancia: <strong className={numero(l.precio_final) - numero(l.costo_repuesto) < 0 ? "text-red-400" : "text-emerald-400"}>
+                                {formatPesos((numero(l.precio_final) - numero(l.costo_repuesto)) * cant)}
+                              </strong>
+                            </span>
+                          )}
                           Subtotal: <strong>{formatPesos(numero(l.precio_final) * cant)}</strong>
                         </span>
                       </div>
