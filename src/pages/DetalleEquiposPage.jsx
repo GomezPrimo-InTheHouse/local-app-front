@@ -637,7 +637,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import { getEquipoById } from "../api/EquiposApi.jsx";
-import { getPresupuestosByEquipo, deletePresupuesto, aprobarPresupuesto } from "../api/PresupuestoApi.jsx";
+import { getPresupuestosByEquipo, deletePresupuesto } from "../api/PresupuestoApi.jsx";
 import { getEstados } from "../api/EstadoApi.jsx";
 import { updateOrdenTrabajo } from "../api/OrdenTrabajoApi.jsx";
 import Swal from "sweetalert2";
@@ -794,31 +794,6 @@ const DetalleEquiposPage = () => {
     // ⬇️ CAMBIO CLAVE: usamos orden_trabajo_id, con fallback a ingreso_id por compatibilidad
     setOrdenSeleccionada({ id: presupuesto.orden_trabajo_id ?? presupuesto.ingreso_id });
     setModalAbierto(true);
-  };
-
-  const handleGenerarVenta = async (presupuesto) => {
-    try {
-      const presupuestoId = presupuesto.presupuesto_id ?? presupuesto.id;
-      if (!presupuestoId) { showAlert("No se encontró el ID del presupuesto.", "error"); return; }
-
-      const result = await Swal.fire({
-        title: "Generar venta",
-        text: "Se aprobará este presupuesto y se generará una venta. ¿Continuás?",
-        icon: "question",
-        showCancelButton: true,
-        confirmButtonText: "Sí, generar venta",
-        cancelButtonText: "Cancelar",
-        theme: "dark",
-      });
-      if (!result.isConfirmed) return;
-
-      await aprobarPresupuesto(presupuestoId);
-      showAlert("Venta generada ✅", "success");
-      await fetchAll();
-    } catch (error) {
-      console.error("Error generando venta:", error);
-      showAlert("Error al generar venta ❌", "error");
-    }
   };
 
   if (loading) return <p className="text-neutral-400 p-6">Cargando...</p>;
@@ -1038,10 +1013,6 @@ const DetalleEquiposPage = () => {
                           className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-sm font-medium">Modificar</button>
                         <button onClick={() => handleEliminarPresupuesto(p.presupuesto_id ?? p.id)}
                           className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-sm font-medium">Eliminar</button>
-                        {!tieneVenta && (
-                          <button onClick={() => handleGenerarVenta(p)}
-                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-sm font-semibold">Generar venta</button>
-                        )}
                         {tieneVenta && <span className="text-[11px] text-emerald-300">Venta ID: {p.venta_id}</span>}
                       </div>
                     </li>
