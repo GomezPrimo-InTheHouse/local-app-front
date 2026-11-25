@@ -365,11 +365,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   createPresupuesto,
   updatePresupuesto,
-  savePresupuestoDetalles,
-  getPresupuestoWithDetalles,
 } from "../../api/PresupuestoApi";
 import { getEstadoByAmbito } from "../../api/EstadoApi.jsx";
-import { getProductosRepuestoByTipoEquipo } from "../../api/ProductoApi.jsx";
 import {
   getServicios,
   getConfiguracionServicios,
@@ -410,12 +407,9 @@ const PresupuestoModal = ({
   esEdicion = false,
   onPresupuestoGuardado,
   showAlert,
-  tipoEquipo,
 }) => {
   const [estados, setEstados] = useState([]);
   const [loadingEstados, setLoadingEstados] = useState(true);
-  const [productos, setProductos] = useState([]);
-  const [loadingProductos, setLoadingProductos] = useState(false);
 
   const [formData, setFormData] = useState({
     fecha: new Date().toISOString().split("T")[0],
@@ -425,11 +419,6 @@ const PresupuestoModal = ({
     estado_id: "",
   });
 
-  const [busquedaProd, setBusquedaProd] = useState("");
-  const [productoSeleccionadoId, setProductoSeleccionadoId] = useState("");
-  const [cantidadProducto, setCantidadProducto] = useState("1");
-  const [precioProducto, setPrecioProducto] = useState("");
-  const [lineas, setLineas] = useState([]);
 
   // Servicios
   const [servicios, setServicios] = useState([]);
@@ -458,22 +447,6 @@ const PresupuestoModal = ({
       }
     })();
   }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    (async () => {
-      try {
-        setLoadingProductos(true);
-        const lista = await getProductosRepuestoByTipoEquipo(tipoEquipo);
-        setProductos(Array.isArray(lista) ? lista : []);
-      } catch (e) {
-        console.error("Error cargando productos:", e);
-        setProductos([]);
-      } finally {
-        setLoadingProductos(false);
-      }
-    })();
-  }, [isOpen, tipoEquipo]);
 
   // Catálogo de servicios + configuración de precios
   useEffect(() => {
@@ -538,7 +511,6 @@ const PresupuestoModal = ({
         observaciones: presupuesto.observaciones_presupuesto ?? "",
         estado_id: String(presupuesto.estado_presupuesto_id ?? pendienteId ?? ""),
       });
-      setLineas([]);
     } else {
       setFormData({
         fecha: new Date().toISOString().split("T")[0],
@@ -547,31 +519,8 @@ const PresupuestoModal = ({
         observaciones: "",
         estado_id: pendienteId ? String(pendienteId) : "",
       });
-      setLineas([]);
     }
-    setBusquedaProd("");
-    setProductoSeleccionadoId("");
-    setCantidadProducto("1");
-    setPrecioProducto("");
   }, [isOpen, esEdicion, presupuesto, pendienteId]);
-
-  useEffect(() => {
-    if (!isOpen || !esEdicion || !presupuesto?.presupuesto_id) return;
-    (async () => {
-      try {
-        const full = await getPresupuestoWithDetalles(presupuesto.presupuesto_id);
-        const detalles = (full.presupuesto_detalle || []).map(d => ({
-          producto_id:    d.producto_id,
-          cantidad:       d.cantidad,
-          precio_unitario: d.precio_unitario,
-          nombre:         d.producto?.nombre || "",
-        }));
-        setLineas(detalles);
-      } catch (error) {
-        console.error("Error cargando detalles:", error);
-      }
-    })();
-  }, [isOpen, esEdicion, presupuesto]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -587,44 +536,6 @@ const PresupuestoModal = ({
     if (Number.isNaN(n)) return "0";
     return n.toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   };
-
-  useEffect(() => {
-    if (!productoSeleccionadoId) { setPrecioProducto(""); return; }
-    const prod = productos.find(p => Number(p.id) === Number(productoSeleccionadoId));
-    if (prod) setPrecioProducto(prod.precio != null ? String(prod.precio).replace(",", ".") : "");
-  }, [productoSeleccionadoId, productos]);
-
-  const handleAgregarLinea = () => {
-    const prodId   = Number(productoSeleccionadoId);
-    const cantidad = parseInt(cantidadProducto || "0", 10);
-    const precioUnit = parseFloat(precioProducto || "0");
-
-    if (!prodId)            { showAlert?.("Seleccioná un producto.", "warning"); return; }
-    if (!cantidad || cantidad <= 0) { showAlert?.("La cantidad debe ser mayor a 0.", "warning"); return; }
-    if (!precioUnit || precioUnit <= 0) { showAlert?.("El precio debe ser mayor a 0.", "warning"); return; }
-
-    const prod    = productos.find(p => Number(p.id) === prodId);
-    const nombre  = prod?.nombre || `Producto #${prodId}`;
-    const subtotal = cantidad * precioUnit;
-
-    setLineas(prev => {
-      const idx = prev.findIndex(l => l.producto_id === prodId);
-      if (idx >= 0) {
-        const copia = [...prev];
-        const nuevaCant = copia[idx].cantidad + cantidad;
-        copia[idx] = { ...copia[idx], cantidad: nuevaCant, precio_unitario: precioUnit, subtotal: nuevaCant * precioUnit };
-        return copia;
-      }
-      return [...prev, { tempId: `${prodId}-${Date.now()}`, producto_id: prodId, nombre, cantidad, precio_unitario: precioUnit, subtotal }];
-    });
-    setCantidadProducto("1");
-  };
-
-  const handleEliminarLinea = (tempIdOrProdId) => {
-    setLineas(prev => prev.filter(l => l.tempId !== tempIdOrProdId && l.producto_id !== tempIdOrProdId));
-  };
-
-  const totalProductos = useMemo(() => lineas.reduce((acc, l) => acc + (l.subtotal || 0), 0), [lineas]);
 
   // ---- Servicios: agregar / editar / quitar ----
   const serviciosFiltrados = useMemo(() => {
@@ -777,14 +688,6 @@ const PresupuestoModal = ({
         })));
       }
 
-      if (presupuestoId && lineas.length > 0) {
-        await savePresupuestoDetalles(presupuestoId, lineas.map(l => ({
-          producto_id:    l.producto_id,
-          cantidad:       l.cantidad,
-          precio_unitario: l.precio_unitario,
-        })));
-      }
-
       onPresupuestoGuardado?.();
       onClose();
     } catch (error) {
@@ -794,12 +697,6 @@ const PresupuestoModal = ({
   };
 
   if (!isOpen) return null;
-
-  const productosFiltrados = productos.filter(p => {
-    if (!busquedaProd.trim()) return true;
-    const q = busquedaProd.toLowerCase();
-    return p.nombre?.toLowerCase().includes(q) || p.descripcion?.toLowerCase().includes(q);
-  });
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
@@ -1013,66 +910,6 @@ const PresupuestoModal = ({
             ) : (
               <p className="mt-2 text-[11px] text-neutral-400">
                 Agregá servicios para calcular el total automáticamente, o cargá total y costo a mano como siempre.
-              </p>
-            )}
-          </div>
-
-          {/* Sección productos */}
-          <div className="border border-white/10 rounded-xl p-3 sm:p-4 bg-neutral-900/40">
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-              <h3 className="text-sm font-semibold">Productos para este presupuesto</h3>
-              {tipoEquipo && <span className="text-[11px] text-neutral-300/80">Equipo: <span className="font-medium">{tipoEquipo}</span></span>}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
-              <div className="sm:col-span-2">
-                <input type="text" value={busquedaProd} onChange={e => setBusquedaProd(e.target.value)}
-                  placeholder="Buscar producto..." className="w-full bg-neutral-700 text-white p-2 rounded text-sm" />
-                <select value={productoSeleccionadoId} onChange={e => setProductoSeleccionadoId(e.target.value)}
-                  className="w-full bg-neutral-700 text-white p-2 rounded mt-2 text-sm" disabled={loadingProductos}>
-                  <option value="">{loadingProductos ? "Cargando..." : "Seleccioná un producto"}</option>
-                  {productosFiltrados.map(p => (
-                    <option key={p.id} value={p.id}>{p.nombre}{p.precio != null ? ` — $${formatMoneySeguro(p.precio)}` : ""}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-col gap-2">
-                <div className="flex gap-2">
-                  <input type="number" min="1" value={cantidadProducto} onChange={e => setCantidadProducto(e.target.value)}
-                    className="w-20 bg-neutral-700 text-white p-2 rounded text-sm" placeholder="Cant." />
-                  <input type="number" step="0.01" value={precioProducto} onChange={e => setPrecioProducto(e.target.value)}
-                    className="flex-1 bg-neutral-700 text-white p-2 rounded text-sm" placeholder="Precio" />
-                </div>
-                <button type="button" onClick={handleAgregarLinea}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-sm font-semibold py-2 rounded" disabled={loadingProductos}>
-                  Agregar
-                </button>
-              </div>
-            </div>
-
-            {lineas.length > 0 ? (
-              <div className="mt-3 border-t border-white/10 pt-3 space-y-2">
-                <div className="flex justify-between text-xs text-neutral-300">
-                  <span>Productos agregados</span>
-                  <span>Total: <strong>${formatMoneySeguro(totalProductos)}</strong></span>
-                </div>
-                <ul className="space-y-2 text-xs sm:text-sm">
-                  {lineas.map(l => (
-                    <li key={l.tempId ?? `${l.producto_id}-${l.nombre}`}
-                      className="flex items-center justify-between gap-2 rounded-lg bg-neutral-800/80 px-2 py-1.5">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{l.nombre}</p>
-                        <p className="text-neutral-300/80">{l.cantidad} unid. x ${formatMoneySeguro(l.precio_unitario)} = <span className="font-semibold">${formatMoneySeguro(l.subtotal)}</span></p>
-                      </div>
-                      <button type="button" onClick={() => handleEliminarLinea(l.tempId ?? l.producto_id)}
-                        className="text-xs text-red-400 hover:text-red-300">✕</button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              <p className="mt-2 text-[11px] text-neutral-400">
-                Podés guardar sin productos o sumarlos para que luego se conviertan en venta.
               </p>
             )}
           </div>
