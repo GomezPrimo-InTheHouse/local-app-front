@@ -98,6 +98,15 @@ import { parseJwt, isTokenExpired } from "../utils/Jwt";
 
 export const AuthContext = createContext();
 
+// { userId, email, rol, nombre, modulos[] } a partir del payload del JWT
+const usuarioDesdeToken = (payload) => ({
+  userId: payload.userId,
+  email: payload.email,
+  rol: payload.rol,
+  nombre: payload.nombre ?? null,
+  modulos: Array.isArray(payload.modulos) ? payload.modulos : [],
+});
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null); // { email, rol, userId }
   const [loading, setLoading] = useState(true);
@@ -112,7 +121,7 @@ export const AuthProvider = ({ children }) => {
         // si no expiró, usarlo
         if (!isTokenExpired(accessToken)) {
           const payload = parseJwt(accessToken);
-          setUser({ email: payload.email, rol: payload.rol, userId: payload.userId });
+          setUser(usuarioDesdeToken(payload));
           api.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
           setLoading(false);
           return;
@@ -125,7 +134,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem("accessToken", resp.accessToken);
             api.defaults.headers.common["Authorization"] = `Bearer ${resp.accessToken}`;
             const payload = parseJwt(resp.accessToken);
-            setUser({ email: payload.email, rol: payload.rol, userId: payload.userId });
+            setUser(usuarioDesdeToken(payload));
             setLoading(false);
             return;
           } catch (err) {
@@ -159,7 +168,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem("auth_email", email);
     api.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
     const payload = parseJwt(accessToken);
-    setUser({ email: payload.email, rol: payload.rol, userId: payload.userId });
+    setUser(usuarioDesdeToken(payload));
     return data;
   };
 
@@ -168,10 +177,16 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const esAdmin = user?.rol === "admin";
+  // Admin accede a todo; el empleado solo a sus módulos habilitados
+  const puede = (modulo) => esAdmin || (user?.modulos || []).includes(modulo);
+
   const value = {
     user,
     loading,
     isAuthenticated: !!user,
+    esAdmin,
+    puede,
     register,
     login,
     logout,

@@ -214,6 +214,7 @@ const EquipoGrid = ({
   balanceByEquipoId,
   getNombreEstado,
   mostrarBalances,
+  sinMontos = false, // empleados: no se muestra ningún monto
   filtroEquipo,
   loading,
   onHistorial,
@@ -296,6 +297,7 @@ const EquipoGrid = ({
                   {equiposMes.length} equipo{equiposMes.length !== 1 ? "s" : ""}
                 </p>
               </div>
+              {!sinMontos && (
               <div className="text-right text-xs text-neutral-500 hidden sm:block">
                 <span className="text-green-400 font-medium">
                   ${Number(data.totalVenta || 0).toLocaleString("es-AR")}
@@ -305,6 +307,7 @@ const EquipoGrid = ({
                   bal ${Number(data.totalBalance || 0).toLocaleString("es-AR")}
                 </span>
               </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -315,6 +318,7 @@ const EquipoGrid = ({
                   balance={balanceByEquipoId[eq.id]}
                   estadoNombre={getNombreEstado(eq.estado_id)}
                   mostrarBalances={mostrarBalances}
+                  sinMontos={sinMontos}
                   onHistorial={onHistorial}
                   onModificar={onModificar}
                   onDelete={onDelete}

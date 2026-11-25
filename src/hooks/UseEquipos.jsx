@@ -260,6 +260,7 @@ import {
 } from "../api/EquiposApi.jsx";
 import { getBalancesPresupuestos } from "../api/PresupuestoApi.jsx";
 import { getEstados } from "../api/EstadoApi.jsx";
+import useAuth from "./UseAuth.jsx";
 import Swal from "sweetalert2";
 
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
@@ -319,6 +320,7 @@ const calcularRango = (periodo) => {
 };
 
 export const useEquipos = () => {
+  const { esAdmin } = useAuth();
   const [equipos, setEquipos]           = useState([]);
   const [loading, setLoading]           = useState(true);
   const [balances, setBalances]         = useState([]);
@@ -347,13 +349,14 @@ export const useEquipos = () => {
   }, []);
 
   const fetchBalances = useCallback(async () => {
+    if (!esAdmin) { setBalances([]); return; } // montos: solo admin
     try {
       const res = await getBalancesPresupuestos();
       setBalances(res.data || []);
     } catch (err) {
       console.error("Error al traer balances:", err);
     }
-  }, []);
+  }, [esAdmin]);
 
   useEffect(() => {
     (async () => {

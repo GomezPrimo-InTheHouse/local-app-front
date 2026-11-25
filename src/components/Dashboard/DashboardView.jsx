@@ -7,6 +7,7 @@ import KPICard         from "../Dashboard/KPICard";
 import ResumenSemana   from "../Dashboard/ResumenSemana.jsx";
 import ResumenVentasSemana from "../Dashboard/ResumenVentasSemana.jsx";
 import { Wallet, Wrench, ShoppingCart, TrendingUp } from "lucide-react";
+import AccesosEmpleado from "../Dashboard/AccesosEmpleado.jsx";
 
 const safeNum = (n) => (Number.isFinite(Number(n)) ? Number(n) : 0);
 
@@ -18,6 +19,7 @@ const DashboardView = ({
   currentYear,
   handleLogout,
   handleOpenModal,
+  esAdmin = false,
 }) => {
   const stats          = resumenData?.data ?? null;
   const resumenGeneral = stats?.resumen_general ?? { total_facturado: 0, costo_total: 0, balance_total: 0 };
@@ -46,7 +48,7 @@ const DashboardView = ({
             <div className="flex items-end justify-between gap-4">
               <div>
                 <p className="text-xs tracking-widest text-neutral-500 uppercase mb-1">
-                  Resumen operativo
+                  {esAdmin ? "Resumen operativo" : "Panel de trabajo"}
                 </p>
                 <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white capitalize">
                   {mesNombre} {currentYear}
@@ -60,6 +62,10 @@ const DashboardView = ({
             <div className="mt-4 h-px bg-gradient-to-r from-transparent via-neutral-800 to-transparent" />
           </header>
 
+          {!esAdmin ? (
+            <AccesosEmpleado />
+          ) : (
+          <>
           {/* ── KPI Grid ── */}
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-6 min-w-0">
             <KPICard
@@ -114,6 +120,8 @@ const DashboardView = ({
             <ResumenSemana />
             <ResumenVentasSemana />
           </div>
+          </>
+          )}
 
         </main>
       </div>

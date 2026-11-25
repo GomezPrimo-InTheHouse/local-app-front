@@ -9,12 +9,14 @@ import {
   deleteCliente,
 } from "../api/ClienteApi";
 import { getResumenBalanceClientes } from "../api/HistorialApi.jsx";
+import useAuth from "../hooks/UseAuth.jsx";
 import ClienteModal from "../components/Cliente/ClienteModal.jsx";
 import HistorialPagosVentasModal from "../components/Pagos/HistorialPagosVentasModal.jsx";
 import { useNavigate } from "react-router-dom";
 import AlertNotification from "../components/Alerta/AlertNotification.jsx";
 
 const ClientePage = () => {
+  const { esAdmin } = useAuth(); // balances por cliente: solo admin
   const [clientes, setClientes] = useState([]);
   const [filteredClientes, setFilteredClientes] = useState([]);
   const [search, setSearch] = useState("");
@@ -101,8 +103,8 @@ const ClientePage = () => {
   };
 
   useEffect(() => {
-    if (Array.isArray(clientes) && clientes.length > 0) cargarBalances();
-  }, [clientes]);
+    if (esAdmin && Array.isArray(clientes) && clientes.length > 0) cargarBalances();
+  }, [clientes, esAdmin]);
 
   // ---- Acciones CRUD ----
   const handleAgregar = () => {
@@ -258,11 +260,13 @@ const ClientePage = () => {
             />
 
             {/* Leyenda balances */}
+            {esAdmin && (
             <div className="mt-3 text-[11px] text-neutral-300/80">
               {loadingBalances
                 ? "Calculando balances…"
                 : "Mini balance: neto (Total − Costos)."}
             </div>
+            )}
           </div>
         </aside>
 
@@ -331,10 +335,12 @@ const ClientePage = () => {
                               </div>
                             </div>
 
-                            {/* Mini balance */}
+                            {/* Mini balance (solo admin) */}
+                            {esAdmin && (
                             <span className={`px-2 py-1 rounded-full border text-[11px] ${chip}`} title="Balance neto">
                               {currency(bal?.balance ?? 0)}
                             </span>
+                            )}
                           </div>
 
                           <div className="rounded-lg border border-white/10 bg-white/5 p-3">
@@ -397,10 +403,12 @@ const ClientePage = () => {
                           </div>
 
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            {/* Mini balance en desktop */}
+                            {/* Mini balance en desktop (solo admin) */}
+                            {esAdmin && (
                             <span className={`px-2 py-1 rounded-full border text-[12px] ${chip}`} title="Balance neto">
                               {currency(bal?.balance ?? 0)}
                             </span>
+                            )}
 
                             <button
                               onClick={() => handleVerHistorial(cli.id)}
@@ -436,11 +444,13 @@ const ClientePage = () => {
             </div>
 
             {/* Sección informativa/ayuda (otro fondo para separar) */}
+            {esAdmin && (
             <div className="rounded-2xl border border-white/10 bg-neutral-800/30 p-4">
               <p className="text-xs text-neutral-300/80">
                 Tip: el mini balance es el <b>neto</b> de cada cliente (Total − Costos) de reparaciones (presupuestos no pendientes ni rechazados) más ventas activas.
               </p>
             </div>
+            )}
           </div>
         </section>
       </div>

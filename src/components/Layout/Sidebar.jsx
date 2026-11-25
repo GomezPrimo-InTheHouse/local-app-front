@@ -1,19 +1,24 @@
 // src/components/Layout/Sidebar.jsx
 import { Link, useLocation } from "react-router-dom";
+import useAuth from "../../hooks/UseAuth.jsx";
 
+// modulo: módulo habilitable por empleado · soloAdmin: nunca visible para empleados
 const NAV_ITEMS = [
-  { to: "/clientes",                label: "Clientes",   emoji: "👥", color: "bg-rose-600 hover:bg-rose-700" },
-  { to: "/equipos",                 label: "Equipos",    emoji: "💻", color: "bg-orange-500 hover:bg-orange-600" },
-  { to: "/estadisticas-historicas", label: "Históricas", emoji: "📈", color: "bg-indigo-600 hover:bg-indigo-700" },
-  { to: "/ventas",                  label: "Ventas",     emoji: "🛒", color: "bg-green-600 hover:bg-green-700" },
-  { to: "/productos",               label: "Productos",  emoji: "📦", color: "bg-emerald-600 hover:bg-emerald-700" },
-  { to: "/servicios",               label: "Servicios",  emoji: "🛠️", color: "bg-amber-600 hover:bg-amber-700" },
-  { to: "/celulares",               label: "Celulares",  emoji: "📱", color: "bg-sky-600 hover:bg-sky-700" },
+  { to: "/clientes",                label: "Clientes",   emoji: "👥", color: "bg-rose-600 hover:bg-rose-700",       modulo: "clientes" },
+  { to: "/equipos",                 label: "Equipos",    emoji: "💻", color: "bg-orange-500 hover:bg-orange-600",   modulo: "equipos" },
+  { to: "/estadisticas-historicas", label: "Históricas", emoji: "📈", color: "bg-indigo-600 hover:bg-indigo-700",   soloAdmin: true },
+  { to: "/ventas",                  label: "Ventas",     emoji: "🛒", color: "bg-green-600 hover:bg-green-700",     modulo: "ventas" },
+  { to: "/productos",               label: "Productos",  emoji: "📦", color: "bg-emerald-600 hover:bg-emerald-700", modulo: "productos" },
+  { to: "/servicios",               label: "Servicios",  emoji: "🛠️", color: "bg-amber-600 hover:bg-amber-700",     modulo: "servicios" },
+  { to: "/celulares",               label: "Celulares",  emoji: "📱", color: "bg-sky-600 hover:bg-sky-700",         modulo: "celulares" },
+  { to: "/empleados",               label: "Empleados",  emoji: "🧑‍🔧", color: "bg-fuchsia-700 hover:bg-fuchsia-800", soloAdmin: true },
 ];
 
 const SidebarNav = ({ handleOpenModal }) => {
   const location = useLocation();
+  const { esAdmin, puede } = useAuth();
   const isActive = (to) => location.pathname.startsWith(to);
+  const items = NAV_ITEMS.filter((it) => (it.soloAdmin ? esAdmin : puede(it.modulo)));
 
   return (
     <aside className="
@@ -37,7 +42,7 @@ const SidebarNav = ({ handleOpenModal }) => {
 
         {/* ── MOBILE: barra horizontal ── */}
         <div className="lg:hidden flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
-          {NAV_ITEMS.map(item => (
+          {items.map(item => (
             <Link key={item.to} to={item.to}
               className={`
                 shrink-0 h-9 inline-flex items-center justify-center gap-1.5
@@ -49,10 +54,12 @@ const SidebarNav = ({ handleOpenModal }) => {
               <span className="hidden xs:inline">{item.label}</span>
             </Link>
           ))}
-          <button onClick={handleOpenModal}
-            className="shrink-0 h-9 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all">
-            📊 <span className="hidden xs:inline">Estadísticas</span>
-          </button>
+          {esAdmin && (
+            <button onClick={handleOpenModal}
+              className="shrink-0 h-9 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all">
+              📊 <span className="hidden xs:inline">Estadísticas</span>
+            </button>
+          )}
         </div>
 
         {/* ── DESKTOP: sidebar completo ── */}
@@ -60,7 +67,7 @@ const SidebarNav = ({ handleOpenModal }) => {
           <div className="rounded-2xl border border-white/10 bg-neutral-800/70 p-4 shadow-sm">
             <p className="text-[11px] tracking-widest text-neutral-500 uppercase mb-3">Módulos</p>
             <div className="space-y-2">
-              {NAV_ITEMS.map(item => {
+              {items.map(item => {
                 const active = isActive(item.to);
                 return (
                   <Link key={item.to} to={item.to}
@@ -78,11 +85,13 @@ const SidebarNav = ({ handleOpenModal }) => {
                   </Link>
                 );
               })}
-              <button onClick={handleOpenModal}
-                className="w-full h-11 inline-flex items-center gap-3 rounded-xl px-4 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 opacity-90 hover:opacity-100 transition-all duration-150">
-                <span className="text-base">📊</span>
-                <span className="truncate">Estadísticas</span>
-              </button>
+              {esAdmin && (
+                <button onClick={handleOpenModal}
+                  className="w-full h-11 inline-flex items-center gap-3 rounded-xl px-4 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 opacity-90 hover:opacity-100 transition-all duration-150">
+                  <span className="text-base">📊</span>
+                  <span className="truncate">Estadísticas</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

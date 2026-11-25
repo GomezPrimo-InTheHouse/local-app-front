@@ -14,6 +14,7 @@ import PresupuestoModal        from "../components/Presupuesto/PresupuestoModal.
 import FiltroPeriodo           from "../components/Equipo/FiltroPeriodo.jsx";
 import AvisoWhatsappModal      from "../components/Equipo/AvisoWhatsappModal.jsx";
 import { getClienteById }      from "../api/ClienteApi";
+import useAuth                 from "../hooks/UseAuth.jsx";
 
 // Preferencias de vista que se recuerdan en este navegador
 const usePreferenciaBool = (clave, inicial = false) => {
@@ -67,6 +68,7 @@ const EquipoPage = () => {
     handleDelete,
     handleSubmitEquipo,
   } = useEquipos();
+  const { esAdmin } = useAuth(); // montos y resúmenes: solo admin
 
   // OJO: el nombre es histórico — mostrarBalances = true significa "montos ocultos (****)"
   const [mostrarBalances, toggleMontos]  = usePreferenciaBool("jg_equipos_montos_ocultos");
@@ -211,10 +213,12 @@ const EquipoPage = () => {
                       "{filtroEquipo}"
                     </span>
                   )}
+                  {esAdmin && (
                   <button onClick={toggleMontos}
                     className="px-3 py-1.5 rounded-lg bg-neutral-800/70 hover:bg-neutral-800 border border-white/10 text-xs sm:text-sm transition-colors">
                     {mostrarBalances ? "👁 Mostrar montos" : "🙈 Ocultar montos"}
                   </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -222,13 +226,14 @@ const EquipoPage = () => {
             <div className="px-3 sm:px-4 py-4 space-y-6">
               {/* Buscador + Balance global */}
               <section className="rounded-2xl border border-white/10 bg-neutral-800/40 p-3 sm:p-4">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                  <div className="lg:col-span-2">
+                <div className={`grid grid-cols-1 gap-3 ${esAdmin ? "lg:grid-cols-3" : ""}`}>
+                  <div className={esAdmin ? "lg:col-span-2" : ""}>
                     <BuscadorComponent
                       onBuscar={buscarPorCliente}
                       onBuscarEquipo={setFiltroEquipo}
                     />
                   </div>
+                  {esAdmin && (
                   <div className="rounded-xl border border-white/10 bg-neutral-900/40 p-3 flex items-center justify-between">
                     <span className="text-sm text-neutral-300 flex items-center gap-2">
                       <IconMoney /> {hayPeriodo ? "Balance del PERÍODO" : "Balance GLOBAL"}
@@ -237,6 +242,7 @@ const EquipoPage = () => {
                       {mostrarBalances ? "******" : `$${formatPrice(balanceArriba)}`}
                     </span>
                   </div>
+                  )}
                 </div>
               </section>
 
@@ -247,18 +253,21 @@ const EquipoPage = () => {
                 cantidad={equiposFiltrados.length}
               />
 
+              {esAdmin && (
               <EquipoBalanceTable
                 equiposAgrupadosPorMes={equiposAgrupadosPorMes}
                 mostrarBalances={mostrarBalances}
                 oculto={resumenOculto}
                 onToggleOculto={toggleResumen}
               />
+              )}
 
               <EquipoGrid
                 equiposAgrupadosPorMes={equiposAgrupadosPorMes}
                 balanceByEquipoId={balanceByEquipoId}
                 getNombreEstado={getNombreEstado}
                 mostrarBalances={mostrarBalances}
+                sinMontos={!esAdmin}
                 filtroEquipo={filtroEquipo}
                 loading={loading}
                 onHistorial={handleAbrirHistorial}

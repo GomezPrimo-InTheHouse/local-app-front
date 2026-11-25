@@ -16,6 +16,8 @@ const CelularesPage = lazy(() => import("../pages/CelularesPage.jsx"));
 const ServiciosPage = lazy(() => import("../pages/ServiciosPage.jsx"));
 const Login = lazy(() => import("../pages/LoginPage.jsx"));
 const ProtectedRoute = lazy(() => import("../components/ProtectedRoute.jsx"));
+const RequireModulo = lazy(() => import("../components/Auth/RequireModulo.jsx"));
+const EmpleadosPage = lazy(() => import("../pages/EmpleadosPage.jsx"));
 
 // ⬇️ Fallback minimalista mientras cargan los chunks
 function RouteFallback() {
@@ -39,19 +41,39 @@ export default function AppRoutes() {
 
           {/* Rutas protegidas */}
           <Route element={<ProtectedRoute />}>
+            {/* Inicio: el admin ve KPIs; el empleado, sus accesos directos */}
             <Route path="/" element={<Dashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/clientes" element={<ClientePage />} />
-            <Route path="/estadisticas" element={<Estadisticas />} />
-            <Route path="/equipos" element={<EquipoPage />} />
-            <Route path="/ventas" element={<VentasPage />} />
-            <Route path="/productos" element={<ProductoPage />} />
-            <Route path="/estadisticas-historicas" element={<EstadisticasHistoricasPage />} />
-            <Route path="/celulares" element={<CelularesPage />} />
-            <Route path="/servicios" element={<ServiciosPage />} />
-            <Route path="/equipos/:id" element={<DetalleDeEquipoPage />} />
-            <Route path="/equipos/:id/historial" element={<Historial />} />
-            <Route path="/historial/cliente/:clienteId" element={<Historial />} />
+
+            {/* Módulos habilitables por empleado */}
+            <Route element={<RequireModulo modulo="clientes" />}>
+              <Route path="/clientes" element={<ClientePage />} />
+              <Route path="/historial/cliente/:clienteId" element={<Historial />} />
+            </Route>
+            <Route element={<RequireModulo modulo="equipos" />}>
+              <Route path="/equipos" element={<EquipoPage />} />
+              <Route path="/equipos/:id" element={<DetalleDeEquipoPage />} />
+              <Route path="/equipos/:id/historial" element={<Historial />} />
+            </Route>
+            <Route element={<RequireModulo modulo="ventas" />}>
+              <Route path="/ventas" element={<VentasPage />} />
+            </Route>
+            <Route element={<RequireModulo modulo="productos" />}>
+              <Route path="/productos" element={<ProductoPage />} />
+            </Route>
+            <Route element={<RequireModulo modulo="servicios" />}>
+              <Route path="/servicios" element={<ServiciosPage />} />
+            </Route>
+            <Route element={<RequireModulo modulo="celulares" />}>
+              <Route path="/celulares" element={<CelularesPage />} />
+            </Route>
+
+            {/* Siempre solo admin */}
+            <Route element={<RequireModulo soloAdmin />}>
+              <Route path="/estadisticas" element={<Estadisticas />} />
+              <Route path="/estadisticas-historicas" element={<EstadisticasHistoricasPage />} />
+              <Route path="/empleados" element={<EmpleadosPage />} />
+            </Route>
           </Route>
         </Routes>
       </Suspense>

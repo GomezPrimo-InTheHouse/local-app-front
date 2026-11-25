@@ -736,6 +736,7 @@ import VentasModal from "../components/Ventas/VentasModal.jsx";
 import VentasModalWebShop from "../components/Ventas/VentasModalWebShop.jsx";
 import HistorialPagosVentasModal from "../components/Pagos/HistorialPagosVentasModal.jsx";
 import BuscadorComponent from "../components/General/BuscadorComponent.jsx";
+import useAuth from "../hooks/UseAuth.jsx";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.css";
 import {
@@ -851,6 +852,7 @@ const IconUsers = () => (
 );
 
 const VentasPage = () => {
+  const { esAdmin } = useAuth(); // resúmenes y balances: solo admin
   const navigate = useNavigate();
   const [ventas, setVentas] = useState([]);
   const [productos, setProductos] = useState([]);
@@ -1295,6 +1297,7 @@ const VentasPage = () => {
         </div>
 
         {/* Card de Balance Neto General */}
+        {esAdmin && (
         <div className="p-5 bg-neutral-900 border border-neutral-800 rounded-xl shadow-lg transition duration-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -1310,11 +1313,12 @@ const VentasPage = () => {
             </span>
           </div>
         </div>
+        )}
 
         {/* ------------------------------------------------------------- */}
         {/* ✅ NUEVO: Vista Rápida de Balance Mensual (Ventas - Costos)  */}
         {/* ------------------------------------------------------------- */}
-        {ventasAgrupadasPorMes.length > 0 && (
+        {esAdmin && ventasAgrupadasPorMes.length > 0 && (
           <div className="pt-4">
             <h2 className="text-xl font-semibold text-white mb-4">
               Resumen de Balance por Mes
@@ -1403,7 +1407,8 @@ const VentasPage = () => {
                         </p>
                       </div>
 
-                      {/* Balance Mensual destacado */}
+                      {/* Balance Mensual destacado (solo admin) */}
+                      {esAdmin && (
                       <div className="text-right flex flex-col items-end">
                         <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Balance Mensual
@@ -1415,6 +1420,7 @@ const VentasPage = () => {
                           ${formatPrice(balanceMes)}
                         </span>
                       </div>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">

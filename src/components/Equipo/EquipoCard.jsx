@@ -295,6 +295,7 @@ const EquipoCard = ({
   balance,
   estadoNombre,
   mostrarBalances,
+  sinMontos = false,
   onHistorial,
   onModificar,
   onDelete,
@@ -385,7 +386,8 @@ const EquipoCard = ({
         </p>
       </div>
 
-      {/* BALANCE */}
+      {/* BALANCE (oculto para empleados) */}
+      {!sinMontos && (
       <div className="rounded-lg bg-neutral-800/50 px-3 py-2 space-y-1">
         <div className="flex justify-between text-xs text-neutral-400">
           <span>Total:</span>
@@ -406,6 +408,7 @@ const EquipoCard = ({
           </span>
         </div>
       </div>
+      )}
 
       {/* ACCIONES */}
       <div className="grid grid-cols-2 gap-1.5">

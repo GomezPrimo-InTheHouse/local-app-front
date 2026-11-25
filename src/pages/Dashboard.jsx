@@ -12,7 +12,7 @@ import EstadisticasModal  from "../components/General/EstadisticasModal";
 const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, esAdmin } = useAuth();
 
   const { today, currentMonth, currentYear } = useMemo(() => {
     const d = new Date();
@@ -22,6 +22,7 @@ const Dashboard = () => {
   const { data: resumenData, isLoading } = useQuery({
     queryKey: ["resumenMes", currentMonth, currentYear],
     queryFn:  () => getResumenPorMes(currentMonth, currentYear),
+    enabled:  esAdmin, // los empleados nunca piden estadísticas
   });
 
   const deviceTypeData = useMemo(() => {
@@ -62,9 +63,10 @@ const Dashboard = () => {
         currentYear={currentYear}
         handleLogout={handleLogout}
         handleOpenModal={() => setIsModalOpen(true)}
+        esAdmin={esAdmin}
       />
       <EstadisticasModal
-        isOpen={isModalOpen}
+        isOpen={esAdmin && isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={({ mes, anio }) => navigate(`/estadisticas?mes=${mes}&anio=${anio}`)}
       />
