@@ -5,7 +5,7 @@ import { useEquipos }          from "../hooks/UseEquipos.jsx";
 import SidebarEquipos          from "../components/Equipo/SidebarEquipos.jsx";
 import BuscadorComponent       from "../components/General/BuscadorComponent.jsx";
 import AlertNotification       from "../components/Alerta/AlertNotification.jsx";
-import HistorialPagosModal     from "../components/Pagos/HistorialPagosModal.jsx";
+import HistorialPagosEquiposModal from "../components/Pagos/HistorialPagosEquiposModal.jsx";
 import NuevaOrdenTrabajoModal  from "../components/OrdenTrabajo/NuevaOrdenTrabajoModal.jsx";
 import EquipoModal             from "../components/Equipo/EquipoModal.jsx";
 import EquipoBalanceTable      from "../components/Equipo/EquipoBalanceTable.jsx";
@@ -296,7 +296,7 @@ const EquipoPage = () => {
           equipoSeleccionado={equipoSeleccionado}
         />
 
-        <HistorialPagosModal
+        <HistorialPagosEquiposModal
           isOpen={isHistorialOpen}
           onClose={handleCerrarHistorial}
           clienteId={clienteHistorial.id}
